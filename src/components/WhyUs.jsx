@@ -1,0 +1,61 @@
+import { useEffect, useRef, useState } from 'react';
+
+const items = [
+  {
+    title: 'Novija, potpuno opremljena vozila',
+    text: 'Golf 8 (2024) i Audi A5 Sportback (2022) — redovno servisirana, bogata oprema u oba vozila.',
+    icon: (
+      <path d="M4 17h16M6 17v-4l2-5h8l2 5v4M9 17v2M15 17v2M7 10h10" strokeLinecap="round" strokeLinejoin="round" />
+    ),
+  },
+  {
+    title: 'Bez skrivenih troškova',
+    text: 'Cena koju vidiš je cena koju plaćaš — osiguranje i neograničena kilometraža uključeni.',
+    icon: <path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  {
+    title: 'Besplatno otkazivanje',
+    text: 'Planovi se menjaju — otkaži rezervaciju besplatno do 48h pre preuzimanja vozila.',
+    icon: <path d="M12 7v5l3.5 2M12 3a9 9 0 100 18 9 9 0 000-18z" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+];
+
+export default function WhyUs() {
+  const gridRef = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section id="zasto-mi" className="why-us">
+      <div className="container why-us__inner">
+        <h2 className="why-us__title">Zašto Luciano Rent a Car</h2>
+        <div className={`why-us__grid${visible ? ' why-us__grid--visible' : ''}`} ref={gridRef}>
+          {items.map((item, i) => (
+            <div className="why-us__card" key={item.title} style={{ transitionDelay: `${i * 90}ms` }}>
+              <svg className="why-us__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                {item.icon}
+              </svg>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

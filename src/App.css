@@ -1,0 +1,842 @@
+/* ---------- Header ---------- */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+.site-header--scrolled {
+  background: rgba(11, 12, 15, 0.78);
+  border-bottom-color: var(--color-border);
+  backdrop-filter: blur(14px);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.site-header__logo {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.site-header__logo span {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.site-header__nav {
+  display: flex;
+  gap: 32px;
+}
+
+.site-header__nav a {
+  position: relative;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  font-size: 14.5px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+  padding-bottom: 3px;
+}
+
+.site-header__nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: 0;
+  height: 1.5px;
+  background: var(--color-accent);
+  transition: right 0.25s ease;
+}
+
+.site-header__nav a:hover {
+  color: var(--color-text);
+}
+
+.site-header__nav a:hover::after {
+  right: 0;
+}
+
+.site-header__cta {
+  text-decoration: none;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+  transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.site-header__cta:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 20px rgba(212, 162, 78, 0.3);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 860px) {
+  .site-header__nav {
+    display: none;
+  }
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.hero__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.car-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.car-stage__canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.car-stage__canvas--ready {
+  opacity: 1;
+}
+
+.car-stage__skeleton {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(120deg, #15171c 0%, #1b1e25 50%, #15171c 100%);
+}
+
+.car-stage__skeleton-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(212, 162, 78, 0.12) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: skeletonShine 1.6s ease-in-out infinite;
+}
+
+@keyframes skeletonShine {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+.hero__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 6, 8, 0.88) 0%, rgba(5, 6, 8, 0.55) 42%, rgba(5, 6, 8, 0.15) 68%, rgba(5, 6, 8, 0.35) 100%),
+    linear-gradient(0deg, rgba(5, 6, 8, 0.55) 0%, rgba(5, 6, 8, 0) 28%, rgba(5, 6, 8, 0) 78%, rgba(5, 6, 8, 0.65) 100%);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding-top: 90px;
+  padding-bottom: 60px;
+}
+
+/* ---------- Car select form ---------- */
+.car-form {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--color-surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+  animation: formIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.car-form::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -30%;
+  left: -30%;
+  width: 160%;
+  height: 160%;
+  background: radial-gradient(circle at 30% 20%, rgba(212, 162, 78, 0.22), transparent 55%);
+  filter: blur(10px);
+  animation: glowDrift 10s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes formIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glowDrift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(4%, 6%) scale(1.08);
+    opacity: 1;
+  }
+}
+
+.car-form__eyebrow {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 10px;
+}
+
+.car-form__title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.car-form__subtitle {
+  margin-top: 10px;
+  color: var(--color-text-muted);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.car-form__label {
+  display: block;
+  margin-top: 26px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.car-form__select-wrap {
+  position: relative;
+}
+
+.car-form__select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.car-form__select {
+  width: 100%;
+  appearance: none;
+  background: var(--color-surface-solid);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 40px 14px 16px;
+  font-size: 15.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.car-form__select:hover,
+.car-form__select:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.car-form__select:focus {
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.car-form__specs {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+  animation: specFadeIn 0.45s ease both;
+}
+
+.car-form__price {
+  animation: specFadeIn 0.45s ease both;
+}
+
+@keyframes specFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.car-form__spec {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.car-form__spec-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.car-form__spec-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.car-form__footer {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.car-form__price-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-accent);
+}
+
+.car-form__price-unit {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-left: 4px;
+}
+
+.car-form__cta {
+  border: none;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  font-weight: 700;
+  font-size: 14.5px;
+  padding: 13px 22px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 0 0 rgba(212, 162, 78, 0);
+}
+
+.car-form__cta:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(212, 162, 78, 0.35);
+}
+
+.car-form__cta:active {
+  transform: translateY(0);
+}
+
+.car-form__more {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 22px;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.car-form__more:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.car-form__hint {
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  min-height: 1em;
+}
+
+.car-form__hint--visible {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .car-form {
+    max-width: none;
+    padding: 24px;
+  }
+
+  .hero {
+    min-height: 100vh;
+  }
+
+  .hero__scrim {
+    background:
+      linear-gradient(0deg, rgba(5, 6, 8, 0.92) 0%, rgba(5, 6, 8, 0.55) 45%, rgba(5, 6, 8, 0.25) 70%, rgba(5, 6, 8, 0.55) 100%);
+  }
+}
+
+/* ---------- Why us ---------- */
+.why-us {
+  background: var(--color-bg);
+  padding: 90px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.why-us__title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 40px;
+}
+
+.why-us__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.why-us__card {
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 26px;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.2s ease;
+}
+
+.why-us__grid--visible .why-us__card {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.why-us__card:hover {
+  border-color: var(--color-accent);
+}
+
+.why-us__icon {
+  width: 26px;
+  height: 26px;
+  color: var(--color-accent);
+  margin-bottom: 14px;
+}
+
+.why-us__card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.why-us__card p {
+  font-size: 14.5px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  .why-us__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+  background: var(--color-surface-solid);
+  border-top: 1px solid var(--color-border);
+  padding: 44px 0 24px;
+}
+
+.site-footer__inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.site-footer__logo {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.site-footer__text {
+  margin-top: 6px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.site-footer__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.site-footer__contact a {
+  text-decoration: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.site-footer__contact a:hover {
+  color: var(--color-accent);
+}
+
+.site-footer__copy {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Car details modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(5, 6, 8, 0.72);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: overlayIn 0.2s ease both;
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal__close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.modal__close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.modal__close:hover {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+
+.modal__eyebrow {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 10px;
+}
+
+.modal__title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding-right: 40px;
+}
+
+.modal__description {
+  margin-top: 12px;
+  color: var(--color-text-muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.modal__specs {
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+  padding: 22px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal__spec {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal__spec--wide {
+  grid-column: 1 / -1;
+}
+
+.modal__spec-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.modal__spec-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.modal__features {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modal__chip {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(212, 162, 78, 0.35);
+  border-radius: 999px;
+  padding: 6px 13px;
+}
+
+.modal__footer {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 26px;
+  }
+
+  .modal__specs {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+/* ---------- Reservation form ---------- */
+.reservation-form {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reservation-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.reservation-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.reservation-form__field input,
+.reservation-form__field textarea {
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.reservation-form__field textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-weight: 400;
+}
+
+.reservation-form__field input:hover,
+.reservation-form__field textarea:hover,
+.reservation-form__field input:focus,
+.reservation-form__field textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.reservation-form__field input:focus,
+.reservation-form__field textarea:focus {
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.reservation-form__field input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+.reservation-form__error {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-danger);
+}
+
+.reservation-form__error--block {
+  margin: -4px 0 0;
+}
+
+.reservation-form__availability {
+  margin-top: -4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.reservation-form__availability--unavailable,
+.reservation-form__availability--error {
+  color: var(--color-danger);
+}
+
+.reservation-form__submit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px 22px;
+}
+
+.reservation-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reservation-success {
+  padding-top: 6px;
+}
+
+.reservation-success .modal__description {
+  margin-bottom: 24px;
+}
+
+.reservation-success__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reservation-success__actions .car-form__cta {
+  flex: 1;
+}
+
+.reservation-success__actions .car-form__more {
+  width: auto;
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .reservation-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .reservation-success__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}
