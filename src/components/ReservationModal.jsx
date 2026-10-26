@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 // Broj za WhatsApp (060 484 8086) u međunarodnom formatu bez '+' i vodeće nule.
@@ -201,7 +202,9 @@ export default function ReservationModal({ car, onClose, triggerRef }) {
     setSent(true);
   };
 
-  return (
+  // Portal u <body>: roditelj .car-form ima backdrop-filter/transform, što bi
+  // fixed overlay zarobilo unutar kartice forme umesto preko celog ekrana.
+  return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
         <button type="button" className="modal__close" aria-label="Zatvori" onClick={onClose} ref={closeButtonRef}>
@@ -271,18 +274,17 @@ export default function ReservationModal({ car, onClose, triggerRef }) {
                 </label>
               </div>
 
-              <div className="reservation-form__row">
-                <label className="reservation-form__field">
-                  <span>Datum rođenja</span>
-                  <input type="date" value={form.dob} onChange={setField('dob')} max={todayISO()} />
-                  {errors.dob && <em className="reservation-form__error">{errors.dob}</em>}
-                </label>
-                <label className="reservation-form__field">
-                  <span>Lokacija preuzimanja</span>
-                  <input type="text" value={form.location} onChange={setField('location')} />
-                  {errors.location && <em className="reservation-form__error">{errors.location}</em>}
-                </label>
-              </div>
+              <label className="reservation-form__field">
+                <span>Datum rođenja</span>
+                <input type="date" value={form.dob} onChange={setField('dob')} max={todayISO()} />
+                {errors.dob && <em className="reservation-form__error">{errors.dob}</em>}
+              </label>
+
+              <label className="reservation-form__field">
+                <span>Lokacija preuzimanja</span>
+                <input type="text" value={form.location} onChange={setField('location')} />
+                {errors.location && <em className="reservation-form__error">{errors.location}</em>}
+              </label>
 
               <div className="reservation-form__row">
                 <label className="reservation-form__field">
@@ -336,6 +338,7 @@ export default function ReservationModal({ car, onClose, triggerRef }) {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
