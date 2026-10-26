@@ -117,11 +117,11 @@ grant execute on function create_reservation(text, text, text, text, text, date,
 -- ============================================================================
 -- ADMIN PANEL — pristup za prijavljenog vlasnika (Supabase Auth)
 -- ============================================================================
+-- Admin email već podešen ispod: marsenic57@gmail.com
 -- VAŽNO PRE POKRETANJA OVOG DELA:
--- 1. Napravi admin korisnika: Authentication -> Users -> Add user (email +
---    lozinka koju ćeš koristiti za prijavu na /admin.html).
--- 2. Zameni 'ADMIN_EMAIL_OVDE' ispod (NA OBA MESTA) TAČNO tom email adresom.
--- 3. Obavezno: Authentication -> Providers -> Email -> isključi "Allow new
+-- 1. Napravi admin korisnika sa TOM istom adresom: Authentication -> Users
+--    -> Add user (+ lozinka koju ćeš koristiti za prijavu na /admin).
+-- 2. Obavezno: Authentication -> Providers -> Email -> isključi "Allow new
 --    users to sign up" (ne želimo da bilo ko spolja napravi nalog i vidi
 --    podatke kupaca). Detaljno uputstvo: README_ADMIN.md.
 
@@ -129,7 +129,7 @@ drop policy if exists admin_select_reservations on reservations;
 create policy admin_select_reservations on reservations
   for select
   to authenticated
-  using (auth.jwt() ->> 'email' = 'ADMIN_EMAIL_OVDE');
+  using (auth.jwt() ->> 'email' = 'marsenic57@gmail.com');
 
 create or replace function cancel_reservation(p_id uuid)
 returns jsonb
@@ -138,7 +138,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if auth.jwt() ->> 'email' is distinct from 'ADMIN_EMAIL_OVDE' then
+  if auth.jwt() ->> 'email' is distinct from 'marsenic57@gmail.com' then
     return jsonb_build_object('success', false, 'reason', 'forbidden');
   end if;
 
