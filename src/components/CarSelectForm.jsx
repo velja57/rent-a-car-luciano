@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router';
+import { fleet } from '../data/fleet';
 import CarDetailsModal from './CarDetailsModal';
 import ReservationModal from './ReservationModal';
 
@@ -78,6 +80,10 @@ export default function CarSelectForm({ cars, selectedId, onChange, isTransition
       >
         Više informacija o vozilu
       </button>
+
+      <Link className="car-form__fleet-link" to="/vozila">
+        Pogledaj svih {fleet.length} vozila u floti →
+      </Link>
 
       <p className={`car-form__hint${isTransitioning ? ' car-form__hint--visible' : ''}`} aria-live="polite">
         Menjamo vozilo na prikazu…

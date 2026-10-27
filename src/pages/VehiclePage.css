@@ -1,0 +1,576 @@
+/* ---------- Stranica jednog vozila (/vozila/:id) ---------- */
+/* Bez overflow: hidden — inače panel sa cenom (position: sticky) ne bi pratio skrol. */
+.vehicle-page {
+  position: relative;
+  padding: 116px 0 110px;
+  background: var(--color-bg);
+}
+
+.vehicle-page__inner {
+  position: relative;
+}
+
+.vehicle-page__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 22px;
+  font-family: var(--fleet-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.vehicle-page__crumbs a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.vehicle-page__crumbs a:hover {
+  color: var(--color-accent);
+}
+
+.vehicle-page__crumbs [aria-current] {
+  color: var(--color-text);
+}
+
+.vehicle-page__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 32px;
+}
+
+/* ----- Galerija ----- */
+.vehicle-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.vehicle-gallery__stage {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: #07080a;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  touch-action: pan-y;
+}
+
+.vehicle-gallery__stage:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+/* Zamućena kopija slike kao pozadina — popunjava prostor oko slike */
+.vehicle-gallery__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(26px) saturate(1.2);
+  opacity: 0.35;
+  transform: scale(1.2);
+}
+
+.vehicle-gallery__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: vehicleImageIn 0.5s var(--fleet-ease) both;
+}
+
+@keyframes vehicleImageIn {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* HUD uglovi preko galerije */
+.vehicle-gallery__stage::after {
+  --c: rgba(212, 162, 78, 0.85);
+  content: '';
+  position: absolute;
+  inset: 14px;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / 20px 1.5px,
+    linear-gradient(var(--c), var(--c)) top left / 1.5px 20px,
+    linear-gradient(var(--c), var(--c)) top right / 20px 1.5px,
+    linear-gradient(var(--c), var(--c)) top right / 1.5px 20px,
+    linear-gradient(var(--c), var(--c)) bottom left / 20px 1.5px,
+    linear-gradient(var(--c), var(--c)) bottom left / 1.5px 20px,
+    linear-gradient(var(--c), var(--c)) bottom right / 20px 1.5px,
+    linear-gradient(var(--c), var(--c)) bottom right / 1.5px 20px;
+  background-repeat: no-repeat;
+}
+
+.vehicle-gallery__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text);
+  background: rgba(11, 12, 15, 0.6);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  cursor: pointer;
+  translate: 0 -50%;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vehicle-gallery__nav svg {
+  width: 18px;
+  height: 18px;
+}
+
+.vehicle-gallery__nav:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 18px rgba(212, 162, 78, 0.3);
+}
+
+.vehicle-gallery__nav--prev {
+  left: 16px;
+}
+
+.vehicle-gallery__nav--next {
+  right: 16px;
+}
+
+.vehicle-gallery__counter {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  z-index: 2;
+  padding: 5px 10px;
+  font-family: var(--fleet-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  background: rgba(11, 12, 15, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.vehicle-gallery__thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vehicle-gallery__thumb {
+  width: 110px;
+  aspect-ratio: 16 / 10;
+  padding: 0;
+  overflow: hidden;
+  background: #0d0e12;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vehicle-gallery__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vehicle-gallery__thumb:hover {
+  opacity: 0.85;
+}
+
+.vehicle-gallery__thumb--active {
+  opacity: 1;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent), 0 0 18px rgba(212, 162, 78, 0.3);
+}
+
+.vehicle-gallery__nav:focus-visible,
+.vehicle-gallery__thumb:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.vehicle-gallery__credit {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.vehicle-gallery__credit a {
+  color: inherit;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+}
+
+.vehicle-gallery__credit a:hover {
+  color: var(--color-accent);
+}
+
+/* ----- Panel sa cenom i rezervacijom ----- */
+.vehicle-panel {
+  position: sticky;
+  top: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  background: linear-gradient(180deg, rgba(24, 26, 32, 0.92), rgba(14, 15, 19, 0.95));
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--fleet-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), 0 0 70px rgba(212, 162, 78, 0.07);
+}
+
+.vehicle-panel .modal__eyebrow {
+  margin-bottom: -8px;
+}
+
+.vehicle-panel__title {
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.vehicle-panel__engine {
+  margin-top: -6px;
+  font-family: var(--fleet-mono);
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.vehicle-panel__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vehicle-badge {
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.vehicle-badge--gold {
+  color: var(--color-accent-contrast);
+  background: linear-gradient(100deg, #f5dfae, var(--color-accent));
+  border-color: transparent;
+}
+
+.vehicle-badge--ok {
+  color: var(--fleet-ok);
+  background: var(--fleet-ok-soft);
+  border-color: rgba(111, 211, 155, 0.35);
+}
+
+.vehicle-panel__price {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.vehicle-panel__price-label {
+  font-family: var(--fleet-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.vehicle-panel__price-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.vehicle-panel__price-main strong {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-accent);
+  text-shadow: 0 0 26px rgba(212, 162, 78, 0.35);
+}
+
+.vehicle-panel__price-main span,
+.vehicle-panel__price-main s {
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+
+.vehicle-panel__price-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.vehicle-panel__availability {
+  margin-top: -4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.vehicle-panel__availability--ready {
+  color: var(--fleet-ok);
+}
+
+.vehicle-panel__availability--busy,
+.vehicle-panel__availability--error {
+  color: var(--color-danger);
+}
+
+.vehicle-panel__cta {
+  width: 100%;
+  padding: 15px 22px;
+  font-size: 15px;
+}
+
+.vehicle-panel__cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.vehicle-panel__contact {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin-top: -4px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.vehicle-panel__contact a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.vehicle-panel__contact a:hover {
+  color: var(--color-accent);
+}
+
+.vehicle-panel__included {
+  margin: 0;
+  padding: 14px 0 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.vehicle-panel__included li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.vehicle-panel__included svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--fleet-ok);
+}
+
+/* ----- Sekcije ispod ----- */
+.vehicle-section {
+  margin-top: 64px;
+}
+
+.vehicle-section__title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.vehicle-section__lead {
+  margin-top: 10px;
+  max-width: 760px;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+
+.vehicle-section__lead + .vehicle-specs,
+.vehicle-section__lead + .discount-ladder {
+  margin-top: 22px;
+}
+
+.vehicle-section--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.vehicle-section--split .modal__features {
+  margin-top: 16px;
+}
+
+.vehicle-specs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.vehicle-spec {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+/* Zlatni ugao u gornjem levom kutu svake pločice */
+.vehicle-spec::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 12px;
+  height: 12px;
+  border-top: 1.5px solid var(--color-accent);
+  border-left: 1.5px solid var(--color-accent);
+  border-top-left-radius: var(--radius-sm);
+}
+
+.vehicle-spec__label {
+  font-family: var(--fleet-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.vehicle-spec__value {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.vehicle-terms {
+  margin: 16px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.vehicle-terms__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 10px;
+  font-size: 14px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.vehicle-terms__row dt {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.vehicle-terms__row dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.vehicle-similar {
+  margin-top: 22px;
+}
+
+.vehicle-similar .fleet-card {
+  flex-basis: calc((100% - 2 * 22px) / 3);
+}
+
+@media (max-width: 1000px) {
+  /* minmax(0, …): kolona ne sme da se raširi zbog minimalne širine polja za datum */
+  .vehicle-page__top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vehicle-panel {
+    position: static;
+  }
+
+  .vehicle-specs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .vehicle-section--split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .vehicle-similar .fleet-card {
+    flex-basis: calc((100% - 22px) / 2);
+  }
+}
+
+@media (max-width: 600px) {
+  .vehicle-page {
+    padding: 96px 0 80px;
+  }
+
+  .vehicle-gallery__stage {
+    aspect-ratio: 16 / 11;
+    border-radius: var(--radius-md);
+  }
+
+  .vehicle-gallery__nav {
+    width: 38px;
+    height: 38px;
+  }
+
+  .vehicle-gallery__thumb {
+    width: 84px;
+  }
+
+  .vehicle-panel {
+    padding: 22px 18px;
+  }
+
+  .vehicle-specs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .vehicle-section {
+    margin-top: 48px;
+  }
+
+  .vehicle-similar .fleet-card {
+    flex-basis: 100%;
+  }
+}

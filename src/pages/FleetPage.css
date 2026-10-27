@@ -1,0 +1,362 @@
+/* ---------- Stranica /vozila ---------- */
+.fleet-page {
+  min-height: 100vh;
+  padding-top: 140px;
+  border-top: 0;
+}
+
+.fleet-page .fleet__head {
+  margin-bottom: 36px;
+}
+
+/* Pretraga po datumima + lestvica popusta */
+.fleet-search {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 28px;
+  padding: 24px;
+  background: linear-gradient(180deg, rgba(24, 26, 32, 0.88), rgba(14, 15, 19, 0.92));
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--fleet-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md), 0 0 60px rgba(212, 162, 78, 0.06);
+}
+
+.fleet-search__dates {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fleet-search__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+.fleet-search__summary strong {
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.fleet-search__badge {
+  padding: 4px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-radius: 999px;
+}
+
+.fleet-search__clear {
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.fleet-search__ladder-title {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.fleet-search__ladder-title strong {
+  color: var(--color-accent);
+}
+
+/* Filteri */
+.fleet-filters {
+  margin-top: 34px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.fleet-filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fleet-chip {
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fleet-chip:hover {
+  color: var(--color-text);
+  border-color: var(--fleet-line);
+}
+
+.fleet-chip--active {
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 18px rgba(212, 162, 78, 0.3);
+}
+
+.fleet-chip--active:hover {
+  color: var(--color-accent-contrast);
+}
+
+.fleet-filters__selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fleet-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--fleet-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.fleet-select select {
+  min-width: 140px;
+  padding: 10px 34px 10px 12px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%) right 16px center / 5px 5px no-repeat,
+    linear-gradient(-45deg, transparent 50%, var(--color-text-muted) 50%) right 11px center / 5px 5px no-repeat,
+    var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  appearance: none;
+  cursor: pointer;
+}
+
+.fleet-select select:hover,
+.fleet-select select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.fleet-chip:focus-visible,
+.fleet-search__clear:focus-visible,
+.fleet-toggle input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Rezultati */
+.fleet-results {
+  margin: 22px 0 22px;
+  padding-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.fleet-results strong {
+  color: var(--color-text);
+}
+
+.fleet-results__actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.fleet-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.fleet-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+}
+
+.fleet-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fleet-empty .car-form__more {
+  display: inline-block;
+  width: auto;
+  margin-top: 16px;
+}
+
+/* Uključeno u cenu */
+.fleet-included {
+  margin-top: 64px;
+  padding: 26px 28px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.fleet-included__title {
+  font-family: var(--fleet-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.fleet-included__list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+}
+
+.fleet-included__list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.fleet-included__list svg {
+  width: 18px;
+  height: 18px;
+  color: var(--fleet-ok);
+}
+
+/* Pomoć pri izboru */
+.fleet-help {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 28px;
+  background: radial-gradient(circle at 0% 0%, rgba(212, 162, 78, 0.14), transparent 55%), var(--color-surface-solid);
+  border: 1px solid var(--fleet-line);
+  border-radius: var(--radius-lg);
+}
+
+.fleet-help__title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.fleet-help__text {
+  margin-top: 6px;
+  font-size: 14.5px;
+  color: var(--color-text-muted);
+}
+
+.fleet-help__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fleet-help__actions .car-form__cta,
+.fleet-help__actions .car-form__more {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  text-decoration: none;
+}
+
+@media (max-width: 1000px) {
+  /* minmax(0, …): kolona ne sme da se raširi zbog minimalne širine polja za datum */
+  .fleet-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .fleet-page {
+    padding-top: 110px;
+  }
+
+  .fleet-search {
+    padding: 18px;
+    gap: 22px;
+  }
+
+  .fleet-filters__chips {
+    flex-wrap: nowrap;
+    margin: 0 -24px;
+    padding: 0 24px 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .fleet-filters__chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fleet-chip {
+    flex-shrink: 0;
+  }
+
+  .fleet-filters__selects {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .fleet-select select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .fleet-included,
+  .fleet-help {
+    padding: 22px 20px;
+  }
+
+  .fleet-help__actions,
+  .fleet-help__actions .car-form__cta,
+  .fleet-help__actions .car-form__more {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -1,0 +1,1011 @@
+/* ---------- Fleet (kartice vozila, izdvojena vozila, zajednički elementi) ---------- */
+/* Sve klase su sa prefiksom fleet / date-range / discount-ladder — ne diraju
+   ostatak sajta. Stranice: src/pages/FleetPage.css i VehiclePage.css. */
+.fleet,
+.vehicle-page {
+  --fleet-mono: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --fleet-line: rgba(212, 162, 78, 0.28);
+  --fleet-glow: rgba(212, 162, 78, 0.45);
+  --fleet-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --fleet-ok: #6fd39b;
+  --fleet-ok-soft: rgba(111, 211, 155, 0.12);
+}
+
+.fleet {
+  position: relative;
+  overflow: hidden;
+  padding: 110px 0 120px;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  scroll-margin-top: 84px;
+}
+
+/* Svetleća linija koja klizi po gornjoj ivici sekcije */
+.fleet::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--color-accent) 50%, transparent 100%);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: fleetScan 6s ease-in-out infinite;
+}
+
+@keyframes fleetScan {
+  0% {
+    background-position: -40% 0;
+  }
+  100% {
+    background-position: 140% 0;
+  }
+}
+
+.fleet__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Perspektivna mreža "pod" u dnu sekcije */
+.fleet__bg::before {
+  content: '';
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: -12%;
+  height: 62%;
+  background-image:
+    linear-gradient(var(--fleet-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--fleet-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(520px) rotateX(62deg);
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 80%);
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 80%);
+  opacity: 0.55;
+  animation: fleetGridFlow 9s linear infinite;
+}
+
+@keyframes fleetGridFlow {
+  to {
+    background-position: 0 64px, 0 0;
+  }
+}
+
+/* Zlatni sjaj iza naslova */
+.fleet__bg::after {
+  content: '';
+  position: absolute;
+  top: -260px;
+  left: 50%;
+  width: min(1000px, 140%);
+  height: 560px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(212, 162, 78, 0.15), transparent 65%);
+}
+
+.fleet__inner {
+  position: relative;
+}
+
+/* ----- Naslov sekcije ----- */
+.fleet__head {
+  max-width: 720px;
+  margin-bottom: 52px;
+}
+
+.fleet__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  font-family: var(--fleet-mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  background: rgba(212, 162, 78, 0.06);
+  border: 1px solid var(--fleet-line);
+  border-radius: 999px;
+}
+
+.fleet__pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: fleetPulse 2.2s ease-out infinite;
+}
+
+@keyframes fleetPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 162, 78, 0.6);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgba(212, 162, 78, 0);
+  }
+}
+
+.fleet__title {
+  margin-top: 20px;
+  font-size: clamp(32px, 4.6vw, 50px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.06;
+}
+
+.fleet__title span {
+  background: linear-gradient(100deg, #f5dfae 0%, var(--color-accent) 45%, #8f6628 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.fleet__subtitle {
+  margin-top: 16px;
+  max-width: 600px;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.fleet__stats {
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fleet__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 16px;
+  font-family: var(--fleet-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.fleet__stat strong {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--color-text);
+}
+
+/* ----- Mreža kartica ----- */
+/* Flex + centriranje: nepotpun poslednji red stoji na sredini. */
+.fleet__grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 22px;
+}
+
+.fleet-card {
+  --delay: 0ms;
+  position: relative;
+  isolation: isolate;
+  flex: 0 1 calc((100% - 3 * 22px) / 4);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(24, 26, 32, 0.94) 0%, rgba(14, 15, 19, 0.97) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.7s var(--fleet-ease) var(--delay),
+    transform 0.7s var(--fleet-ease) var(--delay),
+    translate 0.35s var(--fleet-ease),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.fleet-card--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Reflektor koji prati kursor */
+.fleet-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 0%), rgba(212, 162, 78, 0.11), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.fleet-card:hover {
+  translate: 0 -4px;
+  border-color: rgba(212, 162, 78, 0.45);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 0 42px rgba(212, 162, 78, 0.09);
+}
+
+.fleet-card:hover::after {
+  opacity: 1;
+}
+
+.fleet-card__media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  background: #0d0e12;
+}
+
+.fleet-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.9s var(--fleet-ease), opacity 0.5s ease, filter 0.4s ease;
+}
+
+.fleet-card__img--alt {
+  opacity: 0;
+}
+
+.fleet-card:hover .fleet-card__img {
+  transform: scale(1.06);
+}
+
+.fleet-card:hover .fleet-card__img--alt {
+  opacity: 1;
+}
+
+.fleet-card__media::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(8, 9, 12, 0.35) 0%, transparent 30%, transparent 60%, rgba(14, 15, 19, 0.92) 100%);
+}
+
+/* HUD uglovi preko slike */
+.fleet-card__media::after {
+  --c: rgba(212, 162, 78, 0.9);
+  content: '';
+  position: absolute;
+  inset: 9px;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / 14px 1.5px,
+    linear-gradient(var(--c), var(--c)) top left / 1.5px 14px,
+    linear-gradient(var(--c), var(--c)) top right / 14px 1.5px,
+    linear-gradient(var(--c), var(--c)) top right / 1.5px 14px,
+    linear-gradient(var(--c), var(--c)) bottom left / 14px 1.5px,
+    linear-gradient(var(--c), var(--c)) bottom left / 1.5px 14px,
+    linear-gradient(var(--c), var(--c)) bottom right / 14px 1.5px,
+    linear-gradient(var(--c), var(--c)) bottom right / 1.5px 14px;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transform: scale(1.05);
+  transition: opacity 0.3s ease, transform 0.45s var(--fleet-ease);
+}
+
+.fleet-card:hover .fleet-card__media::after,
+.fleet-card__media:focus-visible::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.fleet-card__media:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.fleet-card__category,
+.fleet-card__photos,
+.fleet-card__ribbon,
+.fleet-card__status {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  color: var(--color-text);
+  background: rgba(11, 12, 15, 0.62);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.fleet-card__category {
+  top: 16px;
+  left: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fleet-card__ribbon {
+  top: 16px;
+  right: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-accent-contrast);
+  background: linear-gradient(100deg, #f5dfae, var(--color-accent));
+  border-color: transparent;
+  box-shadow: 0 0 18px rgba(212, 162, 78, 0.35);
+}
+
+.fleet-card__status {
+  left: 16px;
+  bottom: 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.fleet-card__status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.fleet-card__status--free {
+  color: var(--fleet-ok);
+}
+
+.fleet-card__status--busy {
+  color: var(--color-danger);
+}
+
+.fleet-card__status--checking {
+  color: var(--color-text-muted);
+}
+
+.fleet-card__photos {
+  right: 16px;
+  bottom: 14px;
+  font-family: var(--fleet-mono);
+  font-size: 11.5px;
+}
+
+.fleet-card__photos svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-accent);
+}
+
+.fleet-card--unavailable .fleet-card__img {
+  filter: grayscale(0.85) brightness(0.7);
+}
+
+.fleet-card__body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+}
+
+.fleet-card__index {
+  font-family: var(--fleet-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--color-accent);
+}
+
+.fleet-card__name {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.fleet-card__name a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.fleet-card__name a:hover {
+  color: var(--color-accent);
+}
+
+.fleet-card__engine {
+  margin-top: 5px;
+  font-family: var(--fleet-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__specs {
+  margin: 16px 0 0;
+  padding: 14px 0 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.fleet-card__spec {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.fleet-card__spec svg {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  color: var(--color-accent);
+  background: rgba(212, 162, 78, 0.06);
+  border: 1px solid var(--fleet-line);
+  border-radius: 8px;
+}
+
+.fleet-card__spec-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fleet-card__spec-label {
+  font-family: var(--fleet-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__spec-value {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Merač snage */
+.fleet-card__meter {
+  margin: 16px 0 18px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--fleet-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__meter-track {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.fleet-card__meter-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8f6628, var(--color-accent) 70%, #f5dfae);
+  box-shadow: 0 0 12px var(--fleet-glow);
+  transition: width 1.2s var(--fleet-ease) calc(var(--delay) + 250ms);
+}
+
+/* Segmenti preko trake */
+.fleet-card__meter-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 5px, rgba(14, 15, 19, 0.75) 5px 7px);
+}
+
+.fleet-card--visible .fleet-card__meter-fill {
+  width: var(--fill);
+}
+
+.fleet-card__meter-value {
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+}
+
+.fleet-card__footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.fleet-card__price {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fleet-card__price-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--fleet-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__discount {
+  padding: 3px 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-radius: 999px;
+}
+
+.fleet-card__price-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.fleet-card__price-value {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-accent);
+  text-shadow: 0 0 22px rgba(212, 162, 78, 0.35);
+}
+
+.fleet-card__price-unit {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__price-old {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__price-sub {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__deposit {
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.fleet-card__deposit--none {
+  color: var(--fleet-ok);
+}
+
+.fleet-card__actions {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 10px;
+}
+
+.fleet-card__btn {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fleet-card__btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.fleet-card__btn--primary {
+  font-weight: 700;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.fleet-card__btn--primary:hover {
+  background: var(--color-accent);
+  filter: brightness(1.08);
+  box-shadow: 0 8px 24px rgba(212, 162, 78, 0.35);
+}
+
+.fleet-card__btn--primary:disabled {
+  color: var(--color-text-muted);
+  background: transparent;
+  border-color: var(--color-border);
+  filter: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Odsjaj koji prelazi preko dugmeta */
+.fleet-card__btn--primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s var(--fleet-ease);
+}
+
+.fleet-card__btn--primary:hover:not(:disabled)::after {
+  left: 130%;
+}
+
+.fleet-card__btn:focus-visible,
+.fleet-card__name a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ----- Izdvojena vozila na početnoj ----- */
+.fleet-teaser__head {
+  max-width: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.fleet-teaser__head > div {
+  max-width: 720px;
+}
+
+.fleet-teaser__all {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--color-text);
+  border: 1px solid var(--fleet-line);
+  border-radius: 999px;
+  background: rgba(212, 162, 78, 0.06);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.fleet-teaser__all svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-accent);
+  transition: translate 0.2s ease;
+}
+
+.fleet-teaser__all:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.fleet-teaser__all:hover svg {
+  translate: 4px 0;
+}
+
+.fleet-teaser__cta {
+  margin-top: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.fleet-teaser__cta .car-form__cta {
+  display: inline-block;
+  padding: 15px 30px;
+  text-decoration: none;
+}
+
+.fleet-teaser__cta p {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+/* ----- Izbor datuma (stranica flote i stranica vozila) ----- */
+.date-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.date-range__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.date-range__label {
+  font-family: var(--fleet-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.date-range__field input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range__field input:hover,
+.date-range__field input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.date-range__field input:focus {
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.date-range__field input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+.date-range__arrow {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-bottom: 14px;
+  color: var(--color-accent);
+}
+
+/* ----- Lestvica popusta po dužini najma ----- */
+.discount-ladder {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.discount-ladder__step {
+  --level: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Traka koja raste sa popustom */
+.discount-ladder__step::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: calc(20% + var(--level) * 20%);
+  background: linear-gradient(90deg, #8f6628, var(--color-accent));
+  opacity: 0.6;
+}
+
+.discount-ladder__days {
+  font-family: var(--fleet-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.discount-ladder__value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.discount-ladder__price {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.discount-ladder__step--active {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 22px rgba(212, 162, 78, 0.18);
+}
+
+.discount-ladder__step--active .discount-ladder__value {
+  color: var(--color-accent);
+}
+
+.discount-ladder__step--active::after {
+  opacity: 1;
+}
+
+/* ----- 404 ----- */
+.not-found {
+  min-height: 70vh;
+  padding-top: 160px;
+}
+
+.not-found__actions {
+  margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.not-found__actions .car-form__cta,
+.not-found__actions .car-form__more {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  text-decoration: none;
+}
+
+/* ----- Responzivnost ----- */
+@media (max-width: 1180px) {
+  .fleet-card {
+    flex-basis: calc((100% - 2 * 22px) / 3);
+  }
+}
+
+@media (max-width: 900px) {
+  .fleet {
+    padding: 90px 0 100px;
+  }
+
+  .fleet-card {
+    flex-basis: calc((100% - 22px) / 2);
+  }
+
+  .fleet-teaser__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .discount-ladder {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .fleet {
+    padding: 72px 0 84px;
+  }
+
+  .fleet__head {
+    margin-bottom: 36px;
+  }
+
+  .fleet__subtitle {
+    font-size: 15px;
+  }
+
+  .fleet__stat {
+    padding: 8px 12px;
+  }
+
+  .fleet__stat strong {
+    font-size: 17px;
+  }
+
+  .fleet-card {
+    flex-basis: 100%;
+  }
+
+  /* Izdvojena vozila na telefonu: horizontalni klizač umesto dugačke liste */
+  .fleet-teaser__grid {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 14px;
+    margin: 0 -24px;
+    padding: 4px 24px 18px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 24px;
+    scrollbar-width: none;
+  }
+
+  .fleet-teaser__grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fleet-teaser__grid .fleet-card {
+    flex: 0 0 84%;
+    scroll-snap-align: start;
+  }
+
+  .discount-ladder {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .discount-ladder__step:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .date-range {
+    gap: 8px;
+  }
+
+  .date-range__field input {
+    padding: 11px 9px;
+    font-size: 14px;
+  }
+
+  .date-range__arrow {
+    display: none;
+  }
+}

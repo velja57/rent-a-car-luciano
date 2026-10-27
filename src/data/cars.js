@@ -1,6 +1,6 @@
 // Golf i Audi: stvarni podaci klijenta (Luciano Rent a Car).
-// Depozit za oba vozila je MOJ predlog (klijent je rekao "po tvom izboru") —
-// prilagodi ako želiš drugačiji iznos.
+// Depozit: null = bez depozita; broj = iznos u evrima. Dogovor: depozit samo
+// za skuplja vozila (premium i kombi) — isto pravilo kao u src/data/fleet.js.
 // BMW M5 i Mercedes-Benz C 300 su najavljeni, ali još nemaju video/slike —
 // prikazuju se u dropdownu kao "Uskoro dostupno" i ne mogu se izabrati.
 // Kad stigne video za njih: izvuci frejmove (scripts/extract_sequence.py),
@@ -21,7 +21,7 @@ export const cars = [
     luggage: '2 velika kofera',
     mileage: 'Neograničena kilometraža',
     minAge: 18,
-    deposit: '250€',
+    deposit: null,
     cancellation: 'Besplatno otkazivanje do 48h pre preuzimanja',
     description:
       'Kompaktan hečbek najnovije generacije (2024), potpuno opremljen. Tih dizel motor i automatski menjač čine vožnju opuštenom u svakoj prilici.',
@@ -52,7 +52,7 @@ export const cars = [
     luggage: '3 velika kofera',
     mileage: 'Neograničena kilometraža',
     minAge: 18,
-    deposit: '400€',
+    deposit: 300,
     cancellation: 'Besplatno otkazivanje do 48h pre preuzimanja',
     description:
       'Premium sportski liftback, godište 2022, potpuno opremljen. Snažan motor i automatski menjač za maksimalnu udobnost na svakom putu.',

@@ -88,9 +88,110 @@
   transform: translateY(-1px);
 }
 
+.site-header__nav a.active {
+  color: var(--color-text);
+}
+
+.site-header__nav a.active::after {
+  right: 0;
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Dugme za mobilni meni (prikazuje se ispod 860px) */
+.site-header__menu-btn {
+  display: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.site-header__menu-btn span {
+  width: 18px;
+  height: 1.5px;
+  background: var(--color-text);
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.site-header--menu-open .site-header__menu-btn span:nth-child(1) {
+  transform: translateY(6.5px) rotate(45deg);
+}
+
+.site-header--menu-open .site-header__menu-btn span:nth-child(2) {
+  opacity: 0;
+}
+
+.site-header--menu-open .site-header__menu-btn span:nth-child(3) {
+  transform: translateY(-6.5px) rotate(-45deg);
+}
+
+.site-header__mobile {
+  border-top: 1px solid var(--color-border);
+}
+
+.site-header__mobile-inner {
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+  padding-bottom: 18px;
+}
+
+.site-header__mobile a {
+  padding: 14px 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-header__mobile a:last-child {
+  border-bottom: 0;
+}
+
+.site-header__mobile a.active,
+.site-header__mobile a:hover {
+  color: var(--color-accent);
+}
+
+.site-header--menu-open {
+  background: rgba(11, 12, 15, 0.96);
+  border-bottom-color: var(--color-border);
+  backdrop-filter: blur(14px);
+}
+
 @media (max-width: 860px) {
   .site-header__nav {
     display: none;
+  }
+
+  .site-header__menu-btn {
+    display: flex;
+  }
+}
+
+@media (min-width: 861px) {
+  .site-header__mobile {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .site-header__cta {
+    padding: 10px 14px;
   }
 }
 
@@ -399,6 +500,23 @@
 .car-form__more:hover {
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
+}
+
+.car-form__fleet-link {
+  display: block;
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  color: var(--color-accent);
+  transition: filter 0.15s ease;
+}
+
+.car-form__fleet-link:hover {
+  filter: brightness(1.15);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .car-form__hint {
@@ -807,6 +925,113 @@
 .reservation-form__submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Dodatne usluge i obračun cene u formi za rezervaciju */
+.reservation-extras {
+  margin: 0;
+  padding: 14px 16px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.reservation-extras legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.reservation-extras__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.reservation-extras__item + .reservation-extras__item {
+  border-top: 1px dashed rgba(255, 255, 255, 0.07);
+}
+
+.reservation-extras__item input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+}
+
+.reservation-extras__label {
+  flex: 1;
+}
+
+.reservation-extras__price {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-accent);
+}
+
+.reservation-summary {
+  padding: 16px;
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(212, 162, 78, 0.35);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reservation-summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.reservation-summary__discount {
+  margin-left: 8px;
+  padding: 2px 7px;
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 800;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-radius: 999px;
+}
+
+.reservation-summary__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-top: 10px;
+  margin-top: 2px;
+  font-weight: 700;
+  border-top: 1px solid rgba(212, 162, 78, 0.35);
+}
+
+.reservation-summary__total strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-accent);
+}
+
+.reservation-summary__total small {
+  margin-left: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.reservation-summary__note {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.reservation-summary__note--save {
+  font-weight: 700;
+  color: #6fd39b;
 }
 
 .reservation-success {

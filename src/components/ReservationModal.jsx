@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { EXTRAS, WHATSAPP_NUMBER } from '../data/rental';
+import { depositLabel, formatDays, formatRsd, quote, rentalDays } from '../lib/pricing';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
-// Broj za WhatsApp (060 484 8086) u međunarodnom formatu bez '+' i vodeće nule.
-const WHATSAPP_NUMBER = '381604848086';
 const DEFAULT_LOCATION = 'Kralja Mihaila Zetskog 44, Batajnica, Beograd';
 
 // Koliko čekamo nakon poslednjeg unosa datuma pre nego što proverimo
@@ -24,19 +24,27 @@ function calculateAge(dobString) {
   return age;
 }
 
-export default function ReservationModal({ car, onClose, triggerRef }) {
+function formatExtraPrice(extra) {
+  if (!extra.price) return 'Besplatno';
+  return extra.per === 'day' ? `${extra.price}€ / dan` : `${extra.price}€`;
+}
+
+// initialPickup/initialReturn: datumi već izabrani na stranici vozila/flote.
+export default function ReservationModal({ car, onClose, triggerRef, initialPickup = '', initialReturn = '' }) {
   const closeButtonRef = useRef(null);
   const firstFieldRef = useRef(null);
+  const startDatesValid = initialPickup >= todayISO() && rentalDays(initialPickup, initialReturn) > 0;
   const [form, setForm] = useState({
     name: '',
     email: '',
     phone: '',
     dob: '',
-    pickupDate: '',
-    returnDate: '',
+    pickupDate: startDatesValid ? initialPickup : '',
+    returnDate: startDatesValid ? initialReturn : '',
     location: DEFAULT_LOCATION,
     note: '',
   });
+  const [extraIds, setExtraIds] = useState([]);
   const [errors, setErrors] = useState({});
   const [sent, setSent] = useState(false);
   const [availability, setAvailability] = useState('idle'); // idle | checking | available | unavailable | error
@@ -96,6 +104,22 @@ export default function ReservationModal({ car, onClose, triggerRef }) {
 
   const setField = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
+  const toggleExtra = (id) =>
+    setExtraIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+
+  const days = rentalDays(form.pickupDate, form.returnDate);
+  const priceQuote = days > 0 ? quote(car, days, extraIds) : null;
+
+  // Dodaci i procenjena cena idu uz napomenu kupca (baza, admin, email vlasniku, WhatsApp).
+  const summaryLines = priceQuote
+    ? [
+        priceQuote.extras.length > 0 && `Dodaci: ${priceQuote.extras.map((e) => e.label).join(', ')}`,
+        `Procenjena cena: ${priceQuote.total}€ (${days} ${formatDays(days)} × ${priceQuote.rate}€${
+          priceQuote.extrasTotal ? ` + dodaci ${priceQuote.extrasTotal}€` : ''
+        })`,
+      ].filter(Boolean)
+    : [];
+
   const validate = () => {
     const next = {};
     if (!form.name.trim()) next.name = 'Unesi ime i prezime.';
@@ -137,6 +161,7 @@ export default function ReservationModal({ car, onClose, triggerRef }) {
       `Vraćanje: ${form.returnDate}`,
       `Lokacija preuzimanja: ${form.location.trim()}`,
     ];
+    lines.push(...summaryLines);
     if (form.note.trim()) lines.push(`Napomena: ${form.note.trim()}`);
 
     const text = encodeURIComponent(lines.join('\n'));
@@ -176,7 +201,7 @@ export default function ReservationModal({ car, onClose, triggerRef }) {
       p_pickup: form.pickupDate,
       p_return: form.returnDate,
       p_location: form.location.trim(),
-      p_note: form.note.trim(),
+      p_note: [form.note.trim(), ...summaryLines].filter(Boolean).join(' | '),
     });
 
     setSubmitting(false);
@@ -314,6 +339,59 @@ export default function ReservationModal({ car, onClose, triggerRef }) {
                   {availability === 'unavailable' && 'Vozilo nije dostupno u izabranom periodu. Izaberi druge datume.'}
                   {availability === 'error' && 'Ne možemo trenutno da proverimo dostupnost. Pokušaj ponovo malo kasnije.'}
                 </p>
+              )}
+
+              <fieldset className="reservation-extras">
+                <legend>Dodatne usluge (opciono)</legend>
+                {EXTRAS.map((extra) => (
+                  <label className="reservation-extras__item" key={extra.id}>
+                    <input
+                      type="checkbox"
+                      checked={extraIds.includes(extra.id)}
+                      onChange={() => toggleExtra(extra.id)}
+                    />
+                    <span className="reservation-extras__label">{extra.label}</span>
+                    <span className="reservation-extras__price">{formatExtraPrice(extra)}</span>
+                  </label>
+                ))}
+              </fieldset>
+
+              {priceQuote && (
+                <div className="reservation-summary" aria-live="polite">
+                  <div className="reservation-summary__row">
+                    <span>
+                      Najam: {days} {formatDays(days)} × {priceQuote.rate}€
+                      {priceQuote.tier.discount > 0 && (
+                        <em className="reservation-summary__discount">
+                          −{Math.round(priceQuote.tier.discount * 100)}%
+                        </em>
+                      )}
+                    </span>
+                    <span>{priceQuote.rental}€</span>
+                  </div>
+                  {priceQuote.extras.map((extra) => (
+                    <div className="reservation-summary__row" key={extra.id}>
+                      <span>
+                        {extra.label}
+                        {extra.per === 'day' && extra.price > 0 && ` (${days} × ${extra.price}€)`}
+                      </span>
+                      <span>{extra.cost ? `${extra.cost}€` : 'Besplatno'}</span>
+                    </div>
+                  ))}
+                  <div className="reservation-summary__total">
+                    <span>Ukupno</span>
+                    <span>
+                      <strong>{priceQuote.total}€</strong>
+                      <small>≈ {formatRsd(priceQuote.total)}</small>
+                    </span>
+                  </div>
+                  {priceQuote.savings > 0 && (
+                    <p className="reservation-summary__note reservation-summary__note--save">
+                      Ušteda zbog dužeg najma: {priceQuote.savings}€
+                    </p>
+                  )}
+                  <p className="reservation-summary__note">Depozit: {depositLabel(car.deposit)}</p>
+                </div>
               )}
 
               <label className="reservation-form__field">

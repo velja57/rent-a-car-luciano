@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { depositLabel } from '../lib/pricing';
 
 export default function CarDetailsModal({ car, onClose, onReserve, triggerRef }) {
   const closeButtonRef = useRef(null);
@@ -69,7 +70,7 @@ export default function CarDetailsModal({ car, onClose, onReserve, triggerRef })
           </div>
           <div className="modal__spec">
             <span className="modal__spec-label">Depozit</span>
-            <span className="modal__spec-value">{car.deposit}</span>
+            <span className="modal__spec-value">{depositLabel(car.deposit)}</span>
           </div>
           <div className="modal__spec modal__spec--wide">
             <span className="modal__spec-label">Otkazivanje</span>
