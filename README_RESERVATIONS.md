@@ -113,3 +113,21 @@ Alternativno, uvek možeš i direktno: Supabase dashboard → Table Editor →
   pogledati Table Editor ako posumnjaš da notifikacija nije stigla.
 - Kupac dobija svoj mejl i vlasnik svoj (dva odvojena poziva ka Resend-u, rade
   nezavisno) — ako jedan ne uspe, drugi i dalje stiže.
+
+## Izmena (oktobar 2026): jezik kupca i procena cene u mejlu
+
+Sajt postoji na srpskom i engleskom. Rezervacija sada pamti jezik kupca i
+kratak opis procenjene cene sa dodacima; kupac dobija mejl potvrde na svom
+jeziku, sa tom cenom. Za to su potrebna dva jednokratna koraka:
+
+1. **Baza:** Supabase → SQL Editor → New query → zalepi i pokreni ceo
+   [supabase/schema.sql](supabase/schema.sql) (bezbedno je pokrenuti ponovo).
+   Dodaje kolone `language` i `price_summary` i novu verziju funkcije
+   `create_reservation`.
+2. **Mejl funkcija:** Edge Functions → `send-reservation-email` → zameni kod
+   sadržajem [supabase/functions/send-reservation-email/index.ts](supabase/functions/send-reservation-email/index.ts)
+   → Deploy.
+
+Redosled nije bitan: dok korak 1 nije urađen, sajt šalje rezervaciju po
+starom (bez jezika i cene za kupca), a vlasnik i dalje vidi procenu cene u
+napomeni.

@@ -1,15 +1,41 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router';
 import { PHONE_HREF } from '../data/rental';
+import { useI18n } from '../i18n';
+import { translatePath } from '../i18n/routes';
 
-// "Zašto mi" je na početnoj; "Kontakt" je footer, koji postoji na svakoj stranici.
-const NAV_LINKS = [
-  { label: 'Početna', to: '/', end: true },
-  { label: 'Vozila', to: '/vozila' },
-  { label: 'Zašto mi', to: { pathname: '/', hash: '#zasto-mi' }, plain: true },
+const LANGUAGES = [
+  { id: 'sr', label: 'SR', name: 'Srpski' },
+  { id: 'en', label: 'EN', name: 'English' },
 ];
 
+// Ista stranica na drugom jeziku; datumi/filteri (search) i mesto na stranici ostaju.
+function LanguageSwitch({ className }) {
+  const { lang, t } = useI18n();
+  const { pathname, search, hash } = useLocation();
+
+  return (
+    <div className={`lang-switch ${className}`} role="group" aria-label={t.nav.language}>
+      {LANGUAGES.map((l) => (
+        <Link
+          key={l.id}
+          to={{ pathname: translatePath(pathname, l.id), search, hash }}
+          state={{ keepScroll: true }}
+          className={`lang-switch__option${l.id === lang ? ' lang-switch__option--active' : ''}`}
+          aria-current={l.id === lang ? 'true' : undefined}
+          aria-label={l.name}
+          hrefLang={l.id}
+          lang={l.id}
+        >
+          {l.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function Header() {
+  const { t, paths } = useI18n();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
@@ -35,21 +61,18 @@ export default function Header() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [menuOpen]);
 
-  const links = NAV_LINKS.map((link) =>
-    link.plain ? (
-      <Link key={link.label} to={link.to}>
-        {link.label}
-      </Link>
-    ) : (
-      <NavLink key={link.label} to={link.to} end={link.end}>
-        {link.label}
+  // "Zašto mi" je na početnoj; "Kontakt" je footer, koji postoji na svakoj stranici.
+  const links = (
+    <>
+      <NavLink to={paths.home} end>
+        {t.nav.home}
       </NavLink>
-    ),
-  );
-  const contactLink = (
-    <a href="#kontakt" onClick={() => setMenuOpen(false)}>
-      Kontakt
-    </a>
+      <NavLink to={paths.fleet}>{t.nav.fleet}</NavLink>
+      <Link to={{ pathname: paths.home, hash: '#zasto-mi' }}>{t.nav.whyUs}</Link>
+      <a href="#kontakt" onClick={() => setMenuOpen(false)}>
+        {t.nav.contact}
+      </a>
+    </>
   );
 
   return (
@@ -57,21 +80,21 @@ export default function Header() {
       className={`site-header${scrolled ? ' site-header--scrolled' : ''}${menuOpen ? ' site-header--menu-open' : ''}`}
     >
       <div className="site-header__inner container">
-        <Link className="site-header__logo" to="/">
+        <Link className="site-header__logo" to={paths.home}>
           Luciano <span>Rent a Car</span>
         </Link>
-        <nav className="site-header__nav" aria-label="Glavni meni">
+        <nav className="site-header__nav" aria-label={t.nav.mainMenu}>
           {links}
-          {contactLink}
         </nav>
         <div className="site-header__actions">
+          <LanguageSwitch className="lang-switch--header" />
           <a className="site-header__cta" href={PHONE_HREF}>
-            Pozovi nas
+            {t.nav.call}
           </a>
           <button
             type="button"
             className="site-header__menu-btn"
-            aria-label={menuOpen ? 'Zatvori meni' : 'Otvori meni'}
+            aria-label={menuOpen ? t.nav.closeMenu : t.nav.openMenu}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             onClick={() => setMenuOpen((open) => !open)}
@@ -83,10 +106,10 @@ export default function Header() {
         </div>
       </div>
 
-      <nav id="mobile-menu" className="site-header__mobile" aria-label="Meni" hidden={!menuOpen}>
+      <nav id="mobile-menu" className="site-header__mobile" aria-label={t.nav.menu} hidden={!menuOpen}>
         <div className="container site-header__mobile-inner">
           {links}
-          {contactLink}
+          <LanguageSwitch className="lang-switch--mobile" />
         </div>
       </nav>
     </header>

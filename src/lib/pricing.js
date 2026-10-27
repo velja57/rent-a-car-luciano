@@ -1,6 +1,7 @@
 import { DISCOUNT_TIERS, EUR_TO_RSD, EXTRAS } from '../data/rental';
 
 const DAY_MS = 86_400_000;
+const LOCALES = { sr: 'sr-RS', en: 'en-GB' };
 
 export const MAX_DISCOUNT_PERCENT = Math.round(Math.max(...DISCOUNT_TIERS.map((t) => t.discount)) * 100);
 
@@ -15,12 +16,19 @@ export function rentalDays(pickup, ret) {
   return Number.isFinite(days) && days > 0 ? days : 0;
 }
 
-export function formatDays(n) {
-  return n % 10 === 1 && n % 100 !== 11 ? 'dan' : 'dana';
-}
-
 export function tierFor(days) {
   return DISCOUNT_TIERS.reduce((found, tier) => (days >= tier.minDays ? tier : found), DISCOUNT_TIERS[0]);
+}
+
+export function discountPercent(tier) {
+  return Math.round(tier.discount * 100);
+}
+
+// "3–6 dana" / "30+ days" — daysWord je t.days iz rečnika.
+export function tierLabel(index, daysWord) {
+  const tier = DISCOUNT_TIERS[index];
+  const next = DISCOUNT_TIERS[index + 1];
+  return next ? `${tier.minDays}–${next.minDays - 1} ${daysWord(next.minDays - 1)}` : `${tier.minDays}+ ${daysWord(tier.minDays)}`;
 }
 
 export function dailyRate(car, days = 1) {
@@ -52,11 +60,16 @@ export function quote(car, days, extraIds = []) {
   };
 }
 
-export function formatRsd(eur) {
-  return `${(Math.round((eur * EUR_TO_RSD) / 10) * 10).toLocaleString('sr-RS')} din`;
+export function formatNumber(n, lang = 'sr') {
+  return n.toLocaleString(LOCALES[lang]);
 }
 
-// deposit: broj (EUR) ili null = bez depozita.
-export function depositLabel(deposit) {
-  return deposit ? `${deposit}€` : 'Bez depozita';
+// 315€ na srpskom, €315 na engleskom.
+export function formatEur(n, lang = 'sr') {
+  return lang === 'en' ? `€${formatNumber(n, lang)}` : `${formatNumber(n, lang)}€`;
+}
+
+export function formatRsd(eur, lang = 'sr') {
+  const rsd = formatNumber(Math.round((eur * EUR_TO_RSD) / 10) * 10, lang);
+  return lang === 'en' ? `${rsd} RSD` : `${rsd} din`;
 }

@@ -13,6 +13,7 @@
 //
 // deposit: null = bez depozita; broj = iznos u evrima (samo premium i kombi).
 // type: grupa za filter na stranici /vozila (vidi VEHICLE_TYPES).
+// en.description: opis na engleskom (ostale vrednosti prevodi src/i18n/en.js, carValues).
 // featured: prikazuje se na početnoj; recommended: oznaka "Preporuka".
 //
 // Fotografije: Wikimedia Commons (slobodne licence). Autor i licenca MORAJU
@@ -20,13 +21,8 @@
 
 import { cars } from './cars';
 
-export const VEHICLE_TYPES = [
-  { id: 'mali', label: 'Gradski' },
-  { id: 'srednji', label: 'Kompakt i limuzine' },
-  { id: 'suv', label: 'SUV i crossover' },
-  { id: 'premium', label: 'Premium' },
-  { id: 'kombi', label: 'Kombi' },
-];
+// Nazivi tipova su u rečnicima (src/i18n, types).
+export const VEHICLE_TYPES = ['mali', 'srednji', 'suv', 'premium', 'kombi'];
 
 const COMMONS = 'https://commons.wikimedia.org/wiki/File:';
 
@@ -35,11 +31,13 @@ const RENTAL_TERMS = {
   cancellation: 'Besplatno otkazivanje do 48h pre preuzimanja',
 };
 
-function photo(carId, n, alt, author, license, file, focus) {
+// view: front | rear | interior | side | front-side — opis slike se pravi iz
+// naziva vozila i prevoda ugla (src/i18n, views).
+function photo(carId, n, view, author, license, file, focus) {
   return {
     src: `/fleet/${carId}/${n}.jpg`,
     thumb: `/fleet/${carId}/${n}-sm.jpg`,
-    alt,
+    view,
     focus,
     credit: { author, license, url: COMMONS + file },
   };
@@ -74,11 +72,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Ikonični italijanski gradski automobil sa blagim hibridnim pogonom. Kompaktne dimenzije i mala potrošnja čine ga idealnim za gužvu i parkiranje u centru grada.',
+    en: {
+      description:
+        'The iconic Italian city car with a mild-hybrid engine. Compact size and low fuel consumption make it ideal for traffic and parking in the city centre.',
+    },
     features: ['Osiguranje uključeno', 'Klima uređaj', 'Bluetooth', 'Android Auto / CarPlay', 'Start/Stop sistem', 'Senzori za parkiranje'],
     images: [
-      photo('fiat-500', 1, 'Fiat 500 Hybrid — spreda', 'M 93', 'CC BY-SA 3.0 DE', 'Fiat_500_1.0_GSE_Hybrid_(Facelift)_%E2%80%93_f_22062025.jpg'),
-      photo('fiat-500', 2, 'Fiat 500 Hybrid — pozadi', 'M 93', 'CC BY-SA 3.0 DE', 'Fiat_500_1.0_GSE_Hybrid_(Facelift)_%E2%80%93_h_22062025.jpg'),
-      photo('fiat-500', 3, 'Fiat 500 — enterijer', 'Petar Milošević', 'CC BY-SA 4.0', 'Fiat_500_dashboard_(white).jpg'),
+      photo('fiat-500', 1, 'front', 'M 93', 'CC BY-SA 3.0 DE', 'Fiat_500_1.0_GSE_Hybrid_(Facelift)_%E2%80%93_f_22062025.jpg'),
+      photo('fiat-500', 2, 'rear', 'M 93', 'CC BY-SA 3.0 DE', 'Fiat_500_1.0_GSE_Hybrid_(Facelift)_%E2%80%93_h_22062025.jpg'),
+      photo('fiat-500', 3, 'interior', 'Petar Milošević', 'CC BY-SA 4.0', 'Fiat_500_dashboard_(white).jpg'),
     ],
   },
   {
@@ -103,10 +105,14 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Najprodavaniji mali automobil Evrope u najnovijem izdanju. Prostran za svoju klasu, štedljiv i lak za vožnju — pouzdan izbor i za grad i za duže relacije.',
+    en: {
+      description:
+        "Europe's best-selling small car in its latest version. Roomy for its class, economical and easy to drive — a reliable choice for the city and for longer trips alike.",
+    },
     features: ['Osiguranje uključeno', 'Klima uređaj', 'LED farovi', 'Bluetooth', 'Android Auto / CarPlay', 'Tempomat', 'Senzori za parkiranje'],
     images: [
-      photo('renault-clio', 1, 'Renault Clio — spreda', 'M 93', 'CC BY-SA 3.0 DE', 'Renault_Clio_Evolution_(V,_Facelift)_%E2%80%93_f_04042026.jpg', '80% 50%'),
-      photo('renault-clio', 2, 'Renault Clio — pozadi', 'M 93', 'CC BY-SA 3.0 DE', 'Renault_Clio_Evolution_(V,_Facelift)_%E2%80%93_h_04042026.jpg'),
+      photo('renault-clio', 1, 'front', 'M 93', 'CC BY-SA 3.0 DE', 'Renault_Clio_Evolution_(V,_Facelift)_%E2%80%93_f_04042026.jpg', '80% 50%'),
+      photo('renault-clio', 2, 'rear', 'M 93', 'CC BY-SA 3.0 DE', 'Renault_Clio_Evolution_(V,_Facelift)_%E2%80%93_h_04042026.jpg'),
     ],
   },
   {
@@ -132,11 +138,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Kompaktni crossover sa punim hibridnim pogonom i automatskim menjačem. Povišena pozicija za vožnju, tiha vožnja kroz grad i izuzetno niska potrošnja.',
+    en: {
+      description:
+        'A compact crossover with a full hybrid powertrain and automatic transmission. A higher driving position, quiet city driving and exceptionally low fuel consumption.',
+    },
     features: ['Osiguranje uključeno', 'Automatska klima', 'Kamera za vožnju unazad', 'Adaptivni tempomat', 'Asistent za održavanje trake', 'Android Auto / CarPlay'],
     images: [
-      photo('toyota-yaris-cross', 1, 'Toyota Yaris Cross — spreda', 'Alexander-93', 'CC BY-SA 4.0', 'Toyota_Yaris_Cross_Hybrid_(XP210)_1X7A1846.jpg'),
-      photo('toyota-yaris-cross', 2, 'Toyota Yaris Cross — pozadi', 'Alexander-93', 'CC BY-SA 4.0', 'Toyota_Yaris_Cross_Hybrid_(XP210)_1X7A1848.jpg'),
-      photo('toyota-yaris-cross', 3, 'Toyota Yaris Cross — enterijer', 'Alexander Migl', 'CC BY-SA 4.0', 'Toyota_Yaris_Cross_Hybrid_Leonberg_2022_1X7A0555.jpg'),
+      photo('toyota-yaris-cross', 1, 'front', 'Alexander-93', 'CC BY-SA 4.0', 'Toyota_Yaris_Cross_Hybrid_(XP210)_1X7A1846.jpg'),
+      photo('toyota-yaris-cross', 2, 'rear', 'Alexander-93', 'CC BY-SA 4.0', 'Toyota_Yaris_Cross_Hybrid_(XP210)_1X7A1848.jpg'),
+      photo('toyota-yaris-cross', 3, 'interior', 'Alexander Migl', 'CC BY-SA 4.0', 'Toyota_Yaris_Cross_Hybrid_Leonberg_2022_1X7A0555.jpg'),
     ],
   },
   {
@@ -161,10 +171,14 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Najprodavaniji automobil na svetu u elegantnoj limuzinskoj verziji. Hibridni pogon, automatik i prostran prtljažnik za udobna putovanja bez razmišljanja o potrošnji.',
+    en: {
+      description:
+        "The world's best-selling car in its elegant sedan version. Hybrid power, an automatic gearbox and a roomy boot for comfortable trips without worrying about fuel.",
+    },
     features: ['Osiguranje uključeno', 'Automatska klima', 'Kamera za vožnju unazad', 'Adaptivni tempomat', 'Asistent za održavanje trake', 'Android Auto / CarPlay'],
     images: [
-      photo('toyota-corolla', 1, 'Toyota Corolla Sedan — spreda', 'Alexander Migl', 'CC BY-SA 4.0', 'Toyota_Corolla_Limousine_Hybrid_Genf_2019_1Y7A5576.jpg'),
-      photo('toyota-corolla', 2, 'Toyota Corolla Sedan — pozadi', 'Alexander Migl', 'CC BY-SA 4.0', 'Toyota_Corolla_Limousine_Hybrid_Genf_2019_1Y7A5582.jpg'),
+      photo('toyota-corolla', 1, 'front', 'Alexander Migl', 'CC BY-SA 4.0', 'Toyota_Corolla_Limousine_Hybrid_Genf_2019_1Y7A5576.jpg'),
+      photo('toyota-corolla', 2, 'rear', 'Alexander Migl', 'CC BY-SA 4.0', 'Toyota_Corolla_Limousine_Hybrid_Genf_2019_1Y7A5582.jpg'),
     ],
   },
   {
@@ -191,11 +205,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Najtraženiji automobil u rent-a-car ponudi Srbije. Ogroman prtljažnik od 600 litara, štedljiv dizel i DSG menjač — savršen spoj prostora i ekonomičnosti.',
+    en: {
+      description:
+        'The most requested car in Serbian car rental. A huge 600-litre boot, an economical diesel and a DSG gearbox — the perfect mix of space and economy.',
+    },
     features: ['Osiguranje uključeno', 'Automatska klima', 'Navigacija', 'Digitalni kokpit', 'Android Auto / CarPlay', 'Tempomat', 'Senzori za parkiranje'],
     images: [
-      photo('skoda-octavia', 1, 'Škoda Octavia — spreda', 'LuvsMG481', 'CC BY-SA 4.0', '2024_Skoda_Octavia_110TSI_Select_front.jpg', '100% 50%'),
-      photo('skoda-octavia', 2, 'Škoda Octavia — pozadi', 'LuvsMG481', 'CC BY-SA 4.0', '2024_Skoda_Octavia_110TSI_Select_rear.jpg', '30% 50%'),
-      photo('skoda-octavia', 3, 'Škoda Octavia — enterijer', 'Mike-fiesta', 'CC BY-SA 4.0', 'Skoda_Octavia_IV_interior.jpg'),
+      photo('skoda-octavia', 1, 'front', 'LuvsMG481', 'CC BY-SA 4.0', '2024_Skoda_Octavia_110TSI_Select_front.jpg', '100% 50%'),
+      photo('skoda-octavia', 2, 'rear', 'LuvsMG481', 'CC BY-SA 4.0', '2024_Skoda_Octavia_110TSI_Select_rear.jpg', '30% 50%'),
+      photo('skoda-octavia', 3, 'interior', 'Mike-fiesta', 'CC BY-SA 4.0', 'Skoda_Octavia_IV_interior.jpg'),
     ],
   },
   {
@@ -220,11 +238,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Robustan SUV sa pogonom na sva četiri točka i povišenim klirensom. Pravi izbor za planine, sneg i makadam, uz štedljiv dizel motor.',
+    en: {
+      description:
+        'A rugged SUV with four-wheel drive and high ground clearance. The right choice for mountains, snow and gravel roads, with an economical diesel engine.',
+    },
     features: ['Osiguranje uključeno', 'Pogon 4x4', 'Klima uređaj', 'Bluetooth', 'Android Auto / CarPlay', 'Tempomat', 'Senzori za parkiranje'],
     images: [
-      photo('dacia-duster', 1, 'Dacia Duster — spreda', 'Alexander Migl', 'CC BY-SA 4.0', 'Dacia_Duster_II_Facelift_IMG_6331.jpg'),
-      photo('dacia-duster', 2, 'Dacia Duster — pozadi', 'Alexander Migl', 'CC BY-SA 4.0', 'Dacia_Duster_II_Facelift_IMG_6233.jpg'),
-      photo('dacia-duster', 3, 'Dacia Duster — bočno', 'Alexander Migl', 'CC BY-SA 4.0', 'Dacia_Duster_II_Facelift_IAA_2021_1X7A0133.jpg'),
+      photo('dacia-duster', 1, 'front', 'Alexander Migl', 'CC BY-SA 4.0', 'Dacia_Duster_II_Facelift_IMG_6331.jpg'),
+      photo('dacia-duster', 2, 'rear', 'Alexander Migl', 'CC BY-SA 4.0', 'Dacia_Duster_II_Facelift_IMG_6233.jpg'),
+      photo('dacia-duster', 3, 'side', 'Alexander Migl', 'CC BY-SA 4.0', 'Dacia_Duster_II_Facelift_IAA_2021_1X7A0133.jpg'),
     ],
   },
   {
@@ -251,11 +273,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Moderan porodični SUV najnovije generacije sa futurističkim dizajnom i zakrivljenim panoramskim ekranom. Prostran, tih i bogato opremljen za duga putovanja.',
+    en: {
+      description:
+        'A modern, latest-generation family SUV with a futuristic design and a curved panoramic display. Spacious, quiet and well equipped for long journeys.',
+    },
     features: ['Osiguranje uključeno', 'Dvozonska automatska klima', 'Navigacija', 'Panoramski ekran', 'Kamera za vožnju unazad', 'Adaptivni tempomat', 'Grejanje sedišta'],
     images: [
-      photo('kia-sportage', 1, 'Kia Sportage — spreda', 'Alexander Migl', 'CC BY-SA 4.0', '2025_Kia_Sportage_(NQ5)_Automesse_Ludwigsburg_2025_DSC_2532.jpg'),
-      photo('kia-sportage', 2, 'Kia Sportage — pozadi', 'Alexander Migl', 'CC BY-SA 4.0', '2025_Kia_Sportage_(NQ5)_Automesse_Ludwigsburg_2025_DSC_2539.jpg'),
-      photo('kia-sportage', 3, 'Kia Sportage — enterijer', 'Alexander Migl', 'CC BY-SA 4.0', '2025_Kia_Sportage_(NQ5)_autoMOBIL_T%C3%BCbingen_2025_DSC_2798.jpg'),
+      photo('kia-sportage', 1, 'front', 'Alexander Migl', 'CC BY-SA 4.0', '2025_Kia_Sportage_(NQ5)_Automesse_Ludwigsburg_2025_DSC_2532.jpg'),
+      photo('kia-sportage', 2, 'rear', 'Alexander Migl', 'CC BY-SA 4.0', '2025_Kia_Sportage_(NQ5)_Automesse_Ludwigsburg_2025_DSC_2539.jpg'),
+      photo('kia-sportage', 3, 'interior', 'Alexander Migl', 'CC BY-SA 4.0', '2025_Kia_Sportage_(NQ5)_autoMOBIL_T%C3%BCbingen_2025_DSC_2798.jpg'),
     ],
   },
   {
@@ -269,9 +295,9 @@ export const fleet = [
     consumption: '≈ 4,8 l/100 km',
     trunk: 381,
     images: [
-      photo('golf', 1, 'Volkswagen Golf 8 — spreda', 'Alexander-93', 'CC BY-SA 4.0', 'Volkswagen_Golf_VIII_Facelift_IMG_9440.jpg'),
-      photo('golf', 2, 'Volkswagen Golf 8 — pozadi', 'Alexander-93', 'CC BY-SA 4.0', 'Volkswagen_Golf_VIII_Facelift_IMG_9457.jpg'),
-      photo('golf', 3, 'Volkswagen Golf 8 — spreda, bočno', 'Alexander-93', 'CC BY-SA 4.0', 'Volkswagen_Golf_VIII_Facelift_IMG_9913.jpg'),
+      photo('golf', 1, 'front', 'Alexander-93', 'CC BY-SA 4.0', 'Volkswagen_Golf_VIII_Facelift_IMG_9440.jpg'),
+      photo('golf', 2, 'rear', 'Alexander-93', 'CC BY-SA 4.0', 'Volkswagen_Golf_VIII_Facelift_IMG_9457.jpg'),
+      photo('golf', 3, 'front-side', 'Alexander-93', 'CC BY-SA 4.0', 'Volkswagen_Golf_VIII_Facelift_IMG_9913.jpg'),
     ],
   },
   {
@@ -297,11 +323,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Referentna sportska limuzina premium klase. Snažan i štedljiv dizel, osmostepeni automatik i zadnji pogon za vožnju koja se pamti — idealan za poslovna putovanja.',
+    en: {
+      description:
+        'The benchmark premium sports sedan. A strong yet economical diesel, an eight-speed automatic and rear-wheel drive for a drive to remember — ideal for business trips.',
+    },
     features: ['Osiguranje uključeno', 'Automatska klima', 'Navigacija', 'Kožna sedišta', 'Grejanje sedišta', 'Kamera za vožnju unazad', 'Tempomat', 'Ambijentalno osvetljenje'],
     images: [
-      photo('bmw-serija-3', 1, 'BMW Serija 3 — spreda', 'Alexander Migl', 'CC BY-SA 4.0', 'BMW_G20_(2022)_1X7A6120.jpg', '85% 50%'),
-      photo('bmw-serija-3', 2, 'BMW Serija 3 — pozadi', 'Alexander Migl', 'CC BY-SA 4.0', 'BMW_G20_(2022)_1X7A6118.jpg'),
-      photo('bmw-serija-3', 3, 'BMW Serija 3 — enterijer', 'Damian B Oh', 'CC BY-SA 4.0', 'BMW_G20_LCI_Sensatec_Perforated_Cognac_(1).jpg'),
+      photo('bmw-serija-3', 1, 'front', 'Alexander Migl', 'CC BY-SA 4.0', 'BMW_G20_(2022)_1X7A6120.jpg', '85% 50%'),
+      photo('bmw-serija-3', 2, 'rear', 'Alexander Migl', 'CC BY-SA 4.0', 'BMW_G20_(2022)_1X7A6118.jpg'),
+      photo('bmw-serija-3', 3, 'interior', 'Damian B Oh', 'CC BY-SA 4.0', 'BMW_G20_LCI_Sensatec_Perforated_Cognac_(1).jpg'),
     ],
   },
   {
@@ -314,9 +344,9 @@ export const fleet = [
     consumption: '≈ 5,0 l/100 km',
     trunk: 465,
     images: [
-      photo('audi', 1, 'Audi A5 Sportback — spreda', 'Alexander Migl', 'CC BY-SA 4.0', 'Audi_A5_Sportback_F5_IMG_2835.jpg'),
-      photo('audi', 2, 'Audi A5 Sportback — pozadi', 'Alexander-93', 'CC BY-SA 4.0', 'Audi_A5_Sportback_F5_FL_1X7A7086.jpg'),
-      photo('audi', 3, 'Audi A5 Sportback — spreda, bočno', 'Alexander Migl', 'CC BY-SA 4.0', 'Audi_A5_Sportback_F5_FL_IMG_6127.jpg'),
+      photo('audi', 1, 'front', 'Alexander Migl', 'CC BY-SA 4.0', 'Audi_A5_Sportback_F5_IMG_2835.jpg'),
+      photo('audi', 2, 'rear', 'Alexander-93', 'CC BY-SA 4.0', 'Audi_A5_Sportback_F5_FL_1X7A7086.jpg'),
+      photo('audi', 3, 'front-side', 'Alexander Migl', 'CC BY-SA 4.0', 'Audi_A5_Sportback_F5_FL_IMG_6127.jpg'),
     ],
   },
   {
@@ -341,11 +371,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Nova generacija velike poslovne limuzine sa izuzetnim prostorom za noge pozadi i prtljažnikom od 645 litara. Vrhunski komfor za službena putovanja i transfere.',
+    en: {
+      description:
+        'The new generation of the large business sedan, with exceptional rear legroom and a 645-litre boot. Top comfort for business trips and transfers.',
+    },
     features: ['Osiguranje uključeno', 'Trozonska automatska klima', 'Navigacija', 'Digitalni kokpit', 'Adaptivni tempomat', 'Kamera za vožnju unazad', 'Grejanje sedišta', 'Električni prtljažnik'],
     images: [
-      photo('skoda-superb', 1, 'Škoda Superb — spreda', 'M 93', 'CC BY-SA 3.0 DE', 'Skoda_Superb_L%26K_(IV)_%E2%80%93_f_12042026.jpg', '10% 50%'),
-      photo('skoda-superb', 2, 'Škoda Superb — pozadi', 'M 93', 'CC BY-SA 3.0 DE', 'Skoda_Superb_L%26K_(IV)_%E2%80%93_h_12042026.jpg'),
-      photo('skoda-superb', 3, 'Škoda Superb — enterijer', 'Alexander-93', 'CC BY-SA 4.0', '%C5%A0koda_Superb_IV_Combi_Leonberg_2024_IMG_1087.jpg'),
+      photo('skoda-superb', 1, 'front', 'M 93', 'CC BY-SA 3.0 DE', 'Skoda_Superb_L%26K_(IV)_%E2%80%93_f_12042026.jpg', '10% 50%'),
+      photo('skoda-superb', 2, 'rear', 'M 93', 'CC BY-SA 3.0 DE', 'Skoda_Superb_L%26K_(IV)_%E2%80%93_h_12042026.jpg'),
+      photo('skoda-superb', 3, 'interior', 'Alexander-93', 'CC BY-SA 4.0', '%C5%A0koda_Superb_IV_Combi_Leonberg_2024_IMG_1087.jpg'),
     ],
   },
   {
@@ -370,11 +404,15 @@ export const fleet = [
     ...RENTAL_TERMS,
     description:
       'Putnički kombi sa 9 sedišta za grupe, porodice i sportske ekipe. Automatski menjač i ekonomičan dizel čine i duga putovanja lakim — jedno vozilo za celo društvo.',
+    en: {
+      description:
+        'A 9-seat passenger van for groups, families and sports teams. An automatic gearbox and an economical diesel make even long trips easy — one vehicle for the whole group.',
+    },
     features: ['Osiguranje uključeno', '9 sedišta', 'Klima uređaj', 'Bluetooth', 'Android Auto / CarPlay', 'Tempomat', 'Senzori za parkiranje'],
     images: [
-      photo('renault-trafic', 1, 'Renault Trafic — spreda', 'Alexander-93', 'CC BY-SA 4.0', 'Renault_Trafic_III_buses_Facelift_IMG_7691_(cropped).jpg'),
-      photo('renault-trafic', 2, 'Renault Trafic — pozadi', 'Alexander-93', 'CC BY-SA 4.0', 'Renault_Trafic_III_buses_Facelift_1X7A7456_(cropped).jpg'),
-      photo('renault-trafic', 3, 'Renault Trafic — enterijer', 'Crazy1880', 'CC BY-SA 4.0', '2023-02-03_Renault_Trafic_Interior.jpg'),
+      photo('renault-trafic', 1, 'front', 'Alexander-93', 'CC BY-SA 4.0', 'Renault_Trafic_III_buses_Facelift_IMG_7691_(cropped).jpg'),
+      photo('renault-trafic', 2, 'rear', 'Alexander-93', 'CC BY-SA 4.0', 'Renault_Trafic_III_buses_Facelift_1X7A7456_(cropped).jpg'),
+      photo('renault-trafic', 3, 'interior', 'Crazy1880', 'CC BY-SA 4.0', '2023-02-03_Renault_Trafic_Interior.jpg'),
     ],
   },
 ];

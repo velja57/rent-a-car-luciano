@@ -1,11 +1,15 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { fleet } from '../data/fleet';
+import { useI18n } from '../i18n';
+import { formatEur } from '../lib/pricing';
 import CarDetailsModal from './CarDetailsModal';
 import ReservationModal from './ReservationModal';
 
 export default function CarSelectForm({ cars, selectedId, onChange, isTransitioning }) {
+  const { lang, t, paths, localize } = useI18n();
   const car = cars.find((c) => c.id === selectedId);
+  const shown = localize(car);
   const [showDetails, setShowDetails] = useState(false);
   const [showReservation, setShowReservation] = useState(false);
   const detailsButtonRef = useRef(null);
@@ -18,14 +22,12 @@ export default function CarSelectForm({ cars, selectedId, onChange, isTransition
 
   return (
     <div className="car-form">
-      <span className="car-form__eyebrow">Rezervacija</span>
-      <h1 className="car-form__title">Izaberi svoje vozilo</h1>
-      <p className="car-form__subtitle">
-        Pogledaj dostupna vozila i karakteristike pre nego što rezervišeš.
-      </p>
+      <span className="car-form__eyebrow">{t.hero.eyebrow}</span>
+      <h1 className="car-form__title">{t.hero.title}</h1>
+      <p className="car-form__subtitle">{t.hero.subtitle}</p>
 
       <label className="car-form__label" htmlFor="car-select">
-        Vozilo
+        {t.hero.carLabel}
       </label>
       <div className="car-form__select-wrap">
         <select
@@ -37,7 +39,7 @@ export default function CarSelectForm({ cars, selectedId, onChange, isTransition
           {cars.map((c) => (
             <option key={c.id} value={c.id} disabled={c.comingSoon}>
               {c.name}
-              {c.comingSoon ? ' — Uskoro dostupno' : ''}
+              {c.comingSoon ? t.hero.comingSoon : ''}
             </option>
           ))}
         </select>
@@ -45,30 +47,30 @@ export default function CarSelectForm({ cars, selectedId, onChange, isTransition
 
       <div className="car-form__specs" aria-live="polite" key={`specs-${selectedId}`}>
         <div className="car-form__spec">
-          <span className="car-form__spec-label">Kategorija</span>
-          <span className="car-form__spec-value">{car.category}</span>
+          <span className="car-form__spec-label">{t.specs.category}</span>
+          <span className="car-form__spec-value">{shown.category}</span>
         </div>
         <div className="car-form__spec">
-          <span className="car-form__spec-label">Menjač</span>
-          <span className="car-form__spec-value">{car.transmission}</span>
+          <span className="car-form__spec-label">{t.specs.transmission}</span>
+          <span className="car-form__spec-value">{shown.transmission}</span>
         </div>
         <div className="car-form__spec">
-          <span className="car-form__spec-label">Gorivo</span>
-          <span className="car-form__spec-value">{car.fuel}</span>
+          <span className="car-form__spec-label">{t.specs.fuel}</span>
+          <span className="car-form__spec-value">{shown.fuel}</span>
         </div>
         <div className="car-form__spec">
-          <span className="car-form__spec-label">Broj mesta</span>
-          <span className="car-form__spec-value">{car.seats}</span>
+          <span className="car-form__spec-label">{t.specs.seats}</span>
+          <span className="car-form__spec-value">{shown.seats}</span>
         </div>
       </div>
 
       <div className="car-form__footer">
         <div className="car-form__price" key={`price-${selectedId}`}>
-          <span className="car-form__price-value">{car.pricePerDay}€</span>
-          <span className="car-form__price-unit">/ dan</span>
+          <span className="car-form__price-value">{formatEur(car.pricePerDay, lang)}</span>
+          <span className="car-form__price-unit">{t.common.perDay}</span>
         </div>
         <button type="button" className="car-form__cta" ref={reserveButtonRef} onClick={openReservation}>
-          Rezerviši odmah
+          {t.common.reserveNow}
         </button>
       </div>
 
@@ -78,15 +80,15 @@ export default function CarSelectForm({ cars, selectedId, onChange, isTransition
         ref={detailsButtonRef}
         onClick={() => setShowDetails(true)}
       >
-        Više informacija o vozilu
+        {t.hero.moreInfo}
       </button>
 
-      <Link className="car-form__fleet-link" to="/vozila">
-        Pogledaj svih {fleet.length} vozila u floti →
+      <Link className="car-form__fleet-link" to={paths.fleet}>
+        {t.hero.fleetLink(fleet.length)}
       </Link>
 
       <p className={`car-form__hint${isTransitioning ? ' car-form__hint--visible' : ''}`} aria-live="polite">
-        Menjamo vozilo na prikazu…
+        {t.hero.switching}
       </p>
 
       {showDetails && (

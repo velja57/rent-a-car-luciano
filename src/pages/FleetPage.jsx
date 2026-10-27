@@ -5,8 +5,9 @@ import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
 import ReservationModal from '../components/ReservationModal';
 import { fleet, fuelKind, VEHICLE_TYPES } from '../data/fleet';
-import { INCLUDED, PHONE_DISPLAY, PHONE_HREF, WHATSAPP_NUMBER } from '../data/rental';
-import { formatDays, lowestRate, MAX_DISCOUNT_PERCENT, tierFor } from '../lib/pricing';
+import { DISCOUNT_TIERS, PHONE_DISPLAY, PHONE_HREF, WHATSAPP_NUMBER } from '../data/rental';
+import { useI18n } from '../i18n';
+import { discountPercent, formatEur, lowestRate, MAX_DISCOUNT_PERCENT, tierFor } from '../lib/pricing';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { useAvailability } from '../lib/useAvailability';
 import { usePageMeta } from '../lib/usePageMeta';
@@ -14,37 +15,29 @@ import { useRentalDates } from '../lib/useRentalDates';
 import '../components/Fleet.css';
 import './FleetPage.css';
 
-const TRANSMISSIONS = [
-  { id: 'automatik', label: 'Automatik' },
-  { id: 'manuelni', label: 'Manuelni' },
-];
-
-const FUELS = [
-  { id: 'dizel', label: 'Dizel' },
-  { id: 'benzin', label: 'Benzin' },
-  { id: 'hibrid', label: 'Hibrid' },
-];
+// Vrednosti filtera u adresi su iste na oba jezika (?menjac=automatik…), nazivi su u rečnicima.
+const TRANSMISSIONS = ['automatik', 'manuelni'];
+const FUELS = ['dizel', 'benzin', 'hibrid'];
 
 const SORTS = [
-  { id: 'cena', label: 'Najniža cena', compare: (a, b) => a.pricePerDay - b.pricePerDay },
-  { id: 'cena-opadajuce', label: 'Najviša cena', compare: (a, b) => b.pricePerDay - a.pricePerDay },
-  { id: 'snaga', label: 'Najveća snaga', compare: (a, b) => b.power - a.power },
+  { id: 'cena', compare: (a, b) => a.pricePerDay - b.pricePerDay },
+  { id: 'cena-opadajuce', compare: (a, b) => b.pricePerDay - a.pricePerDay },
+  { id: 'snaga', compare: (a, b) => b.power - a.power },
   {
     id: 'preporuka',
-    label: 'Preporučeno',
     compare: (a, b) => Number(Boolean(b.recommended)) - Number(Boolean(a.recommended)) || a.pricePerDay - b.pricePerDay,
   },
 ];
 
 const FILTER_KEYS = ['tip', 'menjac', 'gorivo', 'slobodna'];
+const FIRST_DISCOUNT_TIER = DISCOUNT_TIERS.find((tier) => tier.discount > 0);
 const allIds = fleet.map((c) => c.id);
 const minPrice = Math.min(...fleet.map(lowestRate));
 
 export default function FleetPage() {
-  usePageMeta(
-    'Vozila — Luciano Rent a Car',
-    `Rent a car Beograd: ${fleet.length} vozila od ${minPrice}€ po danu. Gradski automobili, limuzine, SUV, premium i kombi 8+1. Do −${MAX_DISCOUNT_PERCENT}% za duži najam.`,
-  );
+  const { lang, t } = useI18n();
+  const f = t.fleetPage;
+  usePageMeta(t.meta.fleetTitle, t.meta.fleetDescription(fleet.length, formatEur(minPrice, lang), MAX_DISCOUNT_PERCENT));
 
   const [params, setParams] = useSearchParams();
   const { pickup, ret, days, setDates } = useRentalDates();
@@ -85,6 +78,7 @@ export default function FleetPage() {
 
   const isFree = (car) => availability.byId[car.id] !== false;
 
+  // Filtriranje radi nad originalnim (srpskim) podacima — prevod je samo za prikaz.
   const visible = fleet
     .filter((car) => !type || car.type === type)
     .filter((car) => !transmission || car.transmission.toLowerCase() === transmission)
@@ -94,6 +88,8 @@ export default function FleetPage() {
 
   const filtersActive = FILTER_KEYS.some((k) => params.has(k));
   const freeCount = availabilityReady ? fleet.filter(isFree).length : null;
+  const [shownBefore, shownCount, shownAfter] = f.shown(visible.length, fleet.length);
+  const [ladderText, ladderStrong] = f.ladderTitle(MAX_DISCOUNT_PERCENT);
 
   const openReservation = (car, trigger) => {
     triggerRef.current = trigger;
@@ -109,53 +105,50 @@ export default function FleetPage() {
         <header className="fleet__head">
           <span className="fleet__eyebrow">
             <span className="fleet__pulse" />
-            Flota · {fleet.length} vozila
+            {f.eyebrow(fleet.length)}
           </span>
           <h1 className="fleet__title">
-            Izaberi vozilo za <span>svoj put</span>
+            {f.title[0]}
+            <span>{f.title[1]}</span>
           </h1>
-          <p className="fleet__subtitle">
-            Unesi datume i odmah vidi slobodna vozila i tačnu cenu za ceo period. Osiguranje i neograničena
-            kilometraža uključeni su u svaku cenu.
-          </p>
+          <p className="fleet__subtitle">{f.subtitle}</p>
         </header>
 
-        <section className="fleet-search" aria-label="Pretraga po datumima">
+        <section className="fleet-search" aria-label={f.searchLabel}>
           <div className="fleet-search__dates">
             <DateRangeFields pickup={pickup} ret={ret} onChange={setDates} />
             <div className="fleet-search__summary" aria-live="polite">
               {days > 0 ? (
                 <>
                   <strong>
-                    {days} {formatDays(days)}
+                    {days} {t.days(days)}
                   </strong>
                   {tierFor(days).discount > 0 ? (
-                    <span className="fleet-search__badge">
-                      Popust −{Math.round(tierFor(days).discount * 100)}% je uračunat
-                    </span>
+                    <span className="fleet-search__badge">{f.discountApplied(discountPercent(tierFor(days)))}</span>
                   ) : (
-                    <span>Za 3+ dana dobijaš popust od 10%</span>
+                    <span>{f.discountHint(FIRST_DISCOUNT_TIER.minDays, discountPercent(FIRST_DISCOUNT_TIER))}</span>
                   )}
                 </>
               ) : (
-                <span>Izaberi datume preuzimanja i vraćanja</span>
+                <span>{f.chooseDates}</span>
               )}
               {(pickup || ret) && (
                 <button type="button" className="fleet-search__clear" onClick={() => setDates({ pickup: '', ret: '' })}>
-                  Obriši datume
+                  {f.clearDates}
                 </button>
               )}
             </div>
           </div>
           <div className="fleet-search__ladder">
             <p className="fleet-search__ladder-title">
-              Što duže voziš, manje plaćaš — <strong>do −{MAX_DISCOUNT_PERCENT}%</strong>
+              {ladderText}
+              <strong>{ladderStrong}</strong>
             </p>
             <DiscountLadder days={days} />
           </div>
         </section>
 
-        <div className="fleet-filters" role="group" aria-label="Filteri vozila">
+        <div className="fleet-filters" role="group" aria-label={f.filtersLabel}>
           <div className="fleet-filters__chips">
             <button
               type="button"
@@ -163,50 +156,50 @@ export default function FleetPage() {
               aria-pressed={!type}
               onClick={() => setParam('tip', '')}
             >
-              Sva vozila
+              {f.allTypes}
             </button>
-            {VEHICLE_TYPES.map((t) => (
+            {VEHICLE_TYPES.map((id) => (
               <button
                 type="button"
-                key={t.id}
-                className={`fleet-chip${type === t.id ? ' fleet-chip--active' : ''}`}
-                aria-pressed={type === t.id}
-                onClick={() => setParam('tip', type === t.id ? '' : t.id)}
+                key={id}
+                className={`fleet-chip${type === id ? ' fleet-chip--active' : ''}`}
+                aria-pressed={type === id}
+                onClick={() => setParam('tip', type === id ? '' : id)}
               >
-                {t.label}
+                {t.types[id]}
               </button>
             ))}
           </div>
 
           <div className="fleet-filters__selects">
             <label className="fleet-select">
-              <span>Menjač</span>
+              <span>{f.transmission}</span>
               <select value={transmission} onChange={(e) => setParam('menjac', e.target.value)}>
-                <option value="">Svi</option>
-                {TRANSMISSIONS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label}
+                <option value="">{f.allTransmissions}</option>
+                {TRANSMISSIONS.map((id) => (
+                  <option key={id} value={id}>
+                    {f.transmissions[id]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="fleet-select">
-              <span>Gorivo</span>
+              <span>{f.fuel}</span>
               <select value={fuel} onChange={(e) => setParam('gorivo', e.target.value)}>
-                <option value="">Sva</option>
-                {FUELS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.label}
+                <option value="">{f.allFuels}</option>
+                {FUELS.map((id) => (
+                  <option key={id} value={id}>
+                    {f.fuels[id]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="fleet-select">
-              <span>Sortiraj</span>
+              <span>{f.sort}</span>
               <select value={sort.id} onChange={(e) => setParam('sort', e.target.value === SORTS[0].id ? '' : e.target.value)}>
                 {SORTS.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.label}
+                    {f.sorts[s.id]}
                   </option>
                 ))}
               </select>
@@ -216,10 +209,12 @@ export default function FleetPage() {
 
         <div className="fleet-results" aria-live="polite">
           <p>
-            Prikazano <strong>{visible.length}</strong> od {fleet.length} vozila
-            {availability.status === 'checking' && ' · proveravamo dostupnost…'}
-            {freeCount !== null && ` · ${freeCount} slobodno za izabrane datume`}
-            {availability.status === 'error' && ' · dostupnost trenutno ne možemo da proverimo'}
+            {shownBefore}
+            <strong>{shownCount}</strong>
+            {shownAfter}
+            {availability.status === 'checking' && f.checking}
+            {freeCount !== null && f.freeCount(freeCount)}
+            {availability.status === 'error' && f.availabilityError}
           </p>
           <div className="fleet-results__actions">
             {isSupabaseConfigured && days > 0 && (
@@ -229,12 +224,12 @@ export default function FleetPage() {
                   checked={onlyFree}
                   onChange={(e) => setParam('slobodna', e.target.checked ? '1' : '')}
                 />
-                <span>Samo slobodna</span>
+                <span>{f.onlyFree}</span>
               </label>
             )}
             {filtersActive && (
               <button type="button" className="fleet-search__clear" onClick={resetFilters}>
-                Poništi filtere
+                {f.resetFilters}
               </button>
             )}
           </div>
@@ -257,19 +252,19 @@ export default function FleetPage() {
           </ul>
         ) : (
           <div className="fleet-empty">
-            <p>Nijedno vozilo ne odgovara izabranim filterima.</p>
+            <p>{f.empty}</p>
             <button type="button" className="car-form__more" onClick={resetFilters}>
-              Prikaži sva vozila
+              {f.showAll}
             </button>
           </div>
         )}
 
         <section className="fleet-included" aria-labelledby="fleet-included-title">
           <h2 className="fleet-included__title" id="fleet-included-title">
-            Uključeno u svaku cenu
+            {f.includedTitle}
           </h2>
           <ul className="fleet-included__list">
-            {INCLUDED.map((item) => (
+            {t.included.map((item) => (
               <li key={item}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -282,15 +277,15 @@ export default function FleetPage() {
 
         <section className="fleet-help">
           <div>
-            <h2 className="fleet-help__title">Nisi siguran koje vozilo da izabereš?</h2>
-            <p className="fleet-help__text">Pozovi nas ili pošalji poruku — pomoći ćemo ti da izabereš najbolje za tvoj put.</p>
+            <h2 className="fleet-help__title">{f.helpTitle}</h2>
+            <p className="fleet-help__text">{f.helpText}</p>
           </div>
           <div className="fleet-help__actions">
             <a className="car-form__cta" href={PHONE_HREF}>
-              Pozovi {PHONE_DISPLAY}
+              {t.common.call(PHONE_DISPLAY)}
             </a>
             <a className="car-form__more" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer">
-              WhatsApp poruka
+              {f.whatsappMessage}
             </a>
           </div>
         </section>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useI18n } from '../i18n';
 
 // Frejmovi su izvučeni na 12fps (vidi README_HERO.md za regenerisanje).
 const FRAME_INTERVAL_MS = 1000 / 12;
@@ -31,6 +32,7 @@ function loadCarFrames(car) {
  * sekvenca uvek vrati tačno na parkiranu pozu (frame 0).
  */
 export default function CarStage({ car, cars, onPhaseChange }) {
+  const { t } = useI18n();
   const canvasRef = useRef(null);
   const cacheRef = useRef(new Map());
   const [ready, setReady] = useState(false);
@@ -189,7 +191,7 @@ export default function CarStage({ car, cars, onPhaseChange }) {
       <canvas
         ref={canvasRef}
         className={`car-stage__canvas${ready ? ' car-stage__canvas--ready' : ''}`}
-        aria-label="Prikaz izabranog vozila na ulici"
+        aria-label={t.hero.stageLabel}
       />
       {!ready && (
         <div className="car-stage__skeleton">

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { EXTRAS, WHATSAPP_NUMBER } from '../data/rental';
-import { depositLabel, formatDays, formatRsd, quote, rentalDays } from '../lib/pricing';
+import { dictionaries, useI18n } from '../i18n';
+import { discountPercent, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
-
-const DEFAULT_LOCATION = 'Kralja Mihaila Zetskog 44, Batajnica, Beograd';
 
 // Koliko čekamo nakon poslednjeg unosa datuma pre nego što proverimo
 // dostupnost u bazi (da ne pucamo zahtev na svaki pritisak tastera).
@@ -24,13 +23,29 @@ function calculateAge(dobString) {
   return age;
 }
 
-function formatExtraPrice(extra) {
-  if (!extra.price) return 'Besplatno';
-  return extra.per === 'day' ? `${extra.price}€ / dan` : `${extra.price}€`;
+function formatExtraPrice(extra, t, lang) {
+  if (!extra.price) return t.reservation.free;
+  return extra.per === 'day' ? `${formatEur(extra.price, lang)} ${t.common.perDay}` : formatEur(extra.price, lang);
+}
+
+// Kratak opis cene ("7 dana × 45€ (−15%) = 315€ · Dečije sedište 21€ · Ukupno …")
+// na traženom jeziku — za mejl kupcu, napomenu vlasniku i WhatsApp poruku.
+function priceLine(t, lang, q) {
+  return t.reservation.priceLine({
+    days: q.days,
+    daysWord: t.days(q.days),
+    rate: formatEur(q.rate, lang),
+    discount: discountPercent(q.tier),
+    rental: formatEur(q.rental, lang),
+    extras: q.extras.map((e) => `${t.extras[e.id]} ${e.cost ? formatEur(e.cost, lang) : t.reservation.free}`),
+    total: formatEur(q.total, lang),
+    rsd: formatRsd(q.total, lang),
+  });
 }
 
 // initialPickup/initialReturn: datumi već izabrani na stranici vozila/flote.
 export default function ReservationModal({ car, onClose, triggerRef, initialPickup = '', initialReturn = '' }) {
+  const { lang, t } = useI18n();
   const closeButtonRef = useRef(null);
   const firstFieldRef = useRef(null);
   const startDatesValid = initialPickup >= todayISO() && rentalDays(initialPickup, initialReturn) > 0;
@@ -41,7 +56,7 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     dob: '',
     pickupDate: startDatesValid ? initialPickup : '',
     returnDate: startDatesValid ? initialReturn : '',
-    location: DEFAULT_LOCATION,
+    location: t.reservation.defaultLocation,
     note: '',
   });
   const [extraIds, setExtraIds] = useState([]);
@@ -110,59 +125,51 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
   const days = rentalDays(form.pickupDate, form.returnDate);
   const priceQuote = days > 0 ? quote(car, days, extraIds) : null;
 
-  // Dodaci i procenjena cena idu uz napomenu kupca (baza, admin, email vlasniku, WhatsApp).
-  const summaryLines = priceQuote
-    ? [
-        priceQuote.extras.length > 0 && `Dodaci: ${priceQuote.extras.map((e) => e.label).join(', ')}`,
-        `Procenjena cena: ${priceQuote.total}€ (${days} ${formatDays(days)} × ${priceQuote.rate}€${
-          priceQuote.extrasTotal ? ` + dodaci ${priceQuote.extrasTotal}€` : ''
-        })`,
-      ].filter(Boolean)
-    : [];
-
   const validate = () => {
+    const e = t.reservation.errors;
     const next = {};
-    if (!form.name.trim()) next.name = 'Unesi ime i prezime.';
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = 'Unesi ispravan email.';
-    if (!/^[0-9+\s/()-]{6,}$/.test(form.phone)) next.phone = 'Unesi ispravan broj telefona.';
+    if (!form.name.trim()) next.name = e.name;
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = e.email;
+    if (!/^[0-9+\s/()-]{6,}$/.test(form.phone)) next.phone = e.phone;
 
     if (!form.dob) {
-      next.dob = 'Unesi datum rođenja.';
+      next.dob = e.dob;
     } else {
       const age = calculateAge(form.dob);
-      if (age === null) next.dob = 'Neispravan datum.';
-      else if (age < car.minAge) next.dob = `Za ovo vozilo potreban je minimum ${car.minAge} godina.`;
+      if (age === null) next.dob = e.dobInvalid;
+      else if (age < car.minAge) next.dob = e.minAge(car.minAge);
     }
 
-    if (!form.pickupDate) next.pickupDate = 'Izaberi datum preuzimanja.';
-    else if (form.pickupDate < todayISO()) next.pickupDate = 'Datum ne može biti u prošlosti.';
+    if (!form.pickupDate) next.pickupDate = e.pickup;
+    else if (form.pickupDate < todayISO()) next.pickupDate = e.pickupPast;
 
-    if (!form.returnDate) next.returnDate = 'Izaberi datum vraćanja.';
+    if (!form.returnDate) next.returnDate = e.return;
     else if (form.pickupDate && form.returnDate <= form.pickupDate) {
-      next.returnDate = 'Datum vraćanja mora biti posle datuma preuzimanja.';
+      next.returnDate = e.returnOrder;
     }
 
-    if (!form.location.trim()) next.location = 'Unesi lokaciju preuzimanja.';
+    if (!form.location.trim()) next.location = e.location;
 
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
   const openWhatsApp = () => {
+    const w = t.reservation.whatsapp;
     const lines = [
-      'Zdravo! Želim da rezervišem vozilo.',
+      w.greeting,
       '',
-      `Vozilo: ${car.name}`,
-      `Ime i prezime: ${form.name.trim()}`,
-      `Email: ${form.email.trim()}`,
-      `Telefon: ${form.phone.trim()}`,
-      `Datum rođenja: ${form.dob}`,
-      `Preuzimanje: ${form.pickupDate}`,
-      `Vraćanje: ${form.returnDate}`,
-      `Lokacija preuzimanja: ${form.location.trim()}`,
+      `${w.car}: ${car.name}`,
+      `${w.name}: ${form.name.trim()}`,
+      `${w.email}: ${form.email.trim()}`,
+      `${w.phone}: ${form.phone.trim()}`,
+      `${w.dob}: ${form.dob}`,
+      `${w.pickup}: ${form.pickupDate}`,
+      `${w.return}: ${form.returnDate}`,
+      `${w.location}: ${form.location.trim()}`,
     ];
-    lines.push(...summaryLines);
-    if (form.note.trim()) lines.push(`Napomena: ${form.note.trim()}`);
+    if (priceQuote) lines.push(`${w.price}: ${priceLine(t, lang, priceQuote)}`);
+    if (form.note.trim()) lines.push(`${w.note}: ${form.note.trim()}`);
 
     const text = encodeURIComponent(lines.join('\n'));
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank', 'noopener,noreferrer');
@@ -181,17 +188,24 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     }
 
     if (availability === 'unavailable') {
-      setErrors((prev) => ({
-        ...prev,
-        returnDate: 'Vozilo nije dostupno u izabranom periodu. Izaberi druge datume.',
-      }));
+      setErrors((prev) => ({ ...prev, returnDate: t.reservation.errors.unavailable }));
       return;
     }
 
     setSubmitting(true);
     setSubmitError(null);
 
-    const { data, error } = await supabase.rpc('create_reservation', {
+    // Napomena za vlasnika (admin panel, mejl vlasniku) je uvek na srpskom.
+    const sr = dictionaries.sr;
+    const ownerNote = [
+      form.note.trim(),
+      priceQuote && `Procenjena cena: ${priceLine(sr, 'sr', priceQuote)}`,
+      lang !== 'sr' && 'Jezik kupca: engleski',
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
+    const params = {
       p_car_id: car.id,
       p_car_name: car.name,
       p_customer_name: form.name.trim(),
@@ -201,25 +215,33 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
       p_pickup: form.pickupDate,
       p_return: form.returnDate,
       p_location: form.location.trim(),
-      p_note: [form.note.trim(), ...summaryLines].filter(Boolean).join(' | '),
+      p_note: ownerNote,
+    };
+    // Jezik i opis cene idu u mejl potvrde kupcu (na njegovom jeziku).
+    let { data, error } = await supabase.rpc('create_reservation', {
+      ...params,
+      p_language: lang,
+      p_price_summary: priceQuote ? priceLine(t, lang, priceQuote) : null,
     });
+    // Ako SQL izmena iz supabase/schema.sql još nije pokrenuta, funkcija ne zna
+    // za nova polja (PGRST202) — rezervacija ide po starom, bez njih.
+    if (error?.code === 'PGRST202') {
+      ({ data, error } = await supabase.rpc('create_reservation', params));
+    }
 
     setSubmitting(false);
 
     if (error) {
-      setSubmitError('Došlo je do greške prilikom slanja rezervacije. Pokušaj ponovo ili nas pozovi telefonom.');
+      setSubmitError(t.reservation.errors.submit);
       return;
     }
 
     if (!data?.success) {
       if (data?.reason === 'unavailable') {
         setAvailability('unavailable');
-        setErrors((prev) => ({
-          ...prev,
-          returnDate: 'Vozilo nije dostupno u izabranom periodu. Izaberi druge datume.',
-        }));
+        setErrors((prev) => ({ ...prev, returnDate: t.reservation.errors.unavailable }));
       } else {
-        setSubmitError('Došlo je do greške prilikom slanja rezervacije. Pokušaj ponovo ili nas pozovi telefonom.');
+        setSubmitError(t.reservation.errors.submit);
       }
       return;
     }
@@ -227,12 +249,22 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     setSent(true);
   };
 
+  const [successBefore, successAfter] = isSupabaseConfigured
+    ? t.reservation.successText
+    : t.reservation.successTextWhatsapp;
+
   // Portal u <body>: roditelj .car-form ima backdrop-filter/transform, što bi
   // fixed overlay zarobilo unutar kartice forme umesto preko celog ekrana.
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
-        <button type="button" className="modal__close" aria-label="Zatvori" onClick={onClose} ref={closeButtonRef}>
+        <button
+          type="button"
+          className="modal__close"
+          aria-label={t.common.close}
+          onClick={onClose}
+          ref={closeButtonRef}
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
           </svg>
@@ -241,84 +273,74 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
         {sent ? (
           <div className="reservation-success">
             <h2 className="modal__title" id="reservation-title">
-              {isSupabaseConfigured ? 'Rezervacija je poslata!' : 'Skoro gotovo!'}
+              {isSupabaseConfigured ? t.reservation.successTitle : t.reservation.successTitleWhatsapp}
             </h2>
             <p className="modal__description">
-              {isSupabaseConfigured ? (
-                <>
-                  Rezervacija za vozilo <strong>{car.name}</strong> je zabeležena. Potvrda stiže na tvoj email, a
-                  javićemo ti se uskoro i telefonom da potvrdimo sve detalje.
-                </>
-              ) : (
-                <>
-                  Otvorili smo WhatsApp sa popunjenom porukom za rezervaciju vozila <strong>{car.name}</strong>. Samo
-                  je pošalji, i javićemo ti se u najkraćem roku da potvrdimo rezervaciju.
-                </>
-              )}
+              {successBefore}
+              <strong>{car.name}</strong>
+              {successAfter}
             </p>
             <div className="reservation-success__actions">
               {isSupabaseConfigured && (
                 <button type="button" className="car-form__more" onClick={openWhatsApp}>
-                  Pošalji i WhatsApp poruku
+                  {t.reservation.alsoWhatsapp}
                 </button>
               )}
               <button type="button" className="car-form__cta" onClick={onClose}>
-                Zatvori
+                {t.common.close}
               </button>
             </div>
           </div>
         ) : (
           <>
-            <span className="modal__eyebrow">Rezervacija</span>
+            <span className="modal__eyebrow">{t.reservation.eyebrow}</span>
             <h2 className="modal__title" id="reservation-title">
               {car.name}
             </h2>
             <p className="modal__description">
-              {isSupabaseConfigured
-                ? 'Popuni svoje podatke — proverićemo dostupnost vozila i odmah ti potvrditi rezervaciju.'
-                : 'Popuni svoje podatke — poruka sa svim detaljima otvoriće se u WhatsAppu, spremna za slanje.'}
+              {isSupabaseConfigured ? t.reservation.intro : t.reservation.introWhatsapp}
             </p>
 
             <form className="reservation-form" onSubmit={handleSubmit} noValidate>
               <label className="reservation-form__field">
-                <span>Ime i prezime</span>
+                <span>{t.reservation.name}</span>
                 <input ref={firstFieldRef} type="text" value={form.name} onChange={setField('name')} />
                 {errors.name && <em className="reservation-form__error">{errors.name}</em>}
               </label>
 
               <div className="reservation-form__row">
                 <label className="reservation-form__field">
-                  <span>Email</span>
+                  <span>{t.reservation.email}</span>
                   <input type="email" value={form.email} onChange={setField('email')} />
                   {errors.email && <em className="reservation-form__error">{errors.email}</em>}
                 </label>
                 <label className="reservation-form__field">
-                  <span>Broj telefona</span>
+                  <span>{t.reservation.phone}</span>
                   <input type="tel" value={form.phone} onChange={setField('phone')} />
                   {errors.phone && <em className="reservation-form__error">{errors.phone}</em>}
                 </label>
               </div>
 
               <label className="reservation-form__field">
-                <span>Datum rođenja</span>
+                <span>{t.reservation.dob}</span>
                 <input type="date" value={form.dob} onChange={setField('dob')} max={todayISO()} />
                 {errors.dob && <em className="reservation-form__error">{errors.dob}</em>}
               </label>
 
               <label className="reservation-form__field">
-                <span>Lokacija preuzimanja</span>
+                <span>{t.reservation.location}</span>
                 <input type="text" value={form.location} onChange={setField('location')} />
                 {errors.location && <em className="reservation-form__error">{errors.location}</em>}
               </label>
 
               <div className="reservation-form__row">
                 <label className="reservation-form__field">
-                  <span>Datum preuzimanja</span>
+                  <span>{t.reservation.pickupDate}</span>
                   <input type="date" value={form.pickupDate} onChange={setField('pickupDate')} min={todayISO()} />
                   {errors.pickupDate && <em className="reservation-form__error">{errors.pickupDate}</em>}
                 </label>
                 <label className="reservation-form__field">
-                  <span>Datum vraćanja</span>
+                  <span>{t.reservation.returnDate}</span>
                   <input
                     type="date"
                     value={form.returnDate}
@@ -334,15 +356,12 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
                   className={`reservation-form__availability reservation-form__availability--${availability}`}
                   aria-live="polite"
                 >
-                  {availability === 'checking' && 'Proveravamo dostupnost vozila…'}
-                  {availability === 'available' && 'Vozilo je dostupno u izabranom periodu.'}
-                  {availability === 'unavailable' && 'Vozilo nije dostupno u izabranom periodu. Izaberi druge datume.'}
-                  {availability === 'error' && 'Ne možemo trenutno da proverimo dostupnost. Pokušaj ponovo malo kasnije.'}
+                  {t.reservation.availability[availability]}
                 </p>
               )}
 
               <fieldset className="reservation-extras">
-                <legend>Dodatne usluge (opciono)</legend>
+                <legend>{t.reservation.extras}</legend>
                 {EXTRAS.map((extra) => (
                   <label className="reservation-extras__item" key={extra.id}>
                     <input
@@ -350,8 +369,8 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
                       checked={extraIds.includes(extra.id)}
                       onChange={() => toggleExtra(extra.id)}
                     />
-                    <span className="reservation-extras__label">{extra.label}</span>
-                    <span className="reservation-extras__price">{formatExtraPrice(extra)}</span>
+                    <span className="reservation-extras__label">{t.extras[extra.id]}</span>
+                    <span className="reservation-extras__price">{formatExtraPrice(extra, t, lang)}</span>
                   </label>
                 ))}
               </fieldset>
@@ -360,42 +379,42 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
                 <div className="reservation-summary" aria-live="polite">
                   <div className="reservation-summary__row">
                     <span>
-                      Najam: {days} {formatDays(days)} × {priceQuote.rate}€
+                      {t.reservation.summaryRental(days, t.days(days), formatEur(priceQuote.rate, lang))}
                       {priceQuote.tier.discount > 0 && (
-                        <em className="reservation-summary__discount">
-                          −{Math.round(priceQuote.tier.discount * 100)}%
-                        </em>
+                        <em className="reservation-summary__discount">−{discountPercent(priceQuote.tier)}%</em>
                       )}
                     </span>
-                    <span>{priceQuote.rental}€</span>
+                    <span>{formatEur(priceQuote.rental, lang)}</span>
                   </div>
                   {priceQuote.extras.map((extra) => (
                     <div className="reservation-summary__row" key={extra.id}>
                       <span>
-                        {extra.label}
-                        {extra.per === 'day' && extra.price > 0 && ` (${days} × ${extra.price}€)`}
+                        {t.extras[extra.id]}
+                        {extra.per === 'day' && extra.price > 0 && ` (${days} × ${formatEur(extra.price, lang)})`}
                       </span>
-                      <span>{extra.cost ? `${extra.cost}€` : 'Besplatno'}</span>
+                      <span>{extra.cost ? formatEur(extra.cost, lang) : t.reservation.free}</span>
                     </div>
                   ))}
                   <div className="reservation-summary__total">
-                    <span>Ukupno</span>
+                    <span>{t.reservation.summaryTotal}</span>
                     <span>
-                      <strong>{priceQuote.total}€</strong>
-                      <small>≈ {formatRsd(priceQuote.total)}</small>
+                      <strong>{formatEur(priceQuote.total, lang)}</strong>
+                      <small>≈ {formatRsd(priceQuote.total, lang)}</small>
                     </span>
                   </div>
                   {priceQuote.savings > 0 && (
                     <p className="reservation-summary__note reservation-summary__note--save">
-                      Ušteda zbog dužeg najma: {priceQuote.savings}€
+                      {t.reservation.summarySavings(formatEur(priceQuote.savings, lang))}
                     </p>
                   )}
-                  <p className="reservation-summary__note">Depozit: {depositLabel(car.deposit)}</p>
+                  <p className="reservation-summary__note">
+                    {t.reservation.summaryDeposit(car.deposit ? formatEur(car.deposit, lang) : t.common.noDeposit)}
+                  </p>
                 </div>
               )}
 
               <label className="reservation-form__field">
-                <span>Napomena (opciono)</span>
+                <span>{t.reservation.note}</span>
                 <textarea rows={3} value={form.note} onChange={setField('note')} />
               </label>
 
@@ -408,9 +427,9 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
               >
                 {isSupabaseConfigured
                   ? submitting
-                    ? 'Šaljem rezervaciju…'
-                    : 'Rezerviši odmah'
-                  : 'Pošalji rezervaciju preko WhatsAppa'}
+                    ? t.reservation.sending
+                    : t.common.reserveNow
+                  : t.reservation.sendWhatsapp}
               </button>
             </form>
           </>

@@ -6,8 +6,9 @@ import FleetCard from '../components/FleetCard';
 import ReservationModal from '../components/ReservationModal';
 import VehicleGallery from '../components/VehicleGallery';
 import { fleet } from '../data/fleet';
-import { INCLUDED, PHONE_DISPLAY, PHONE_HREF, WHATSAPP_NUMBER } from '../data/rental';
-import { depositLabel, formatDays, formatRsd, lowestRate, MAX_DISCOUNT_PERCENT, quote } from '../lib/pricing';
+import { PHONE_DISPLAY, PHONE_HREF, WHATSAPP_NUMBER } from '../data/rental';
+import { useI18n } from '../i18n';
+import { formatEur, formatNumber, formatRsd, lowestRate, MAX_DISCOUNT_PERCENT, quote, tierLabel } from '../lib/pricing';
 import { useAvailability } from '../lib/useAvailability';
 import { usePageMeta } from '../lib/usePageMeta';
 import { datesQuery, useRentalDates } from '../lib/useRentalDates';
@@ -34,14 +35,14 @@ export default function VehiclePage() {
   const car = fleet.find((c) => c.id === id);
   if (!car) return <NotFoundPage />;
   // key: nova stranica vozila kreće od čistog stanja (galerija, forma).
-  return <VehicleDetails key={car.id} car={car} />;
+  return <VehicleDetails key={car.id} rawCar={car} />;
 }
 
-function VehicleDetails({ car }) {
-  usePageMeta(
-    `${car.name} — rent a car Beograd | Luciano Rent a Car`,
-    `Iznajmi ${car.name} (${car.year}.) u Beogradu — ${car.transmission.toLowerCase()}, ${car.fuel.toLowerCase()}, ${car.seats} sedišta. Već od ${lowestRate(car)}€ po danu, neograničena kilometraža.`,
-  );
+function VehicleDetails({ rawCar }) {
+  const { lang, t, paths, localize } = useI18n();
+  const v = t.vehiclePage;
+  const car = localize(rawCar);
+  usePageMeta(t.meta.vehicleTitle(car.name), t.meta.vehicleDescription(car, formatEur(lowestRate(car), lang)));
 
   const { pickup, ret, days, setDates } = useRentalDates();
   const availability = useAvailability([car.id], pickup, ret);
@@ -56,26 +57,27 @@ function VehicleDetails({ car }) {
 
   const period = days > 0 ? quote(car, days) : null;
   const unavailable = availability.status === 'ready' && availability.byId[car.id] === false;
-  const similar = similarCars(car);
+  const similar = similarCars(rawCar);
+  const depositText = car.deposit ? formatEur(car.deposit, lang) : t.common.noDeposit;
 
   const specs = [
-    ['Motor', car.engine],
-    ['Snaga', `${car.power} KS`],
-    ['Menjač', car.transmission],
-    ['Gorivo', car.fuel],
-    ['Pogon', car.drive],
-    ['Potrošnja', car.consumption],
-    ['Broj mesta', car.seats],
-    ['Broj vrata', car.doors],
-    ['Prtljažnik', `${car.trunk.toLocaleString('sr-RS')} L`],
-    ['Prtljag', car.luggage],
+    [t.specs.engine, car.engine],
+    [t.specs.power, `${car.power} ${t.powerUnit}`],
+    [t.specs.transmission, car.transmission],
+    [t.specs.fuel, car.fuel],
+    [t.specs.drive, car.drive],
+    [t.specs.consumption, car.consumption],
+    [t.specs.seats, car.seats],
+    [t.specs.doors, car.doors],
+    [t.specs.trunk, `${formatNumber(car.trunk, lang)} L`],
+    [t.specs.luggage, car.luggage],
   ];
 
   const terms = [
-    ['Kilometraža', car.mileage],
-    ['Depozit', depositLabel(car.deposit)],
-    ['Minimalni uzrast vozača', `${car.minAge} god.`],
-    ['Otkazivanje', car.cancellation],
+    [t.specs.mileage, car.mileage],
+    [t.specs.deposit, depositText],
+    [t.specs.minDriverAge, t.common.minAge(car.minAge)],
+    [t.specs.cancellation, car.cancellation],
   ];
 
   return (
@@ -83,10 +85,10 @@ function VehicleDetails({ car }) {
       <div className="fleet__bg" aria-hidden="true" />
 
       <div className="container vehicle-page__inner">
-        <nav className="vehicle-page__crumbs" aria-label="Putanja">
-          <Link to="/">Početna</Link>
+        <nav className="vehicle-page__crumbs" aria-label={v.crumbsLabel}>
+          <Link to={paths.home}>{t.nav.home}</Link>
           <span aria-hidden="true">/</span>
-          <Link to={`/vozila${datesQuery(pickup, ret)}`}>Vozila</Link>
+          <Link to={`${paths.fleet}${datesQuery(pickup, ret)}`}>{t.nav.fleet}</Link>
           <span aria-hidden="true">/</span>
           <span aria-current="page">{car.name}</span>
         </nav>
@@ -96,47 +98,49 @@ function VehicleDetails({ car }) {
 
           <aside className="vehicle-panel" aria-labelledby="vehicle-title">
             <span className="modal__eyebrow">
-              {car.category} · {car.year}.
+              {car.category} · {t.year(car.year)}
             </span>
             <h1 className="vehicle-panel__title" id="vehicle-title">
               {car.name}
             </h1>
             <p className="vehicle-panel__engine">
-              {car.engine} · {car.power} KS · {car.transmission} · {car.fuel}
+              {car.engine} · {car.power} {t.powerUnit} · {car.transmission} · {car.fuel}
             </p>
             <div className="vehicle-panel__badges">
-              {car.recommended && <span className="vehicle-badge vehicle-badge--gold">★ Preporuka</span>}
+              {car.recommended && <span className="vehicle-badge vehicle-badge--gold">{t.common.recommended}</span>}
               <span className={`vehicle-badge${car.deposit ? '' : ' vehicle-badge--ok'}`}>
-                {car.deposit ? `Depozit ${depositLabel(car.deposit)}` : '✓ Bez depozita'}
+                {car.deposit ? t.common.deposit(depositText) : `✓ ${t.common.noDeposit}`}
               </span>
-              <span className="vehicle-badge">Neograničena kilometraža</span>
+              <span className="vehicle-badge">{t.common.unlimitedMileage}</span>
             </div>
 
             <div className="vehicle-panel__price">
               {period ? (
                 <>
-                  <span className="vehicle-panel__price-label">
-                    Ukupno za {days} {formatDays(days)}
-                  </span>
+                  <span className="vehicle-panel__price-label">{v.totalFor(days, t.days(days))}</span>
                   <span className="vehicle-panel__price-main">
-                    <strong>{period.total}€</strong>
-                    {period.savings > 0 && <s>{car.pricePerDay * days}€</s>}
+                    <strong>{formatEur(period.total, lang)}</strong>
+                    {period.savings > 0 && <s>{formatEur(car.pricePerDay * days, lang)}</s>}
                   </span>
                   <span className="vehicle-panel__price-sub">
-                    {period.rate}€ / dan · ≈ {formatRsd(period.total)}
-                    {period.savings > 0 && ` · ušteda ${period.savings}€`}
+                    {v.perDayRsd(formatEur(period.rate, lang), formatRsd(period.total, lang))}
+                    {period.savings > 0 && v.savings(formatEur(period.savings, lang))}
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="vehicle-panel__price-label">Već od</span>
+                  <span className="vehicle-panel__price-label">{t.card.from}</span>
                   <span className="vehicle-panel__price-main">
-                    <strong>{lowestRate(car)}€</strong>
-                    <span>/ dan</span>
+                    <strong>{formatEur(lowestRate(car), lang)}</strong>
+                    <span>{t.common.perDay}</span>
                   </span>
                   <span className="vehicle-panel__price-sub">
-                    {car.pricePerDay}€ / dan za 1–2 dana · ≈ {formatRsd(car.pricePerDay)} · do −{MAX_DISCOUNT_PERCENT}% za
-                    duži najam
+                    {v.baseInfo(
+                      formatEur(car.pricePerDay, lang),
+                      tierLabel(0, t.days),
+                      formatRsd(car.pricePerDay, lang),
+                      MAX_DISCOUNT_PERCENT,
+                    )}
                   </span>
                 </>
               )}
@@ -145,11 +149,14 @@ function VehicleDetails({ car }) {
             <DateRangeFields pickup={pickup} ret={ret} onChange={setDates} />
 
             {days > 0 && availability.status !== 'idle' && (
-              <p className={`vehicle-panel__availability vehicle-panel__availability--${unavailable ? 'busy' : availability.status}`} aria-live="polite">
-                {availability.status === 'checking' && 'Proveravamo dostupnost…'}
-                {availability.status === 'ready' && !unavailable && 'Vozilo je slobodno za izabrane datume.'}
-                {unavailable && 'Vozilo je zauzeto u tom periodu — izaberi druge datume ili slično vozilo ispod.'}
-                {availability.status === 'error' && 'Dostupnost trenutno ne možemo da proverimo.'}
+              <p
+                className={`vehicle-panel__availability vehicle-panel__availability--${unavailable ? 'busy' : availability.status}`}
+                aria-live="polite"
+              >
+                {availability.status === 'checking' && v.checking}
+                {availability.status === 'ready' && !unavailable && v.available}
+                {unavailable && v.busy}
+                {availability.status === 'error' && v.error}
               </p>
             )}
 
@@ -157,19 +164,19 @@ function VehicleDetails({ car }) {
               type="button"
               className="car-form__cta vehicle-panel__cta"
               disabled={unavailable}
-              onClick={(e) => openReservation(car, e.currentTarget)}
+              onClick={(e) => openReservation(rawCar, e.currentTarget)}
             >
-              {days > 0 ? `Rezerviši za ${period.total}€` : 'Rezerviši odmah'}
+              {period ? v.reserveFor(formatEur(period.total, lang)) : t.common.reserveNow}
             </button>
             <div className="vehicle-panel__contact">
-              <a href={PHONE_HREF}>Pozovi {PHONE_DISPLAY}</a>
+              <a href={PHONE_HREF}>{t.common.call(PHONE_DISPLAY)}</a>
               <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer">
-                WhatsApp
+                {t.common.whatsapp}
               </a>
             </div>
 
             <ul className="vehicle-panel__included">
-              {INCLUDED.map((item) => (
+              {t.included.map((item) => (
                 <li key={item}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -182,7 +189,7 @@ function VehicleDetails({ car }) {
         </div>
 
         <section className="vehicle-section">
-          <h2 className="vehicle-section__title">O vozilu</h2>
+          <h2 className="vehicle-section__title">{v.about}</h2>
           <p className="vehicle-section__lead">{car.description}</p>
           <div className="vehicle-specs">
             {specs.map(([label, value]) => (
@@ -195,24 +202,24 @@ function VehicleDetails({ car }) {
         </section>
 
         <section className="vehicle-section">
-          <h2 className="vehicle-section__title">Cena po dužini najma</h2>
-          <p className="vehicle-section__lead">Popust se automatski uračunava kad izabereš datume.</p>
+          <h2 className="vehicle-section__title">{v.pricing}</h2>
+          <p className="vehicle-section__lead">{v.pricingLead}</p>
           <DiscountLadder days={days} car={car} />
         </section>
 
         <div className="vehicle-section vehicle-section--split">
           <section>
-            <h2 className="vehicle-section__title">Oprema</h2>
+            <h2 className="vehicle-section__title">{v.equipment}</h2>
             <div className="modal__features">
-              {car.features.map((f) => (
-                <span className="modal__chip" key={f}>
-                  {f}
+              {car.features.map((feature) => (
+                <span className="modal__chip" key={feature}>
+                  {feature}
                 </span>
               ))}
             </div>
           </section>
           <section>
-            <h2 className="vehicle-section__title">Uslovi najma</h2>
+            <h2 className="vehicle-section__title">{v.terms}</h2>
             <dl className="vehicle-terms">
               {terms.map(([label, value]) => (
                 <div className="vehicle-terms__row" key={label}>
@@ -225,7 +232,7 @@ function VehicleDetails({ car }) {
         </div>
 
         <section className="vehicle-section">
-          <h2 className="vehicle-section__title">Slična vozila</h2>
+          <h2 className="vehicle-section__title">{v.similar}</h2>
           <ul className="fleet__grid vehicle-similar">
             {similar.map((c, i) => (
               <FleetCard

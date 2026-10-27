@@ -6,7 +6,7 @@ import { useLocation, useNavigationType } from 'react-router';
 const positions = new Map();
 
 export default function ScrollManager() {
-  const { key, pathname, hash } = useLocation();
+  const { key, pathname, hash, state } = useLocation();
   const navigationType = useNavigationType();
   const lastPathname = useRef(pathname);
 
@@ -24,6 +24,9 @@ export default function ScrollManager() {
     const pathChanged = lastPathname.current !== pathname;
     lastPathname.current = pathname;
 
+    // Promena jezika (ista stranica na drugom jeziku) ostaje na istom mestu.
+    if (state?.keepScroll) return;
+
     if (navigationType === 'POP' && positions.has(key)) {
       window.scrollTo({ top: positions.get(key), behavior: 'instant' });
     } else if (hash) {
@@ -32,7 +35,7 @@ export default function ScrollManager() {
       // 'instant' — globalni smooth scroll bi animirao skok na vrh nove stranice.
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
-  }, [key, pathname, hash, navigationType]);
+  }, [key, pathname, hash, navigationType, state]);
 
   return null;
 }

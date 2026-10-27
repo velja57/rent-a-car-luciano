@@ -25,6 +25,10 @@ export const cars = [
     cancellation: 'Besplatno otkazivanje do 48h pre preuzimanja',
     description:
       'Kompaktan hečbek najnovije generacije (2024), potpuno opremljen. Tih dizel motor i automatski menjač čine vožnju opuštenom u svakoj prilici.',
+    en: {
+      description:
+        'A latest-generation (2024) compact hatchback, fully equipped. A quiet diesel engine and an automatic gearbox make every drive relaxed.',
+    },
     features: [
       'Osiguranje uključeno',
       'Klima uređaj',
@@ -56,6 +60,10 @@ export const cars = [
     cancellation: 'Besplatno otkazivanje do 48h pre preuzimanja',
     description:
       'Premium sportski liftback, godište 2022, potpuno opremljen. Snažan motor i automatski menjač za maksimalnu udobnost na svakom putu.',
+    en: {
+      description:
+        'A premium sporty liftback from 2022, fully equipped. A powerful engine and an automatic gearbox for maximum comfort on every trip.',
+    },
     features: [
       'Osiguranje uključeno',
       'Klima uređaj',

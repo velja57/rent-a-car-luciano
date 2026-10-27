@@ -1,7 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { fuelKind, MAX_POWER } from '../data/fleet';
-import { depositLabel, formatDays, formatRsd, lowestRate, MAX_DISCOUNT_PERCENT, quote } from '../lib/pricing';
+import { MAX_POWER } from '../data/fleet';
+import { useI18n } from '../i18n';
+import {
+  discountPercent,
+  formatEur,
+  formatNumber,
+  formatRsd,
+  lowestRate,
+  MAX_DISCOUNT_PERCENT,
+  quote,
+  tierLabel,
+} from '../lib/pricing';
 import { datesQuery } from '../lib/useRentalDates';
 
 const SPEC_ICONS = {
@@ -27,9 +37,11 @@ function pad(n) {
   return String(n).padStart(2, '0');
 }
 
-// availability: true/false kad je provera gotova, undefined kad nema datuma
-// ili provera još traje (checking = true).
-export default function FleetCard({ car, index, total, dates, availability, checking, onReserve }) {
+// car: originalni podaci (prevodi se ovde, za prikaz). availability: true/false
+// kad je provera gotova, undefined kad nema datuma ili provera još traje (checking = true).
+export default function FleetCard({ car: rawCar, index, total, dates, availability, checking, onReserve }) {
+  const { lang, t, paths, localize } = useI18n();
+  const car = localize(rawCar);
   const cardRef = useRef(null);
   const [visible, setVisible] = useState(false);
 
@@ -60,13 +72,13 @@ export default function FleetCard({ car, index, total, dates, availability, chec
   const days = dates?.days ?? 0;
   const period = days > 0 ? quote(car, days) : null;
   const unavailable = availability === false;
-  const detailsHref = `/vozila/${car.id}${datesQuery(dates?.pickup, dates?.ret)}`;
+  const detailsHref = `${paths.vehicle(car.id)}${datesQuery(dates?.pickup, dates?.ret)}`;
   const [cover, hoverImage] = car.images;
   const specs = [
-    { key: 'transmission', label: 'Menjač', value: car.transmission },
-    { key: 'fuel', label: 'Gorivo', value: fuelKind(car) },
-    { key: 'seats', label: 'Sedišta', value: car.seats },
-    { key: 'trunk', label: 'Prtljažnik', value: `${car.trunk.toLocaleString('sr-RS')} L` },
+    { key: 'transmission', label: t.specs.transmission, value: car.transmission },
+    { key: 'fuel', label: t.specs.fuel, value: car.fuel.split(' (')[0] },
+    { key: 'seats', label: t.specs.seatsShort, value: car.seats },
+    { key: 'trunk', label: t.specs.trunk, value: `${formatNumber(car.trunk, lang)} L` },
   ];
 
   return (
@@ -76,11 +88,11 @@ export default function FleetCard({ car, index, total, dates, availability, chec
       style={{ '--delay': `${(index % 4) * 90}ms` }}
       onPointerMove={onPointerMove}
     >
-      <Link className="fleet-card__media" to={detailsHref} aria-label={`${car.name} — fotografije i detalji`}>
+      <Link className="fleet-card__media" to={detailsHref} aria-label={t.card.mediaLabel(car.name)}>
         <img
           className="fleet-card__img"
           src={cover.thumb}
-          alt={cover.alt}
+          alt={`${car.name} — ${t.views[cover.view]}`}
           loading="lazy"
           decoding="async"
           style={{ objectPosition: cover.focus }}
@@ -96,12 +108,12 @@ export default function FleetCard({ car, index, total, dates, availability, chec
           />
         )}
         <span className="fleet-card__category">{car.category}</span>
-        {car.recommended && <span className="fleet-card__ribbon">★ Preporuka</span>}
+        {car.recommended && <span className="fleet-card__ribbon">{t.common.recommended}</span>}
         {days > 0 && (checking || availability !== undefined) && (
           <span
             className={`fleet-card__status fleet-card__status--${checking ? 'checking' : unavailable ? 'busy' : 'free'}`}
           >
-            {checking ? 'Proveravamo…' : unavailable ? 'Zauzeto u tom periodu' : 'Slobodno za tvoje datume'}
+            {checking ? t.card.checking : unavailable ? t.card.busy : t.card.free}
           </span>
         )}
         <span className="fleet-card__photos">
@@ -120,7 +132,7 @@ export default function FleetCard({ car, index, total, dates, availability, chec
           <Link to={detailsHref}>{car.name}</Link>
         </h3>
         <p className="fleet-card__engine">
-          {car.engine} · {car.power} KS · {car.year}.
+          {car.engine} · {car.power} {t.powerUnit} · {t.year(car.year)}
         </p>
 
         <ul className="fleet-card__specs">
@@ -138,64 +150,67 @@ export default function FleetCard({ car, index, total, dates, availability, chec
         </ul>
 
         <div className="fleet-card__meter">
-          <span>Snaga</span>
+          <span>{t.card.power}</span>
           <span className="fleet-card__meter-track" aria-hidden="true">
             <span
               className="fleet-card__meter-fill"
               style={{ '--fill': `${Math.round((car.power / MAX_POWER) * 100)}%` }}
             />
           </span>
-          <span className="fleet-card__meter-value">{car.power} KS</span>
+          <span className="fleet-card__meter-value">
+            {car.power} {t.powerUnit}
+          </span>
         </div>
 
         <div className="fleet-card__footer">
           {period ? (
             <div className="fleet-card__price">
               <span className="fleet-card__price-label">
-                Ukupno · {days} {formatDays(days)}
-                {period.tier.discount > 0 && (
-                  <span className="fleet-card__discount">−{Math.round(period.tier.discount * 100)}%</span>
-                )}
+                {t.card.total(days, t.days(days))}
+                {period.tier.discount > 0 && <span className="fleet-card__discount">−{discountPercent(period.tier)}%</span>}
               </span>
               <span className="fleet-card__price-main">
-                <span className="fleet-card__price-value">{period.total}€</span>
-                {period.savings > 0 && <s className="fleet-card__price-old">{car.pricePerDay * days}€</s>}
+                <span className="fleet-card__price-value">{formatEur(period.total, lang)}</span>
+                {period.savings > 0 && (
+                  <s className="fleet-card__price-old">{formatEur(car.pricePerDay * days, lang)}</s>
+                )}
               </span>
               <span className="fleet-card__price-sub">
-                {period.rate}€ / dan · ≈ {formatRsd(period.total)}
+                {formatEur(period.rate, lang)} {t.common.perDay} · ≈ {formatRsd(period.total, lang)}
               </span>
             </div>
           ) : (
             <div className="fleet-card__price">
               <span className="fleet-card__price-label">
-                Već od
-                <span className="fleet-card__discount">do −{MAX_DISCOUNT_PERCENT}%</span>
+                {t.card.from}
+                <span className="fleet-card__discount">{t.card.upTo(MAX_DISCOUNT_PERCENT)}</span>
               </span>
               <span className="fleet-card__price-main">
-                <span className="fleet-card__price-value">{lowestRate(car)}€</span>
-                <span className="fleet-card__price-unit">/ dan</span>
+                <span className="fleet-card__price-value">{formatEur(lowestRate(car), lang)}</span>
+                <span className="fleet-card__price-unit">{t.common.perDay}</span>
               </span>
               <span className="fleet-card__price-sub">
-                {car.pricePerDay}€ za 1–2 dana · ≈ {formatRsd(car.pricePerDay)}
+                {t.card.baseFor(formatEur(car.pricePerDay, lang), tierLabel(0, t.days))} · ≈{' '}
+                {formatRsd(car.pricePerDay, lang)}
               </span>
             </div>
           )}
 
           <p className={`fleet-card__deposit${car.deposit ? '' : ' fleet-card__deposit--none'}`}>
-            {car.deposit ? `Depozit ${depositLabel(car.deposit)}` : '✓ Bez depozita'}
+            {car.deposit ? t.common.deposit(formatEur(car.deposit, lang)) : `✓ ${t.common.noDeposit}`}
           </p>
 
           <div className="fleet-card__actions">
             <Link className="fleet-card__btn" to={detailsHref}>
-              Detalji
+              {t.card.details}
             </Link>
             <button
               type="button"
               className="fleet-card__btn fleet-card__btn--primary"
               disabled={unavailable}
-              onClick={(e) => onReserve(car, e.currentTarget)}
+              onClick={(e) => onReserve(rawCar, e.currentTarget)}
             >
-              {unavailable ? 'Zauzeto' : 'Rezerviši'}
+              {unavailable ? t.card.busyButton : t.card.reserve}
             </button>
           </div>
         </div>

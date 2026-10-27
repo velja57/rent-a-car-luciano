@@ -34,6 +34,19 @@ begin
   end if;
 end $$;
 
+-- Jezik kupca (mejl potvrde ide na tom jeziku) i kratak opis procenjene cene
+-- sa dodacima, koji kupac dobija u mejlu potvrde. Bez efekta ako kolone postoje.
+alter table reservations add column if not exists language text not null default 'sr';
+alter table reservations add column if not exists price_summary text;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'reservations_language_check') then
+    alter table reservations
+      add constraint reservations_language_check check (language in ('sr', 'en'));
+  end if;
+end $$;
+
 -- Sprečava da dve AKTIVNE (confirmed) rezervacije za ISTO vozilo imaju
 -- preklapajuće datume — provera se radi na nivou baze, pa je sigurna i kad
 -- dva korisnika rezervišu u istom trenutku (race condition). Otkazane
@@ -72,6 +85,10 @@ $$;
 
 grant execute on function is_car_available(text, date, date) to anon;
 
+-- Stara verzija funkcije (bez jezika i opisa cene) se briše, inače bi postojale
+-- dve funkcije istog imena i poziv sa sajta ne bi znao koju da izabere.
+drop function if exists create_reservation(text, text, text, text, text, date, date, date, text, text);
+
 create or replace function create_reservation(
   p_car_id text,
   p_car_name text,
@@ -82,7 +99,9 @@ create or replace function create_reservation(
   p_pickup date,
   p_return date,
   p_location text,
-  p_note text
+  p_note text,
+  p_language text default 'sr',
+  p_price_summary text default null
 ) returns jsonb
 language plpgsql
 security definer
@@ -98,10 +117,12 @@ begin
   begin
     insert into reservations (
       car_id, car_name, customer_name, email, phone, date_of_birth,
-      pickup_date, return_date, pickup_location, note
+      pickup_date, return_date, pickup_location, note, language, price_summary
     ) values (
       p_car_id, p_car_name, p_customer_name, p_email, p_phone, p_dob,
-      p_pickup, p_return, p_location, nullif(trim(p_note), '')
+      p_pickup, p_return, p_location, nullif(trim(p_note), ''),
+      case when p_language = 'en' then 'en' else 'sr' end,
+      left(nullif(trim(p_price_summary), ''), 600)
     )
     returning id into new_id;
   exception when exclusion_violation then
@@ -112,7 +133,7 @@ begin
 end;
 $$;
 
-grant execute on function create_reservation(text, text, text, text, text, date, date, date, text, text) to anon;
+grant execute on function create_reservation(text, text, text, text, text, date, date, date, text, text, text, text) to anon;
 
 -- ============================================================================
 -- ADMIN PANEL — pristup za prijavljenog vlasnika (Supabase Auth)

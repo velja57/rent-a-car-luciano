@@ -183,8 +183,66 @@
   }
 }
 
+/* Prekidač jezika SR / EN */
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.lang-switch__option {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.lang-switch__option:hover {
+  color: var(--color-text);
+}
+
+.lang-switch__option--active,
+.lang-switch__option--active:hover {
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+}
+
+.lang-switch__option:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.site-header__mobile .lang-switch {
+  align-self: flex-start;
+  margin-top: 16px;
+}
+
+.site-header__mobile .lang-switch__option {
+  padding: 7px 16px;
+  font-size: 13px;
+  border-bottom: 0;
+}
+
+.site-header__mobile .lang-switch__option--active,
+.site-header__mobile .lang-switch__option--active:hover {
+  color: var(--color-accent-contrast);
+}
+
 @media (min-width: 861px) {
   .site-header__mobile {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .lang-switch--header {
     display: none;
   }
 }

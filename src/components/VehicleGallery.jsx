@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useI18n } from '../i18n';
 
 // Minimalni horizontalni pomeraj prsta (px) da bi se prevuklo na sledeću sliku.
 const SWIPE_THRESHOLD_PX = 40;
@@ -8,10 +9,12 @@ function pad(n) {
 }
 
 export default function VehicleGallery({ car }) {
+  const { t } = useI18n();
   const touchStartX = useRef(null);
   const [active, setActive] = useState(0);
   const count = car.images.length;
   const image = car.images[active];
+  const altFor = (img) => `${car.name} — ${t.views[img.view]}`;
 
   const step = (dir) => setActive((i) => (i + dir + count) % count);
 
@@ -45,20 +48,20 @@ export default function VehicleGallery({ car }) {
         className="vehicle-gallery__stage"
         tabIndex={0}
         role="group"
-        aria-roledescription="galerija"
-        aria-label={`Fotografije: ${car.name} (strelice levo/desno za promenu)`}
+        aria-roledescription={t.gallery.roleDescription}
+        aria-label={t.gallery.label(car.name)}
         onKeyDown={onKeyDown}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
         <img className="vehicle-gallery__backdrop" src={image.thumb} alt="" aria-hidden="true" />
-        <img key={image.src} className="vehicle-gallery__image" src={image.src} alt={image.alt} />
+        <img key={image.src} className="vehicle-gallery__image" src={image.src} alt={altFor(image)} />
         {count > 1 && (
           <>
             <button
               type="button"
               className="vehicle-gallery__nav vehicle-gallery__nav--prev"
-              aria-label="Prethodna fotografija"
+              aria-label={t.gallery.prev}
               onClick={() => step(-1)}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -68,7 +71,7 @@ export default function VehicleGallery({ car }) {
             <button
               type="button"
               className="vehicle-gallery__nav vehicle-gallery__nav--next"
-              aria-label="Sledeća fotografija"
+              aria-label={t.gallery.next}
               onClick={() => step(1)}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -88,7 +91,7 @@ export default function VehicleGallery({ car }) {
             type="button"
             key={img.src}
             className={`vehicle-gallery__thumb${i === active ? ' vehicle-gallery__thumb--active' : ''}`}
-            aria-label={`Fotografija ${i + 1}: ${img.alt}`}
+            aria-label={t.gallery.thumb(i + 1, altFor(img))}
             aria-current={i === active ? 'true' : undefined}
             onClick={() => setActive(i)}
           >
@@ -98,7 +101,7 @@ export default function VehicleGallery({ car }) {
       </div>
 
       <p className="vehicle-gallery__credit">
-        Foto:{' '}
+        {t.gallery.photo}{' '}
         <a href={image.credit.url} target="_blank" rel="noopener noreferrer">
           {image.credit.author}
         </a>{' '}
