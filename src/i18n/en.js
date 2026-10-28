@@ -138,19 +138,32 @@ export default {
     rights: 'All rights reserved.',
   },
 
+  calendar: {
+    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    weekdays: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+    choose: 'Select a date',
+    prev: 'Previous month',
+    next: 'Next month',
+    pickPickup: 'Choose your pick-up day.',
+    pickReturn: 'Now choose your return day.',
+    bookedDay: (date) => `This car is booked on ${date} — please choose another day.`,
+    bookedInRange: (date) => `This car is already booked from ${date} — choose an earlier return day or other dates.`,
+    bookedLabel: 'booked',
+    legendSelected: 'Selected',
+    legendBooked: 'Booked',
+  },
+
   reservation: {
     eyebrow: 'Booking',
-    channelsLabel: 'Booking method',
-    channels: {
-      online: 'Book online',
-      onlineHint: 'In a minute · email confirmation',
-      direct: 'WhatsApp or call',
-      directHint: 'No form · questions welcome',
-    },
-    onlineIntro: "Fill in your details and you're done — the confirmation arrives in your inbox right away.",
-    directIntro:
-      "No forms: send us a ready-made WhatsApp message or give us a call — we'll book the car for you and answer any questions.",
-    datesOptional: 'Choose your dates (optional) and the message will include the exact price.',
+    onlineTitle: 'Book online',
+    onlineBadge: 'Recommended',
+    onlineIntro: 'Fill in the form and send it — your booking confirmation arrives by email right away.',
+    altJump: 'Prefer a message or a call?',
+    altDivider: 'or book even faster',
+    callTitle: 'Call us and book in minutes',
+    callText: 'Free advice on choosing a car and answers to all your questions.',
+    callOpen: "We're available now",
+    callClosed: "Outside working hours · we'll get back to you on the next working day",
     defaultLocation: 'Kralja Mihaila Zetskog 44, Batajnica, Belgrade',
     name: 'Full name',
     email: 'Email',
@@ -186,12 +199,12 @@ export default {
       error: "We can't check availability right now. Please try again a little later.",
     },
     sending: 'Sending your booking…',
-    submit: 'Confirm booking',
-    submitWithTotal: (total) => `Confirm booking · ${total}`,
+    submit: 'Send booking',
+    submitWithTotal: (total) => `Send booking · ${total}`,
     trust: ['Nothing to pay now', 'Free cancellation up to 48h', 'Instant email confirmation'],
     fallbackWhatsapp: 'Send the booking via WhatsApp instead',
     whatsappBook: 'Book via WhatsApp',
-    whatsappBookHint: 'A message with the car, dates and price is ready — just send it.',
+    whatsappBookHint: 'A ready-made message with the car and dates — just send it.',
     whatsappOpened: 'WhatsApp opened in a new window — just send the message.',
     callHint: 'Weekdays 08:00 – 16:00',
     askQuestion: 'Have a question about this car? Message us on WhatsApp',
@@ -211,7 +224,7 @@ export default {
         ...extras,
         `Total ${total} (≈ ${rsd})`,
       ].join(' · '),
-    // Ready-made message for quick booking ("WhatsApp or call" channel). dates: { from, to } or null.
+    // Ready-made WhatsApp booking message. dates: { from, to } or null.
     whatsappBooking: (car, dates, price) =>
       [
         `Hi! I'd like to book the ${car}${dates ? ` from ${dates.from} to ${dates.to}` : ''}.`,

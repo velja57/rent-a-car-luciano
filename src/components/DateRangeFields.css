@@ -1,0 +1,282 @@
+/* ---------- Izbor perioda najma (kalendar sa zauzetim danima) ---------- */
+/* Samo globalne promenljive — komponenta se koristi i u prozoru za rezervaciju
+   (renderuje se u <body>) i na stranicama flote/vozila. */
+.date-range {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.date-range__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.date-range__field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 40px 10px 14px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.date-range__field:hover,
+.date-range__field--active {
+  border-color: var(--color-accent);
+}
+
+.date-range__field--active {
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.date-range__field:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.date-range__field svg {
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent);
+  translate: 0 -50%;
+}
+
+.date-range__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.date-range__value {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.date-range__value--empty {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.date-range__message {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* Kalendar */
+.date-calendar {
+  padding: 14px;
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  animation: dateCalendarIn 0.2s ease both;
+}
+
+@keyframes dateCalendarIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.date-calendar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.date-calendar__month {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.date-calendar__nav {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.date-calendar__nav svg {
+  width: 16px;
+  height: 16px;
+}
+
+.date-calendar__nav:hover:not(:disabled) {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.date-calendar__nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.date-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.date-calendar__weekday {
+  padding: 4px 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.date-calendar__day {
+  position: relative;
+  aspect-ratio: 1;
+  min-height: 34px;
+  padding: 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.date-calendar__day:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.date-calendar__day:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.date-calendar__day--today {
+  border-color: var(--color-border);
+}
+
+.date-calendar__day:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Zauzeto: precrtano, crvenkasto, ne može da se izabere */
+.date-calendar__day--booked {
+  color: var(--color-danger);
+  background: rgba(226, 118, 107, 0.1);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  cursor: not-allowed;
+}
+
+.date-calendar__day--booked:hover:not(:disabled) {
+  border-color: var(--color-danger);
+}
+
+/* Posle prvog zauzetog dana ne može da se izabere vraćanje */
+.date-calendar__day--blocked {
+  color: var(--color-text-muted);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.date-calendar__day--in-range {
+  background: var(--color-accent-soft);
+  border-radius: 4px;
+}
+
+.date-calendar__day--selected {
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 14px rgba(212, 162, 78, 0.35);
+}
+
+.date-calendar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.date-calendar__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-calendar__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.date-calendar__swatch--selected {
+  background: var(--color-accent);
+}
+
+.date-calendar__swatch--booked {
+  background: rgba(226, 118, 107, 0.35);
+  background-image: linear-gradient(135deg, transparent 45%, var(--color-danger) 45% 55%, transparent 55%);
+}
+
+@media (max-width: 600px) {
+  .date-range__field {
+    padding: 9px 34px 9px 11px;
+  }
+
+  .date-range__field svg {
+    right: 10px;
+    width: 16px;
+  }
+
+  .date-range__value {
+    font-size: 14px;
+  }
+
+  .date-calendar {
+    padding: 12px 10px;
+  }
+
+  .date-calendar__day {
+    min-height: 0;
+    font-size: 13px;
+  }
+}

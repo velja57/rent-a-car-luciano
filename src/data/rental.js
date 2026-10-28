@@ -9,6 +9,10 @@ export const PHONE_HREF = 'tel:+381604848086';
 // Broj za WhatsApp u međunarodnom formatu bez '+' i vodeće nule.
 export const WHATSAPP_NUMBER = '381604848086';
 
+// Radno vreme (isto kao u footeru): radnim danima 08–16h, po beogradskom vremenu.
+// Koristi se za oznaku "Sada smo dostupni" uz dugme za poziv.
+export const WORKING_HOURS = { weekdays: [1, 2, 3, 4, 5], from: 8, to: 16, timeZone: 'Europe/Belgrade' };
+
 // Popust po dužini najma, u odnosu na osnovnu cenu (pricePerDay = 1–2 dana).
 export const DISCOUNT_TIERS = [
   { minDays: 1, discount: 0 },

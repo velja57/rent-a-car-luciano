@@ -138,19 +138,32 @@ export default {
     rights: 'Sva prava zadržana.',
   },
 
+  calendar: {
+    months: ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'],
+    weekdays: ['Po', 'Ut', 'Sr', 'Če', 'Pe', 'Su', 'Ne'],
+    choose: 'Izaberi datum',
+    prev: 'Prethodni mesec',
+    next: 'Sledeći mesec',
+    pickPickup: 'Izaberi dan preuzimanja.',
+    pickReturn: 'Sada izaberi dan vraćanja.',
+    bookedDay: (date) => `Vozilo je zauzeto ${date} — izaberi drugi dan.`,
+    bookedInRange: (date) => `Vozilo je već rezervisano od ${date} — izaberi raniji dan vraćanja ili drugi termin.`,
+    bookedLabel: 'zauzeto',
+    legendSelected: 'Izabrano',
+    legendBooked: 'Zauzeto',
+  },
+
   reservation: {
     eyebrow: 'Rezervacija',
-    channelsLabel: 'Način rezervacije',
-    channels: {
-      online: 'Online rezervacija',
-      onlineHint: 'Za minut · potvrda na email',
-      direct: 'WhatsApp ili poziv',
-      directHint: 'Bez forme · i za pitanja',
-    },
-    onlineIntro: 'Popuni podatke i rezervacija je gotova — potvrda stiže odmah na tvoj email.',
-    directIntro:
-      'Bez popunjavanja forme: pošalji nam spremnu poruku na WhatsApp ili nas pozovi — rezervisaćemo vozilo umesto tebe i odgovoriti na sva pitanja.',
-    datesOptional: 'Izaberi datume (opciono) i u poruci će odmah biti tačna cena.',
+    onlineTitle: 'Rezerviši online',
+    onlineBadge: 'Preporučeno',
+    onlineIntro: 'Popuni formu i pošalji — potvrda rezervacije stiže ti odmah na email.',
+    altJump: 'Radije porukom ili telefonom?',
+    altDivider: 'ili rezerviši još brže',
+    callTitle: 'Pozovi i rezerviši za par minuta',
+    callText: 'Besplatan savet pri izboru vozila i odgovor na sva pitanja.',
+    callOpen: 'Sada smo dostupni',
+    callClosed: 'Van radnog vremena · javljamo se prvog radnog dana',
     defaultLocation: 'Kralja Mihaila Zetskog 44, Batajnica, Beograd',
     name: 'Ime i prezime',
     email: 'Email',
@@ -186,12 +199,12 @@ export default {
       error: 'Ne možemo trenutno da proverimo dostupnost. Pokušaj ponovo malo kasnije.',
     },
     sending: 'Šaljem rezervaciju…',
-    submit: 'Potvrdi rezervaciju',
-    submitWithTotal: (total) => `Potvrdi rezervaciju · ${total}`,
+    submit: 'Pošalji rezervaciju',
+    submitWithTotal: (total) => `Pošalji rezervaciju · ${total}`,
     trust: ['Ne plaćaš ništa sada', 'Besplatno otkazivanje do 48h', 'Potvrda odmah na email'],
     fallbackWhatsapp: 'Pošalji rezervaciju preko WhatsApp-a',
     whatsappBook: 'Rezerviši preko WhatsApp-a',
-    whatsappBookHint: 'Poruka sa vozilom, datumima i cenom je spremna — samo je pošalji.',
+    whatsappBookHint: 'Gotova poruka sa vozilom i datumima — samo je pošalji.',
     whatsappOpened: 'WhatsApp je otvoren u novom prozoru — samo pošalji poruku.',
     callHint: 'Radnim danima 08:00 – 16:00',
     askQuestion: 'Imaš pitanje o vozilu? Piši nam na WhatsApp',
@@ -213,7 +226,7 @@ export default {
         ...extras,
         `Ukupno ${total} (≈ ${rsd})`,
       ].join(' · '),
-    // Gotova poruka za brzu rezervaciju (kanal "WhatsApp ili poziv"). dates: { from, to } ili null.
+    // Gotova poruka za rezervaciju preko WhatsApp-a. dates: { from, to } ili null.
     whatsappBooking: (car, dates, price) =>
       [
         // Srpski datum već završava tačkom ("18.11.2026."), pa tada nema dodatne tačke.

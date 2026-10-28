@@ -11,6 +11,7 @@ import { useI18n } from '../i18n';
 import { bookingMessage, whatsappUrl } from '../lib/contact';
 import { formatEur, formatNumber, formatRsd, lowestRate, MAX_DISCOUNT_PERCENT, quote, tierLabel } from '../lib/pricing';
 import { useAvailability } from '../lib/useAvailability';
+import { useBookedDates } from '../lib/useBookedDates';
 import { usePageMeta } from '../lib/usePageMeta';
 import { datesQuery, useRentalDates } from '../lib/useRentalDates';
 import NotFoundPage from './NotFoundPage';
@@ -47,6 +48,7 @@ function VehicleDetails({ rawCar }) {
 
   const { pickup, ret, days, setDates } = useRentalDates();
   const availability = useAvailability([car.id], pickup, ret);
+  const bookedRanges = useBookedDates(car.id);
   const [reservationCar, setReservationCar] = useState(null);
   // Dugme koje je otvorilo formu — fokus mu se vraća kad se forma zatvori.
   const triggerRef = useRef(null);
@@ -147,7 +149,7 @@ function VehicleDetails({ rawCar }) {
               )}
             </div>
 
-            <DateRangeFields pickup={pickup} ret={ret} onChange={setDates} />
+            <DateRangeFields pickup={pickup} ret={ret} onChange={setDates} booked={bookedRanges} />
 
             {days > 0 && availability.status !== 'idle' && (
               <p

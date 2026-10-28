@@ -764,65 +764,7 @@
   color: var(--color-text-muted);
 }
 
-/* ----- Izbor datuma (stranica flote i stranica vozila) ----- */
-.date-range {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.date-range__field {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.date-range__label {
-  font-family: var(--fleet-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.date-range__field input {
-  width: 100%;
-  min-width: 0;
-  padding: 12px 14px;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-surface-solid);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.date-range__field input:hover,
-.date-range__field input:focus {
-  outline: none;
-  border-color: var(--color-accent);
-}
-
-.date-range__field input:focus {
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-
-.date-range__field input::-webkit-calendar-picker-indicator {
-  filter: invert(0.7);
-  cursor: pointer;
-}
-
-.date-range__arrow {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  margin-bottom: 14px;
-  color: var(--color-accent);
-}
+/* Izbor datuma (kalendar) ima svoje stilove: DateRangeFields.css */
 
 /* ----- Lestvica popusta po dužini najma ----- */
 .discount-ladder {
@@ -996,16 +938,4 @@
     grid-column: 1 / -1;
   }
 
-  .date-range {
-    gap: 8px;
-  }
-
-  .date-range__field input {
-    padding: 11px 9px;
-    font-size: 14px;
-  }
-
-  .date-range__arrow {
-    display: none;
-  }
 }

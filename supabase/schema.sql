@@ -85,6 +85,25 @@ $$;
 
 grant execute on function is_car_available(text, date, date) to anon;
 
+-- Zauzeti termini jednog vozila (samo datumi, bez ličnih podataka) — sajt
+-- ih precrtava u kalendaru. Vraća samo aktivne rezervacije koje nisu prošle.
+create or replace function get_booked_dates(p_car_id text)
+returns table (pickup_date date, return_date date)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select r.pickup_date, r.return_date
+  from reservations r
+  where r.car_id = p_car_id
+    and r.status = 'confirmed'
+    and r.return_date >= current_date
+  order by r.pickup_date;
+$$;
+
+grant execute on function get_booked_dates(text) to anon;
+
 -- Stara verzija funkcije (bez jezika i opisa cene) se briše, inače bi postojale
 -- dve funkcije istog imena i poziv sa sajta ne bi znao koju da izabere.
 drop function if exists create_reservation(text, text, text, text, text, date, date, date, text, text);

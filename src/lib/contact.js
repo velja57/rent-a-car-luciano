@@ -1,4 +1,26 @@
-import { WHATSAPP_NUMBER } from '../data/rental';
+import { WHATSAPP_NUMBER, WORKING_HOURS } from '../data/rental';
+
+const WEEKDAY_INDEX = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+
+// Da li je trenutno radno vreme (po beogradskom vremenu, bez obzira gde je kupac).
+export function isWorkingNow(now = new Date()) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: WORKING_HOURS.timeZone,
+      weekday: 'short',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    })
+      .formatToParts(now)
+      .map((p) => [p.type, p.value]),
+  );
+  const hour = Number(parts.hour);
+  return (
+    WORKING_HOURS.weekdays.includes(WEEKDAY_INDEX[parts.weekday]) &&
+    hour >= WORKING_HOURS.from &&
+    hour < WORKING_HOURS.to
+  );
+}
 import { discountPercent, formatDate, formatEur, formatRsd, quote, rentalDays } from './pricing';
 
 export function whatsappUrl(text) {
