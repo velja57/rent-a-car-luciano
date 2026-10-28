@@ -44,6 +44,7 @@ export default {
     pickup: 'Pick-up',
     return: 'Return',
     call: (phone) => `Call ${phone}`,
+    callShort: 'Call',
     whatsapp: 'WhatsApp',
   },
 
@@ -139,9 +140,18 @@ export default {
 
   reservation: {
     eyebrow: 'Booking',
+    channelsLabel: 'Booking method',
+    channels: {
+      online: 'Book online',
+      onlineHint: 'In a minute · email confirmation',
+      direct: 'WhatsApp or call',
+      directHint: 'No form · questions welcome',
+    },
+    onlineIntro: "Fill in your details and you're done — the confirmation arrives in your inbox right away.",
+    directIntro:
+      "No forms: send us a ready-made WhatsApp message or give us a call — we'll book the car for you and answer any questions.",
+    datesOptional: 'Choose your dates (optional) and the message will include the exact price.',
     defaultLocation: 'Kralja Mihaila Zetskog 44, Batajnica, Belgrade',
-    intro: "Fill in your details — we'll check availability and confirm your booking right away.",
-    introWhatsapp: 'Fill in your details — a WhatsApp message with all the details will open, ready to send.',
     name: 'Full name',
     email: 'Email',
     phone: 'Phone number',
@@ -149,8 +159,10 @@ export default {
     location: 'Pick-up location',
     pickupDate: 'Pick-up date',
     returnDate: 'Return date',
-    note: 'Note (optional)',
-    extras: 'Extras (optional)',
+    changeLocation: 'Change',
+    more: 'Extras and note (optional)',
+    note: 'Note',
+    extras: 'Extras',
     free: 'Free',
     errors: {
       name: 'Please enter your full name.',
@@ -174,16 +186,19 @@ export default {
       error: "We can't check availability right now. Please try again a little later.",
     },
     sending: 'Sending your booking…',
-    sendWhatsapp: 'Send booking via WhatsApp',
+    submit: 'Confirm booking',
+    submitWithTotal: (total) => `Confirm booking · ${total}`,
+    trust: ['Nothing to pay now', 'Free cancellation up to 48h', 'Instant email confirmation'],
+    fallbackWhatsapp: 'Send the booking via WhatsApp instead',
+    whatsappBook: 'Book via WhatsApp',
+    whatsappBookHint: 'A message with the car, dates and price is ready — just send it.',
+    whatsappOpened: 'WhatsApp opened in a new window — just send the message.',
+    callHint: 'Weekdays 08:00 – 16:00',
+    askQuestion: 'Have a question about this car? Message us on WhatsApp',
     successTitle: 'Booking sent!',
-    successTitleWhatsapp: 'Almost done!',
     successText: [
       'Your booking for the ',
       " has been recorded. A confirmation is on its way to your email, and we'll call you shortly to confirm the details.",
-    ],
-    successTextWhatsapp: [
-      'We opened WhatsApp with a ready-made booking message for the ',
-      ". Just send it and we'll get back to you as soon as possible to confirm your booking.",
     ],
     alsoWhatsapp: 'Also send a WhatsApp message',
     summaryRental: (days, daysWord, rate) => `Rental: ${days} ${daysWord} × ${rate}`,
@@ -196,6 +211,17 @@ export default {
         ...extras,
         `Total ${total} (≈ ${rsd})`,
       ].join(' · '),
+    // Ready-made message for quick booking ("WhatsApp or call" channel). dates: { from, to } or null.
+    whatsappBooking: (car, dates, price) =>
+      [
+        `Hi! I'd like to book the ${car}${dates ? ` from ${dates.from} to ${dates.to}` : ''}.`,
+        price && `Estimated price: ${price}`,
+        'Is it available?',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    whatsappQuestion: (car) => `Hi! I have a question about the ${car}: `,
+    // Full booking details (after an online booking, or if sending fails).
     whatsapp: {
       greeting: "Hi! I'd like to book a car.",
       car: 'Car',
@@ -273,6 +299,7 @@ export default {
     helpTitle: 'Not sure which car to choose?',
     helpText: "Call us or send a message — we'll help you pick the best car for your trip.",
     whatsappMessage: 'WhatsApp message',
+    helpMessage: 'Hi! I need help choosing a car.',
   },
 
   vehiclePage: {
@@ -286,6 +313,7 @@ export default {
     busy: 'The car is booked for those dates — choose other dates or a similar car below.',
     error: "Availability can't be checked right now.",
     reserveFor: (total) => `Book for ${total}`,
+    quick: 'Or book quickly, no form:',
     about: 'About this car',
     pricing: 'Price by rental length',
     pricingLead: 'The discount is applied automatically when you choose your dates.',

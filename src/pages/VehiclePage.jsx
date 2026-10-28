@@ -6,8 +6,9 @@ import FleetCard from '../components/FleetCard';
 import ReservationModal from '../components/ReservationModal';
 import VehicleGallery from '../components/VehicleGallery';
 import { fleet } from '../data/fleet';
-import { PHONE_DISPLAY, PHONE_HREF, WHATSAPP_NUMBER } from '../data/rental';
+import { PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
+import { bookingMessage, whatsappUrl } from '../lib/contact';
 import { formatEur, formatNumber, formatRsd, lowestRate, MAX_DISCOUNT_PERCENT, quote, tierLabel } from '../lib/pricing';
 import { useAvailability } from '../lib/useAvailability';
 import { usePageMeta } from '../lib/usePageMeta';
@@ -168,11 +169,21 @@ function VehicleDetails({ rawCar }) {
             >
               {period ? v.reserveFor(formatEur(period.total, lang)) : t.common.reserveNow}
             </button>
-            <div className="vehicle-panel__contact">
-              <a href={PHONE_HREF}>{t.common.call(PHONE_DISPLAY)}</a>
-              <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer">
-                {t.common.whatsapp}
-              </a>
+            <div className="vehicle-panel__quick">
+              <span className="vehicle-panel__quick-label">{v.quick}</span>
+              <div className="vehicle-panel__quick-actions">
+                <a
+                  className="vehicle-quick vehicle-quick--whatsapp"
+                  href={whatsappUrl(bookingMessage({ t, lang, car, pickup, ret }))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t.common.whatsapp}
+                </a>
+                <a className="vehicle-quick" href={PHONE_HREF}>
+                  {t.common.callShort} {PHONE_DISPLAY}
+                </a>
+              </div>
             </div>
 
             <ul className="vehicle-panel__included">

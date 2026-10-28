@@ -69,6 +69,15 @@ export function formatEur(n, lang = 'sr') {
   return lang === 'en' ? `€${formatNumber(n, lang)}` : `${formatNumber(n, lang)}€`;
 }
 
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// YYYY-MM-DD -> "10.11.2026." / "10 Nov 2026" (za poruke i mejlove).
+export function formatDate(iso, lang = 'sr') {
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return iso;
+  return lang === 'en' ? `${Number(d)} ${MONTHS_EN[Number(m) - 1]} ${y}` : `${d}.${m}.${y}.`;
+}
+
 export function formatRsd(eur, lang = 'sr') {
   const rsd = formatNumber(Math.round((eur * EUR_TO_RSD) / 10) * 10, lang);
   return lang === 'en' ? `${rsd} RSD` : `${rsd} din`;

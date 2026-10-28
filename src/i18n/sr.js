@@ -44,6 +44,7 @@ export default {
     pickup: 'Preuzimanje',
     return: 'Vraćanje',
     call: (phone) => `Pozovi ${phone}`,
+    callShort: 'Pozovi',
     whatsapp: 'WhatsApp',
   },
 
@@ -139,9 +140,18 @@ export default {
 
   reservation: {
     eyebrow: 'Rezervacija',
+    channelsLabel: 'Način rezervacije',
+    channels: {
+      online: 'Online rezervacija',
+      onlineHint: 'Za minut · potvrda na email',
+      direct: 'WhatsApp ili poziv',
+      directHint: 'Bez forme · i za pitanja',
+    },
+    onlineIntro: 'Popuni podatke i rezervacija je gotova — potvrda stiže odmah na tvoj email.',
+    directIntro:
+      'Bez popunjavanja forme: pošalji nam spremnu poruku na WhatsApp ili nas pozovi — rezervisaćemo vozilo umesto tebe i odgovoriti na sva pitanja.',
+    datesOptional: 'Izaberi datume (opciono) i u poruci će odmah biti tačna cena.',
     defaultLocation: 'Kralja Mihaila Zetskog 44, Batajnica, Beograd',
-    intro: 'Popuni svoje podatke — proverićemo dostupnost vozila i odmah ti potvrditi rezervaciju.',
-    introWhatsapp: 'Popuni svoje podatke — poruka sa svim detaljima otvoriće se u WhatsAppu, spremna za slanje.',
     name: 'Ime i prezime',
     email: 'Email',
     phone: 'Broj telefona',
@@ -149,8 +159,10 @@ export default {
     location: 'Lokacija preuzimanja',
     pickupDate: 'Datum preuzimanja',
     returnDate: 'Datum vraćanja',
-    note: 'Napomena (opciono)',
-    extras: 'Dodatne usluge (opciono)',
+    changeLocation: 'Promeni',
+    more: 'Dodatne usluge i napomena (opciono)',
+    note: 'Napomena',
+    extras: 'Dodatne usluge',
     free: 'Besplatno',
     errors: {
       name: 'Unesi ime i prezime.',
@@ -174,17 +186,20 @@ export default {
       error: 'Ne možemo trenutno da proverimo dostupnost. Pokušaj ponovo malo kasnije.',
     },
     sending: 'Šaljem rezervaciju…',
-    sendWhatsapp: 'Pošalji rezervaciju preko WhatsAppa',
+    submit: 'Potvrdi rezervaciju',
+    submitWithTotal: (total) => `Potvrdi rezervaciju · ${total}`,
+    trust: ['Ne plaćaš ništa sada', 'Besplatno otkazivanje do 48h', 'Potvrda odmah na email'],
+    fallbackWhatsapp: 'Pošalji rezervaciju preko WhatsApp-a',
+    whatsappBook: 'Rezerviši preko WhatsApp-a',
+    whatsappBookHint: 'Poruka sa vozilom, datumima i cenom je spremna — samo je pošalji.',
+    whatsappOpened: 'WhatsApp je otvoren u novom prozoru — samo pošalji poruku.',
+    callHint: 'Radnim danima 08:00 – 16:00',
+    askQuestion: 'Imaš pitanje o vozilu? Piši nam na WhatsApp',
     successTitle: 'Rezervacija je poslata!',
-    successTitleWhatsapp: 'Skoro gotovo!',
     // [tekst pre naziva vozila, tekst posle naziva vozila]
     successText: [
       'Rezervacija za vozilo ',
       ' je zabeležena. Potvrda stiže na tvoj email, a javićemo ti se uskoro i telefonom da potvrdimo sve detalje.',
-    ],
-    successTextWhatsapp: [
-      'Otvorili smo WhatsApp sa popunjenom porukom za rezervaciju vozila ',
-      '. Samo je pošalji, i javićemo ti se u najkraćem roku da potvrdimo rezervaciju.',
     ],
     alsoWhatsapp: 'Pošalji i WhatsApp poruku',
     summaryRental: (days, daysWord, rate) => `Najam: ${days} ${daysWord} × ${rate}`,
@@ -198,6 +213,18 @@ export default {
         ...extras,
         `Ukupno ${total} (≈ ${rsd})`,
       ].join(' · '),
+    // Gotova poruka za brzu rezervaciju (kanal "WhatsApp ili poziv"). dates: { from, to } ili null.
+    whatsappBooking: (car, dates, price) =>
+      [
+        // Srpski datum već završava tačkom ("18.11.2026."), pa tada nema dodatne tačke.
+        `Zdravo! Želim da rezervišem vozilo ${car}${dates ? ` od ${dates.from} do ${dates.to}` : '.'}`,
+        price && `Procenjena cena: ${price}`,
+        'Da li je slobodno?',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    whatsappQuestion: (car) => `Zdravo! Imam pitanje u vezi sa vozilom ${car}: `,
+    // Pun opis rezervacije (posle online rezervacije ili ako slanje ne uspe).
     whatsapp: {
       greeting: 'Zdravo! Želim da rezervišem vozilo.',
       car: 'Vozilo',
@@ -275,6 +302,7 @@ export default {
     helpTitle: 'Nisi siguran koje vozilo da izabereš?',
     helpText: 'Pozovi nas ili pošalji poruku — pomoći ćemo ti da izabereš najbolje za tvoj put.',
     whatsappMessage: 'WhatsApp poruka',
+    helpMessage: 'Zdravo! Treba mi pomoć oko izbora vozila.',
   },
 
   vehiclePage: {
@@ -288,6 +316,7 @@ export default {
     busy: 'Vozilo je zauzeto u tom periodu — izaberi druge datume ili slično vozilo ispod.',
     error: 'Dostupnost trenutno ne možemo da proverimo.',
     reserveFor: (total) => `Rezerviši za ${total}`,
+    quick: 'Ili rezerviši brzo, bez forme:',
     about: 'O vozilu',
     pricing: 'Cena po dužini najma',
     pricingLead: 'Popust se automatski uračunava kad izabereš datume.',

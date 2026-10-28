@@ -1092,6 +1092,317 @@
   color: #6fd39b;
 }
 
+/* Izbor načina rezervacije: online forma ili WhatsApp/poziv */
+.booking-channels {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.booking-channel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.booking-channel svg {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: var(--color-text-muted);
+}
+
+.booking-channel:hover {
+  border-color: rgba(212, 162, 78, 0.45);
+}
+
+.booking-channel--active {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.booking-channel--active svg {
+  color: var(--color-accent);
+}
+
+.booking-channel__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.booking-channel__title {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.booking-channel__hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.booking-channel:focus-visible,
+.booking-link:focus-visible,
+.booking-direct__btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.booking-panel {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.booking-form {
+  margin-top: 0;
+}
+
+.booking-hint {
+  margin-bottom: -6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.booking-location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.booking-location__label {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.booking-location__value {
+  font-weight: 600;
+}
+
+.booking-link {
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Sklopljeni dodaci i napomena — forma ostaje kratka */
+.booking-more {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.booking-more summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.booking-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.booking-more summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.booking-more[open] summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+.booking-more__count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border-radius: 999px;
+}
+
+.booking-more > :not(summary) {
+  margin: 0 14px 14px;
+}
+
+.booking-trust {
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 16px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.booking-trust li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.booking-trust svg {
+  width: 14px;
+  height: 14px;
+  color: #6fd39b;
+}
+
+.booking-error {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.booking-error .car-form__more {
+  margin-top: 0;
+}
+
+/* Kanal "WhatsApp ili poziv" */
+.booking-direct {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.booking-direct__btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 15px 18px;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.booking-direct__btn svg {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+}
+
+.booking-direct__btn span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.booking-direct__btn strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.booking-direct__btn small {
+  font-size: 12.5px;
+  opacity: 0.85;
+}
+
+.booking-direct__btn--whatsapp {
+  color: #062b16;
+  background: #25d366;
+  border: 1px solid #25d366;
+}
+
+.booking-direct__btn--whatsapp:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
+}
+
+.booking-direct__btn--call {
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+}
+
+.booking-direct__btn--call:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.booking-direct__notice {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6fd39b;
+}
+
+.booking-direct__question {
+  align-self: center;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  /* Datumi ostaju jedan pored drugog i na telefonu — kraća forma */
+  .reservation-form__row.booking-dates {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .booking-dates input {
+    padding: 11px 9px;
+    font-size: 14px;
+  }
+
+  .booking-channel {
+    padding: 10px 12px;
+  }
+
+  .booking-channel svg {
+    display: none;
+  }
+
+  .booking-channel__hint {
+    font-size: 11.5px;
+  }
+}
+
 .reservation-success {
   padding-top: 6px;
 }

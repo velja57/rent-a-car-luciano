@@ -5,8 +5,9 @@ import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
 import ReservationModal from '../components/ReservationModal';
 import { fleet, fuelKind, VEHICLE_TYPES } from '../data/fleet';
-import { DISCOUNT_TIERS, PHONE_DISPLAY, PHONE_HREF, WHATSAPP_NUMBER } from '../data/rental';
+import { DISCOUNT_TIERS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
+import { whatsappUrl } from '../lib/contact';
 import { discountPercent, formatEur, lowestRate, MAX_DISCOUNT_PERCENT, tierFor } from '../lib/pricing';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { useAvailability } from '../lib/useAvailability';
@@ -284,7 +285,7 @@ export default function FleetPage() {
             <a className="car-form__cta" href={PHONE_HREF}>
               {t.common.call(PHONE_DISPLAY)}
             </a>
-            <a className="car-form__more" href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer">
+            <a className="car-form__more" href={whatsappUrl(f.helpMessage)} target="_blank" rel="noopener noreferrer">
               {f.whatsappMessage}
             </a>
           </div>
