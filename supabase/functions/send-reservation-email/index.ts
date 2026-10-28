@@ -77,7 +77,7 @@ async function sendEmail(to: string, subject: string, html: string) {
   return { ok: true };
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }

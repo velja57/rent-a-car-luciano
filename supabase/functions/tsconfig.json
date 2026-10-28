@@ -1,0 +1,13 @@
+{
+  // Samo za proveru tipova u VS Code-u (Supabase i Deno ovaj fajl ne koriste).
+  // Deno tipovi za editor su u deno-env.d.ts.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["**/*.ts"]
+}
