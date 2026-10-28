@@ -45,6 +45,8 @@ export default {
     return: 'Return',
     call: (phone) => `Call ${phone}`,
     callShort: 'Call',
+    // Shown only during working hours (when it applies).
+    responseTime: 'Average response time: under 3 minutes',
     whatsapp: 'WhatsApp',
   },
 
@@ -248,6 +250,26 @@ export default {
       price: 'Estimated price',
       note: 'Note',
     },
+  },
+
+  airport: {
+    eyebrow: 'Nikola Tesla Airport',
+    title: ['Land in Belgrade — ', 'your car is already waiting'],
+    text: 'For visitors from abroad and the diaspora: we deliver the car to Nikola Tesla Airport, you take the keys and go. Car prices are the same as at our office — you only pay for delivery.',
+    points: (price) => [
+      'The car arrives at the airport in 30–45 minutes',
+      `Delivery only ${price} — for pick-up or return`,
+      'Ideal for the diaspora and international visitors',
+    ],
+    cta: 'Choose a car',
+    whatsapp: 'Arrange an airport pick-up',
+    whatsappMessage: "Hi! I'm arriving at Nikola Tesla Airport and need a car. Arrival date and time: ",
+  },
+
+  reviews: {
+    eyebrow: 'Customer reviews',
+    title: ['What our ', 'customers say'],
+    translatedNote: 'Translated from Serbian',
   },
 
   teaser: {

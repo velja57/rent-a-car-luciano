@@ -4,6 +4,7 @@ import DateRangeFields from '../components/DateRangeFields';
 import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
 import ReservationModal from '../components/ReservationModal';
+import ResponseTime from '../components/ResponseTime';
 import { fleet, fuelKind, VEHICLE_TYPES } from '../data/fleet';
 import { DISCOUNT_TIERS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
@@ -280,6 +281,7 @@ export default function FleetPage() {
           <div>
             <h2 className="fleet-help__title">{f.helpTitle}</h2>
             <p className="fleet-help__text">{f.helpText}</p>
+            <ResponseTime />
           </div>
           <div className="fleet-help__actions">
             <a className="car-form__cta" href={PHONE_HREF}>

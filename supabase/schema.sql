@@ -39,6 +39,9 @@ end $$;
 alter table reservations add column if not exists language text not null default 'sr';
 alter table reservations add column if not exists price_summary text;
 
+-- Kada je kupcu poslat podsetnik dan pre preuzimanja (supabase/podsetnik-cron.sql).
+alter table reservations add column if not exists reminder_sent_at timestamptz;
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'reservations_language_check') then

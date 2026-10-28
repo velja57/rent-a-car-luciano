@@ -19,7 +19,7 @@
 // Fotografije: Wikimedia Commons (slobodne licence). Autor i licenca MORAJU
 // ostati navedeni uz sliku (prikazuju se ispod galerije vozila).
 
-import { cars } from './cars';
+import { cars } from './cars.js';
 
 // Nazivi tipova su u rečnicima (src/i18n, types).
 export const VEHICLE_TYPES = ['mali', 'srednji', 'suv', 'premium', 'kombi'];

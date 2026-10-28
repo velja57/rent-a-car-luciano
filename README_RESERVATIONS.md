@@ -131,3 +131,23 @@ jeziku, sa tom cenom. Za to su potrebna dva jednokratna koraka:
 Redosled nije bitan: dok korak 1 nije urađen, sajt šalje rezervaciju po
 starom (bez jezika i cene za kupca), a vlasnik i dalje vidi procenu cene u
 napomeni.
+
+## Podsetnik kupcu dan pre preuzimanja (oktobar 2026)
+
+Svako jutro (08:00 UTC = 09:00 zimi / 10:00 leti) Supabase pokreće funkciju
+`send-pickup-reminders`. Ona kupcima čije je preuzimanje SUTRA šalje podsetnik
+na njihovom jeziku (datum, lokacija, šta da ponesu, telefon) i beleži
+`reminder_sent_at`, pa se podsetnik ne šalje dva puta. Jednokratno podešavanje:
+
+1. **Funkcija:** Edge Functions → Deploy a new function → naziv
+   `send-pickup-reminders` → zalepi kod iz
+   [supabase/functions/send-pickup-reminders/index.ts](supabase/functions/send-pickup-reminders/index.ts) → Deploy.
+   Zatim u podešavanjima te funkcije isključi **Verify JWT** (funkciju štiti
+   tajni ključ iz koraka 2, a ne JWT).
+2. **Tajni ključ:** Edge Functions → Secrets → dodaj `CRON_SECRET` = neka duga
+   nasumična lozinka (npr. 30+ slova i brojeva), koju zapamtiš za korak 3.
+3. **Raspored:** SQL Editor → zalepi [supabase/podsetnik-cron.sql](supabase/podsetnik-cron.sql),
+   zameni `OVDE-TVOJA-TAJNA` istom lozinkom iz koraka 2 → Run.
+
+Napomena: dok domen nije verifikovan u Resend-u, podsetnici (kao i potvrde)
+stižu samo na adresu Resend naloga.

@@ -7,6 +7,7 @@ import { discountPercent, formatEur, formatRsd, quote, rentalDays } from '../lib
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { useBookedDates } from '../lib/useBookedDates';
 import DateRangeFields from './DateRangeFields';
+import ResponseTime from './ResponseTime';
 
 // Koliko čekamo nakon poslednjeg unosa datuma pre nego što proverimo
 // dostupnost u bazi (da ne pucamo zahtev na svaki pritisak tastera).
@@ -493,7 +494,8 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
               </button>
 
               <ul className="booking-trust">
-                {r.trust.map((item) => (
+                {/* Bez baze nema mejl potvrde — poslednja stavka ("Potvrda na email") tada ne važi. */}
+                {(isSupabaseConfigured ? r.trust : r.trust.slice(0, -1)).map((item) => (
                   <li key={item}>
                     <Icon name="check" />
                     {item}
@@ -507,6 +509,7 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
               <div className="booking-alt__divider">
                 <span>{r.altDivider}</span>
               </div>
+              <ResponseTime className="response-time--center" />
 
               <button
                 type="button"

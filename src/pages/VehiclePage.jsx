@@ -4,6 +4,8 @@ import DateRangeFields from '../components/DateRangeFields';
 import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
 import ReservationModal from '../components/ReservationModal';
+import ResponseTime from '../components/ResponseTime';
+import Reviews from '../components/Reviews';
 import VehicleGallery from '../components/VehicleGallery';
 import { fleet } from '../data/fleet';
 import { PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
@@ -186,6 +188,7 @@ function VehicleDetails({ rawCar }) {
                   {t.common.callShort} {PHONE_DISPLAY}
                 </a>
               </div>
+              <ResponseTime className="response-time--center" />
             </div>
 
             <ul className="vehicle-panel__included">
@@ -243,6 +246,8 @@ function VehicleDetails({ rawCar }) {
             </dl>
           </section>
         </div>
+
+        <Reviews compact />
 
         <section className="vehicle-section">
           <h2 className="vehicle-section__title">{v.similar}</h2>

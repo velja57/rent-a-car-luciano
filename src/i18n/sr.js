@@ -45,6 +45,8 @@ export default {
     return: 'Vraćanje',
     call: (phone) => `Pozovi ${phone}`,
     callShort: 'Pozovi',
+    // Prikazuje se samo u radno vreme (tada važi).
+    responseTime: 'Prosečno vreme odgovora: manje od 3 minuta',
     whatsapp: 'WhatsApp',
   },
 
@@ -251,6 +253,26 @@ export default {
       price: 'Procenjena cena',
       note: 'Napomena',
     },
+  },
+
+  airport: {
+    eyebrow: 'Aerodrom Nikola Tesla',
+    title: ['Sletiš u Beograd — ', 'auto te već čeka'],
+    text: 'Za goste iz dijaspore i inostranstva: vozilo dovozimo na aerodrom Nikola Tesla, ti preuzmeš ključeve i kreneš. Cene vozila su iste kao u poslovnici — plaćaš samo dostavu.',
+    points: (price) => [
+      'Vozilo stiže na aerodrom za 30–45 minuta',
+      `Dostava samo ${price} — za preuzimanje ili vraćanje`,
+      'Idealno za dijasporu i goste iz inostranstva',
+    ],
+    cta: 'Izaberi vozilo',
+    whatsapp: 'Dogovori dolazak na aerodrom',
+    whatsappMessage: 'Zdravo! Stižem na aerodrom Nikola Tesla i treba mi vozilo. Datum i vreme dolaska: ',
+  },
+
+  reviews: {
+    eyebrow: 'Utisci klijenata',
+    title: ['Šta kažu ', 'naši klijenti'],
+    translatedNote: '',
   },
 
   teaser: {

@@ -1,4 +1,4 @@
-import { DISCOUNT_TIERS, EUR_TO_RSD, EXTRAS } from '../data/rental';
+import { DISCOUNT_TIERS, EUR_TO_RSD, EXTRAS } from '../data/rental.js';
 
 const DAY_MS = 86_400_000;
 const LOCALES = { sr: 'sr-RS', en: 'en-GB' };
