@@ -121,6 +121,22 @@ zameni kod sadržajem
 → **Deploy**. Dok to ne uradiš, ručno uneta rezervacija sa emailom bi
 poslala potvrdu kao da je sa sajta.
 
+## Novi admin panel — faza 3: kalendar i vozila (oktobar 2026)
+
+- **Kalendar** — svako vozilo je jedan red, svaka rezervacija traka od dana
+  preuzimanja do dana vraćanja (uključujući dan vraćanja, kao što računa i
+  sajt). Boja = status. Prikaz po mesecu ili 2 nedelje, „Prethodni / Danas /
+  Sledeći“. Otkazane i „nije se pojavio“ se prikazuju samo ako se uključi
+  opcija (precrtane). Klik na traku otvara rezervaciju, klik na prazan dan
+  otvara novu rezervaciju za to vozilo i taj datum. Ako bi se dve aktivne
+  rezervacije istog vozila ikad preklopile (baza to ne dozvoljava), kalendar
+  ih označava crveno i prikazuje upozorenje.
+- **Vozila** — unos registarske oznake i interne beleške za svako vozilo.
+  Oznaka se vidi u listi, detalju i kalendaru, i po njoj radi pretraga.
+  Ovo se ne prikazuje na sajtu.
+
+Za ovu fazu ne treba ništa podešavati u Supabase-u.
+
 ## Kad sajt bude hostovan
 
 Admin panel će biti dostupan na `<tvoj-domen>/admin.html`. Kad budemo radili

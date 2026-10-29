@@ -47,6 +47,17 @@ export function todayBelgrade() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date());
 }
 
+// Računanje sa datumima YYYY-MM-DD (u UTC, da vremenska zona ne pomera dan).
+export function addDays(iso, n) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+export function daysBetween(from, to) {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+}
+
 // Kratak ID za prikaz i pretragu (prvih 8 znakova UUID-a).
 export function shortId(id) {
   return id ? id.slice(0, 8) : '';

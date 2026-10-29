@@ -126,7 +126,7 @@
   transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
 
-.admin-btn:hover {
+.admin-btn:hover:not(:disabled) {
   border-color: var(--color-accent);
 }
 
@@ -158,7 +158,7 @@
   border-color: transparent;
 }
 
-.admin-btn--accent:hover {
+.admin-btn--accent:hover:not(:disabled) {
   border-color: transparent;
   opacity: 0.9;
 }
@@ -168,7 +168,7 @@
   color: var(--color-danger);
 }
 
-.admin-btn--danger:hover {
+.admin-btn--danger:hover:not(:disabled) {
   border-color: var(--color-danger);
   background: rgba(226, 118, 107, 0.1);
 }
@@ -1021,6 +1021,291 @@
   padding: 0 2px;
 }
 
+/* ---------- Kalendar vozila ---------- */
+
+.admin-cal-toolbar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.admin-cal-toolbar__nav,
+.admin-cal-toolbar__views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-alert {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--admin-danger-soft);
+  color: var(--color-danger);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-cal-wrap {
+  container-type: inline-size;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-solid);
+  transition: opacity 0.15s ease;
+}
+
+/* Dani se rašire da popune širinu; ispod najmanje širine dana kalendar
+   skroluje bočno (kolona sa vozilima ostaje vidljiva). */
+.admin-cal {
+  --car-w: 160px;
+  --min-day: 28px;
+  --day-w: max(var(--min-day), calc((100cqw - var(--car-w) - 1px) / var(--days)));
+  --lane-h: 28px;
+  min-width: calc(var(--car-w) + var(--days) * var(--day-w));
+}
+
+.admin-cal--2ned {
+  --min-day: 52px;
+}
+
+.admin-cal__row {
+  display: grid;
+  grid-template-columns: var(--car-w) minmax(0, 1fr);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-cal__row:last-child {
+  border-bottom: none;
+}
+
+.admin-cal__car {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 12px;
+  background: var(--color-surface-solid);
+  border-right: 1px solid var(--color-border);
+  font-size: 13px;
+}
+
+.admin-cal__row--head .admin-cal__car {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-cal__car strong {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-cal__car .admin-muted {
+  font-size: 12px;
+}
+
+.admin-cal__track {
+  position: relative;
+  width: calc(var(--days) * var(--day-w));
+  height: calc(var(--lanes, 1) * var(--lane-h) + 12px);
+  min-height: 44px;
+}
+
+.admin-cal__track--head {
+  height: 46px;
+  min-height: 0;
+}
+
+.admin-cal__day,
+.admin-cal__cell {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--i) * var(--day-w));
+  width: var(--day-w);
+}
+
+.admin-cal__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  border-left: 1px solid var(--color-border);
+}
+
+.admin-cal__day strong {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.admin-cal__day--weekend,
+.admin-cal__cell--weekend {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-cal__day--today {
+  background: var(--color-accent-soft);
+}
+
+.admin-cal__day--today strong {
+  color: var(--color-accent);
+}
+
+.admin-cal__cell {
+  padding: 0;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  cursor: pointer;
+}
+
+.admin-cal__cell--today {
+  background: rgba(212, 162, 78, 0.08);
+}
+
+.admin-cal__cell:hover:not(:disabled) {
+  background: rgba(212, 162, 78, 0.16);
+}
+
+.admin-cal__cell:disabled {
+  cursor: default;
+}
+
+.admin-cal__bar {
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--start) * var(--day-w) + 2px);
+  width: calc(var(--len) * var(--day-w) - 4px);
+  top: calc(var(--lane) * var(--lane-h) + 6px);
+  height: calc(var(--lane-h) - 4px);
+  padding: 0 8px;
+  line-height: calc(var(--lane-h) - 6px);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-cal__bar:hover,
+.admin-cal__bar:focus-visible {
+  z-index: 2;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.admin-cal__bar--confirmed {
+  background: rgba(212, 162, 78, 0.22);
+  border-color: rgba(212, 162, 78, 0.55);
+  color: #f0c77e;
+}
+
+.admin-cal__bar--picked_up {
+  background: rgba(141, 183, 255, 0.2);
+  border-color: rgba(141, 183, 255, 0.5);
+  color: var(--admin-info);
+}
+
+.admin-cal__bar--completed {
+  background: rgba(127, 209, 160, 0.16);
+  border-color: rgba(127, 209, 160, 0.45);
+  color: var(--admin-success);
+}
+
+.admin-cal__bar--cancelled,
+.admin-cal__bar--no_show {
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0 6px, transparent 6px 12px);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--color-text-muted);
+}
+
+.admin-cal__bar.admin-cal__bar--cancelled,
+.admin-cal__bar.admin-cal__bar--no_show {
+  text-decoration: line-through;
+}
+
+.admin-cal__bar--conflict {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 1px;
+}
+
+.admin-cal__bar--clip-start {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.admin-cal__bar--clip-end {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.admin-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  font-size: 13px;
+}
+
+.admin-cal__swatch {
+  display: inline-block;
+  width: 22px;
+  height: 12px;
+  margin-right: 6px;
+  border: 1px solid;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+/* ---------- Vozila ---------- */
+
+.admin-vehicles {
+  gap: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.admin-vehicle {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  align-items: end;
+  gap: 12px 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-vehicle:last-child {
+  border-bottom: none;
+}
+
+.admin-vehicle__name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-self: center;
+  font-size: 14.5px;
+}
+
+.admin-vehicle__name .admin-muted {
+  font-size: 13px;
+}
+
 /* ---------- Tablet i telefon ---------- */
 
 @media (max-width: 1100px) {
@@ -1103,6 +1388,14 @@
   .admin-filters__search {
     grid-column: 1 / -1;
   }
+
+  .admin-vehicle {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-vehicle__name {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1176,8 +1469,23 @@
 
   .admin-filters,
   .admin-form__grid,
-  .admin-extras {
+  .admin-extras,
+  .admin-vehicle {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-cal {
+    --car-w: 118px;
+    --min-day: 32px;
+  }
+
+  .admin-cal--2ned {
+    --min-day: 44px;
+  }
+
+  .admin-cal__car {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 
   .admin-dl__row {

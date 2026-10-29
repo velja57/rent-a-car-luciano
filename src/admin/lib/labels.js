@@ -51,14 +51,21 @@ export const TRANSITIONS = {
   ],
 };
 
+// Statusi koji zauzimaju termin (isto kao u bazi).
+export const ACTIVE_STATUSES = ['confirmed', 'picked_up', 'completed'];
+
 export const SOURCES = { web: 'Sa sajta', admin: 'Uneta u adminu' };
+
+export const MONTHS = sr.calendar.months;
+export const WEEKDAYS = sr.calendar.weekdays;
 
 export const LANGUAGES = { sr: 'Srpski', en: 'Engleski' };
 
 export const DEFAULT_LOCATION = sr.reservation.defaultLocation;
 
-// Vozila iz src/data/fleet.js, po nazivu.
+// Vozila iz src/data/fleet.js: po nazivu (padajući meniji) i redosledom kao na sajtu (kalendar, vozila).
 export const VEHICLES = [...fleet].sort((a, b) => a.name.localeCompare(b.name, 'sr'));
+export const FLEET_ORDER = fleet;
 
 export function vehicleById(id) {
   return fleet.find((car) => car.id === id) ?? null;

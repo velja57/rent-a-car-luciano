@@ -5,10 +5,9 @@ import { useToast } from '../components/Toast';
 import { quote, rentalDays } from '../../lib/pricing';
 import { adminApi, useAdminData } from '../lib/adminApi';
 import { formatDate, formatMoney, shortId, todayBelgrade } from '../lib/format';
-import { DEFAULT_LOCATION, EXTRA_OPTIONS, LANGUAGES, VEHICLES, vehicleById } from '../lib/labels';
+import { ACTIVE_STATUSES, DEFAULT_LOCATION, EXTRA_OPTIONS, LANGUAGES, VEHICLES, vehicleById } from '../lib/labels';
 
 const AVAILABILITY_DEBOUNCE_MS = 400;
-const ACTIVE_STATUSES = ['confirmed', 'picked_up', 'completed'];
 
 const EMPTY_FORM = {
   carId: '',

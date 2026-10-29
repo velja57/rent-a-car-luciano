@@ -4,10 +4,12 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import AdminLayout from './components/AdminLayout';
 import { ToastProvider } from './components/Toast';
 import { adminApi } from './lib/adminApi';
+import Calendar from './pages/Calendar';
 import Overview from './pages/Overview';
 import ReservationDetail from './pages/ReservationDetail';
 import ReservationForm from './pages/ReservationForm';
 import Reservations from './pages/Reservations';
+import Vehicles from './pages/Vehicles';
 
 function NotConfigured() {
   return (
@@ -122,6 +124,8 @@ function AdminPanel({ session }) {
             <Route path="rezervacije/nova" element={<ReservationForm />} />
             <Route path="rezervacije/:id" element={<ReservationDetail />} />
             <Route path="rezervacije/:id/izmena" element={<ReservationForm />} />
+            <Route path="kalendar" element={<Calendar />} />
+            <Route path="vozila" element={<Vehicles />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

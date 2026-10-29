@@ -85,6 +85,18 @@ export const adminApi = {
   createReservation: (fields) => call('admin_create_reservation', reservationParams(fields)),
   updateReservation: (id, fields) => call('admin_update_reservation', { p_id: id, ...reservationParams(fields) }),
   setStatus: (id, status) => call('admin_set_status', { p_id: id, p_status: status }),
+  calendar: (from, to) => call('admin_calendar', { p_from: from, p_to: to }),
+  // Registarske oznake i beleške (tabela vehicle_registry — čita je samo admin, RLS).
+  async listVehicles() {
+    const { data, error } = await supabase.from('vehicle_registry').select('car_id, registration, notes');
+    if (error) {
+      console.error('[admin] vehicle_registry', error);
+      throw new AdminError('network', NETWORK_ERROR);
+    }
+    return data ?? [];
+  },
+  saveVehicle: (carId, registration, notes) =>
+    call('admin_upsert_vehicle', { p_car_id: carId, p_registration: registration || null, p_notes: notes || null }),
 };
 
 // Učitavanje podataka za stranicu: { data, error, loading, reload }.
