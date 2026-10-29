@@ -259,11 +259,15 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
       p_location: form.location.trim(),
       p_note: ownerNote,
     };
-    // Jezik i opis cene idu u mejl potvrde kupcu (na njegovom jeziku).
+    // Jezik i opis cene idu u mejl potvrde kupcu (na njegovom jeziku). Iznos koji
+    // je kupac video u formi i izabrani dodaci se upisuju i kao podaci — admin
+    // panel ih prikazuje i sabira u finansijama (admin ih može izmeniti).
     let { data, error } = await supabase.rpc('create_reservation', {
       ...params,
       p_language: lang,
       p_price_summary: priceQuote ? priceLine(t, lang, priceQuote) : null,
+      p_total_price: priceQuote ? priceQuote.total : null,
+      p_extras: extraIds.length > 0 ? extraIds : null,
     });
     // Ako SQL izmena iz supabase/schema.sql još nije pokrenuta, funkcija ne zna
     // za nova polja (PGRST202) — rezervacija ide po starom, bez njih.
