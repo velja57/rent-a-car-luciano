@@ -241,7 +241,7 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     const sr = dictionaries.sr;
     const ownerNote = [
       form.note.trim(),
-      priceQuote && `Procenjena cena: ${priceLine(sr, 'sr', priceQuote)}`,
+      priceQuote && `Iznos: ${priceLine(sr, 'sr', priceQuote)}`,
       lang !== 'sr' && 'Jezik kupca: engleski',
     ]
       .filter(Boolean)

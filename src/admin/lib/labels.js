@@ -89,7 +89,7 @@ export const FIELD_LABELS = {
   language: 'Jezik',
   total_price: 'Iznos',
   extras: 'Dodaci',
-  price_summary: 'Procena sa sajta',
+  price_summary: 'Obračun sa sajta',
   source: 'Izvor',
 };
 

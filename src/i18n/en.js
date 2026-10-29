@@ -230,7 +230,7 @@ export default {
     whatsappBooking: (car, dates, price) =>
       [
         `Hi! I'd like to book the ${car}${dates ? ` from ${dates.from} to ${dates.to}` : ''}.`,
-        price && `Estimated price: ${price}`,
+        price && `Price: ${price}`,
         'Is it available?',
       ]
         .filter(Boolean)
@@ -247,7 +247,7 @@ export default {
       pickup: 'Pick-up',
       return: 'Return',
       location: 'Pick-up location',
-      price: 'Estimated price',
+      price: 'Price',
       note: 'Note',
     },
   },

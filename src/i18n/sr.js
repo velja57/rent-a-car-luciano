@@ -233,7 +233,7 @@ export default {
       [
         // Srpski datum već završava tačkom ("18.11.2026."), pa tada nema dodatne tačke.
         `Zdravo! Želim da rezervišem vozilo ${car}${dates ? ` od ${dates.from} do ${dates.to}` : '.'}`,
-        price && `Procenjena cena: ${price}`,
+        price && `Iznos: ${price}`,
         'Da li je slobodno?',
       ]
         .filter(Boolean)
@@ -250,7 +250,7 @@ export default {
       pickup: 'Preuzimanje',
       return: 'Vraćanje',
       location: 'Lokacija preuzimanja',
-      price: 'Procenjena cena',
+      price: 'Iznos',
       note: 'Napomena',
     },
   },

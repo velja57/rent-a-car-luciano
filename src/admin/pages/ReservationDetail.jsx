@@ -196,7 +196,7 @@ export default function ReservationDetail() {
               )}
             </Row>
             <Row label="Dodaci">{r.extras?.length ? r.extras.map(extraName).join(', ') : '—'}</Row>
-            {r.price_summary && <Row label="Procena sa sajta">{r.price_summary}</Row>}
+            {r.price_summary && <Row label="Obračun sa sajta">{r.price_summary}</Row>}
           </dl>
         </section>
 

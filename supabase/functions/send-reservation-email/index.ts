@@ -4,8 +4,8 @@
 // Rezervacije koje unosi admin (kolona `source` = 'admin') se preskaču.
 //
 // Kupac dobija mejl na jeziku sajta na kom je rezervisao (kolona `language`,
-// 'sr' ili 'en'), sa procenjenom cenom i dodacima (kolona `price_summary`).
-// Vlasnik uvek dobija mejl na srpskom; procena cene i jezik kupca su mu u
+// 'sr' ili 'en'), sa iznosom i dodacima (kolona `price_summary`).
+// Vlasnik uvek dobija mejl na srpskom; iznos i jezik kupca su mu u
 // napomeni (isto se vidi i u admin panelu).
 //
 // Potreban secret: RESEND_API_KEY
@@ -46,7 +46,7 @@ const CUSTOMER_TEXT = {
     pickup: 'Preuzimanje',
     return: 'Vraćanje',
     location: 'Lokacija preuzimanja',
-    price: 'Procenjena cena',
+    price: 'Iznos',
     closing:
       'Javićemo se uskoro telefonom ili mejlom da potvrdimo sve detalje. Hvala što si izabrao Luciano Rent a Car!',
   },
@@ -57,7 +57,7 @@ const CUSTOMER_TEXT = {
     pickup: 'Pick-up',
     return: 'Return',
     location: 'Pick-up location',
-    price: 'Estimated price',
+    price: 'Price',
     closing:
       "We'll contact you shortly by phone or email to confirm all the details. Thank you for choosing Luciano Rent a Car!",
   },
