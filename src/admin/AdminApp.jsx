@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import { HashRouter, Navigate, Route, Routes } from 'react-router';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
-
-function formatDate(iso) {
-  if (!iso) return '-';
-  const [y, m, d] = iso.split('-');
-  return `${d}.${m}.${y}.`;
-}
+import AdminLayout from './components/AdminLayout';
+import { ToastProvider } from './components/Toast';
+import { adminApi } from './lib/adminApi';
+import Overview from './pages/Overview';
+import ReservationDetail from './pages/ReservationDetail';
+import ReservationForm from './pages/ReservationForm';
+import Reservations from './pages/Reservations';
 
 function NotConfigured() {
   return (
@@ -61,110 +63,70 @@ function LoginForm({ onSignedIn }) {
   );
 }
 
-function ReservationsPanel({ onSignOut }) {
-  const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [cancellingId, setCancellingId] = useState(null);
+function Message({ title, text, onSignOut }) {
+  return (
+    <div className="admin-shell">
+      <div className="admin-card">
+        <h1>{title}</h1>
+        <p className="admin-muted">{text}</p>
+        {onSignOut && (
+          <button type="button" className="admin-btn admin-btn--primary" onClick={onSignOut}>
+            Odjavi se
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
-  const loadReservations = async () => {
-    setLoading(true);
-    setLoadError(null);
-    const { data, error } = await supabase
-      .from('reservations')
-      .select('*')
-      .order('pickup_date', { ascending: true });
-    setLoading(false);
-    if (error) {
-      setLoadError('Ne mogu da učitam rezervacije. Pokušaj da osvežiš stranicu.');
-      return;
-    }
-    setReservations(data ?? []);
-  };
+// Posle prijave: da li nalog ima admin pristup (proverava baza, is_admin()).
+// Same funkcije u bazi to ponovo proveravaju pri svakom pozivu — ovo je samo
+// da se umesto praznih stranica prikaže jasna poruka.
+function AdminPanel({ session }) {
+  const [access, setAccess] = useState('checking'); // checking | ok | denied | error
+  const userId = session.user.id;
+  const signOut = () => supabase.auth.signOut();
 
   useEffect(() => {
-    loadReservations();
-  }, []);
+    let cancelled = false;
+    adminApi
+      .isAdmin()
+      .then((ok) => !cancelled && setAccess(ok ? 'ok' : 'denied'))
+      .catch(() => !cancelled && setAccess('error'));
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
-  const handleCancel = async (id) => {
-    if (!window.confirm('Otkazati ovu rezervaciju?')) return;
-    setCancellingId(id);
-    const { data, error } = await supabase.rpc('cancel_reservation', { p_id: id });
-    setCancellingId(null);
-    if (error || !data?.success) {
-      window.alert('Otkazivanje nije uspelo. Pokušaj ponovo.');
-      return;
-    }
-    setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'cancelled' } : r)));
-  };
+  if (access === 'checking') {
+    return (
+      <div className="admin-shell">
+        <p className="admin-muted">Učitavanje…</p>
+      </div>
+    );
+  }
+  if (access === 'denied') {
+    return <Message title="Nema pristupa" text={`Nalog ${session.user.email} nema pristup admin panelu.`} onSignOut={signOut} />;
+  }
+  if (access === 'error') {
+    return <Message title="Greška" text="Veza sa bazom nije uspela. Osveži stranicu ili pokušaj kasnije." onSignOut={signOut} />;
+  }
 
   return (
-    <div className="admin-shell admin-shell--wide">
-      <div className="admin-header">
-        <h1>Rezervacije</h1>
-        <button type="button" className="admin-btn" onClick={onSignOut}>
-          Odjavi se
-        </button>
-      </div>
-
-      {loading && <p className="admin-muted">Učitavanje…</p>}
-      {loadError && <p className="admin-error">{loadError}</p>}
-
-      {!loading && !loadError && reservations.length === 0 && <p className="admin-muted">Nema rezervacija.</p>}
-
-      {!loading && !loadError && reservations.length > 0 && (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Vozilo</th>
-                <th>Kupac</th>
-                <th>Kontakt</th>
-                <th>Preuzimanje</th>
-                <th>Vraćanje</th>
-                <th>Lokacija</th>
-                <th>Napomena</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {reservations.map((r) => (
-                <tr key={r.id} className={r.status === 'cancelled' ? 'admin-row--cancelled' : ''}>
-                  <td>{r.car_name}</td>
-                  <td>{r.customer_name}</td>
-                  <td>
-                    <div>{r.phone}</div>
-                    <div className="admin-muted">{r.email}</div>
-                  </td>
-                  <td>{formatDate(r.pickup_date)}</td>
-                  <td>{formatDate(r.return_date)}</td>
-                  <td>{r.pickup_location}</td>
-                  <td>{r.note || '-'}</td>
-                  <td>
-                    <span className={`admin-status admin-status--${r.status}`}>
-                      {r.status === 'cancelled' ? 'Otkazana' : 'Potvrđena'}
-                    </span>
-                  </td>
-                  <td>
-                    {r.status === 'confirmed' && (
-                      <button
-                        type="button"
-                        className="admin-btn admin-btn--danger"
-                        onClick={() => handleCancel(r.id)}
-                        disabled={cancellingId === r.id}
-                      >
-                        {cancellingId === r.id ? 'Otkazujem…' : 'Otkaži'}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    <ToastProvider>
+      <HashRouter>
+        <Routes>
+          <Route element={<AdminLayout email={session.user.email} onSignOut={signOut} />}>
+            <Route index element={<Overview />} />
+            <Route path="rezervacije" element={<Reservations />} />
+            <Route path="rezervacije/nova" element={<ReservationForm />} />
+            <Route path="rezervacije/:id" element={<ReservationDetail />} />
+            <Route path="rezervacije/:id/izmena" element={<ReservationForm />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </HashRouter>
+    </ToastProvider>
   );
 }
 
@@ -190,5 +152,5 @@ export default function AdminApp() {
   }
   if (!session) return <LoginForm onSignedIn={setSession} />;
 
-  return <ReservationsPanel onSignOut={() => supabase.auth.signOut()} />;
+  return <AdminPanel session={session} />;
 }

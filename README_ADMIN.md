@@ -54,6 +54,73 @@ niko spolja ne može da napravi novi nalog.
    ta rezervacija više ne bi trebalo da blokira te datume za novo
    rezervisanje istog vozila.
 
+## Novi admin panel — faza 1: baza (oktobar 2026)
+
+Baza je pripremljena za novi admin panel (rezervacije, kalendar, uplate,
+finansije). Sam izgled panela dolazi u sledećim fazama; do tada `/admin`
+radi kao i pre. Sve izmene samo DODAJU — nijedna postojeća rezervacija se ne
+menja i sajt radi kao i pre (i pre i posle pokretanja SQL-a).
+
+Šta je novo u [supabase/schema.sql](supabase/schema.sql):
+
+- **Statusi:** Potvrđena → Preuzeta → Završena, plus Otkazana i „Nije se
+  pojavio“. Otkazana i „nije se pojavio“ oslobađaju datume; ostale ih
+  zauzimaju. Dan vraćanja je i dalje zauzet (kao do sada).
+- **Rezervacija** dobija: iznos (EUR) i dodatke kao podatke, vreme
+  preuzimanja/vraćanja, mesto vraćanja, izvor (sajt/admin). Za rezervacije
+  primljene telefonom email i datum rođenja nisu obavezni (forma na sajtu ih
+  i dalje traži).
+- **Uplate** (ručno beleženje): uplata/avans, povraćaj, primljena i vraćena
+  kaucija. Kaucija se ne računa kao prihod. Pogrešna stavka se poništava, ne
+  briše.
+- **Istorija promena:** svaka izmena rezervacije i uplate se automatski
+  beleži (šta, ko, kada).
+- **Registarske oznake** vozila (vozila su i dalje u `src/data/fleet.js`).
+- **Admin nalozi** su u tabeli `admin_users` umesto upisane adrese u kodu.
+  Drugi admin se dodaje u SQL Editoru:
+  `insert into admin_users (email) values ('nova@adresa.com');`
+  (plus nalog u Authentication → Users sa istom adresom).
+
+### Šta treba da uradiš (jednokratno)
+
+1. **Pokreni šemu:** Supabase → SQL Editor → New query → otvori
+   [supabase/schema.sql](supabase/schema.sql), kopiraj CEO sadržaj, zalepi →
+   **Run**. Treba da piše „Success. No rows returned“.
+2. **Pokreni test:** SQL Editor → New query → zalepi ceo
+   [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql)
+   → **Run**. Rezultat se pojavljuje kao crvena poruka „ERROR“ — to je
+   namerno (tako baza poništi sve što je test upisao). Treba da piše:
+   `REZULTAT TESTA: 44 od 44 provera uspešno. Sve je u redu.`
+   Test koristi izmišljeno vozilo i 2099. godinu — prave rezervacije ne dira,
+   ništa ne ostaje u bazi i ne šalje se nijedan mejl.
+3. **Proveri registraciju:** Authentication → Sign In / Providers → Email →
+   „Allow new users to sign up“ mora biti **isključeno**.
+
+## Novi admin panel — faza 2: izgled i rezervacije (oktobar 2026)
+
+Posle prijave na `/admin`:
+
+- **Pregled** — današnja preuzimanja i vraćanja, vozila kod kupaca, broj
+  rezervacija po statusu.
+- **Rezervacije** — pretraga (ime, telefon, email, vozilo, registracija, ID),
+  filteri (status, vozilo, period), sortiranje klikom na naslov kolone,
+  po 25 na strani. Klik na red otvara detalj.
+- **Detalj** — svi podaci, promena statusa (uvek uz potvrdu), istorija
+  promena (ko je šta promenio i kada).
+- **Izmena i nova rezervacija** — dok biraš vozilo i datume, panel proverava
+  da li je vozilo slobodno i predlaže iznos po cenovniku sajta (možeš ga
+  promeniti). Zauzet termin se ne može sačuvati (proverava i baza).
+- Na telefonu se meni otvara dugmetom ☰ gore levo, a tabela postaje kartice.
+
+### Šta treba da uradiš (jednokratno)
+
+Ručno uneta rezervacija (npr. posle poziva) ne treba da šalje mejl ni kupcu
+ni tebi. Za to: Supabase → **Edge Functions** → `send-reservation-email` →
+zameni kod sadržajem
+[supabase/functions/send-reservation-email/index.ts](supabase/functions/send-reservation-email/index.ts)
+→ **Deploy**. Dok to ne uradiš, ručno uneta rezervacija sa emailom bi
+poslala potvrdu kao da je sa sajta.
+
 ## Kad sajt bude hostovan
 
 Admin panel će biti dostupan na `<tvoj-domen>/admin.html`. Kad budemo radili
@@ -63,13 +130,9 @@ konfiguraciji.
 
 ## Poznata ograničenja
 
-- Samo jedan admin nalog je predviđen u ovoj fazi (SQL politika proverava
-  tačno JEDAN email). Ako kasnije zatrebaju dva naloga (npr. zaposleni),
-  to je mala izmena — javi.
-- Nema izmene drugih podataka rezervacije (ime, datumi...) iz admin panela,
-  samo otkazivanje — nije traženo u ovoj fazi.
-- Nema paginacije — ako broj rezervacija jednog dana postane veliki (stotine),
-  vredi dodati, ali za sada nije potrebno.
+- Admin nalozi su u tabeli `admin_users` (vidi gore kako se dodaje drugi).
+- Format datuma u poljima za datum (npr. dd.mm.gggg ili mm/dd/gggg) zavisi
+  od jezika browsera/računara, ne od sajta.
 - `/admin.html` je tehnički dostupan svakome ko zna URL, ali bez prijave ne
   vidi nijedan podatak (zaštita je na nivou baze — RLS — ne na tajnosti URL-a),
   što je standardan i bezbedan pristup za ovakve admin stranice.

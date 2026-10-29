@@ -1,6 +1,7 @@
 // Supabase Edge Function — šalje email potvrdu kupcu i notifikaciju
 // vlasniku preko Resend-a. Poziva se automatski preko Database Webhook-a
 // na INSERT u `reservations` (podešavanje: README_RESERVATIONS.md).
+// Rezervacije koje unosi admin (kolona `source` = 'admin') se preskaču.
 //
 // Kupac dobija mejl na jeziku sajta na kom je rezervisao (kolona `language`,
 // 'sr' ili 'en'), sa procenjenom cenom i dodacima (kolona `price_summary`).
@@ -94,6 +95,16 @@ Deno.serve(async (req: Request) => {
 
   // Supabase Database Webhook šalje { type: 'INSERT', table, record, old_record, schema }
   const record = (payload as { record?: Record<string, unknown> })?.record;
+
+  // Rezervacija koju je uneo admin (npr. posle telefonskog poziva) — bez mejla,
+  // ni kupcu ni vlasniku.
+  if (record?.source === 'admin') {
+    return new Response(JSON.stringify({ skipped: 'admin' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   if (!record || typeof record.email !== 'string') {
     return new Response(JSON.stringify({ error: 'Nedostaje record/email u payload-u' }), { status: 400 });
   }
