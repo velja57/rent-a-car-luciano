@@ -130,6 +130,8 @@ export const adminApi = {
   voidPayment: (id, reason) => call('admin_void_payment', { p_payment_id: id, p_reason: reason || null }),
   revenue: ({ from, to, mode, scope, carId }) =>
     call('admin_revenue', { p_from: from, p_to: to, p_mode: mode, p_scope: scope, p_car_id: carId || null }),
+  fleetUsage: ({ from, to, scope, carId }) =>
+    call('admin_fleet_usage', { p_from: from, p_to: to, p_scope: scope, p_car_id: carId || null }),
 };
 
 // Učitavanje podataka za stranicu: { data, error, loading, reload }.

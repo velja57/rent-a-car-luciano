@@ -101,6 +101,13 @@ function reservationsWord(n) {
   return 'rezervacija';
 }
 
+// 0.333 -> "33,3%"
+function formatPercent(share) {
+  return `${(Math.round(share * 1000) / 10).toLocaleString('sr-RS')}%`;
+}
+
+const roundCents = (amount) => Math.round(amount * 100) / 100;
+
 function Stat({ label, value, sub }) {
   return (
     <div className="admin-stat">
@@ -128,7 +135,10 @@ export default function Analytics() {
   };
 
   const { data: loaded, error, loading, reload } = useAdminData(
-    () => adminApi.revenue({ from, to, mode, scope, carId }),
+    () =>
+      Promise.all([adminApi.revenue({ from, to, mode, scope, carId }), adminApi.fleetUsage({ from, to, scope, carId })]).then(
+        ([revenue, usage]) => ({ ...revenue, usage }),
+      ),
     [from, to, mode, scope, carId],
   );
   // Podaci za drugo vozilo (ili celu flotu) se ne prikazuju dok stižu novi — inače bi
@@ -156,6 +166,31 @@ export default function Analytics() {
     .map((c) => ({ ...c, car_name: vehicleById(c.car_id)?.name ?? c.car_name }))
     .sort((a, b) => b.total - a.total || a.car_name.localeCompare(b.car_name, 'sr'));
   const maxCarTotal = Math.max(...carRows.map((c) => c.total), 0);
+
+  // Iskorišćenost: svako vozilo je dostupno svih dana perioda; dani u najmu i
+  // prihod tih dana stižu iz baze (admin_fleet_usage).
+  const periodDays = data?.usage.period_days ?? 0;
+  const usageByCar = new Map((data?.usage.cars ?? []).map((c) => [c.car_id, c]));
+  const usageRows = (carId ? carRows.filter((c) => c.car_id === carId) : carRows)
+    .map((c) => {
+      const u = usageByCar.get(c.car_id) ?? { rented_days: 0, priced_days: 0, revenue: 0 };
+      return {
+        car_id: c.car_id,
+        car_name: c.car_name,
+        rented: u.rented_days,
+        free: periodDays - u.rented_days,
+        utilization: periodDays ? u.rented_days / periodDays : 0,
+        adr: u.priced_days ? Number(u.revenue) / u.priced_days : null,
+        pricedDays: u.priced_days,
+        revenue: Number(u.revenue),
+      };
+    })
+    .sort((a, b) => b.utilization - a.utilization || a.car_name.localeCompare(b.car_name, 'sr'));
+  const fleetRented = usageRows.reduce((s, r) => s + r.rented, 0);
+  const fleetAvailable = periodDays * usageRows.length;
+  const fleetPricedDays = usageRows.reduce((s, r) => s + r.pricedDays, 0);
+  const fleetAdr = fleetPricedDays ? usageRows.reduce((s, r) => s + r.revenue, 0) / fleetPricedDays : null;
+  const fleetUtilization = fleetAvailable ? fleetRented / fleetAvailable : 0;
 
   return (
     <div className="admin-page">
@@ -286,7 +321,7 @@ export default function Analytics() {
             <Stat label="Prihod od najma" value={formatMoney(totals.rental)} />
             <Stat label="Prihod od dodataka" value={formatMoney(totals.extras)} />
             <Stat label={scope === 'realized' ? 'Realizovanih rezervacija' : 'Rezervacija'} value={totals.reservations} />
-            <Stat label="Prosek po rezervaciji" value={average === null ? '—' : formatMoney(Math.round(average * 100) / 100)} />
+            <Stat label="Prosek po rezervaciji" value={average === null ? '—' : formatMoney(roundCents(average))} />
           </div>
 
           <div className="admin-panel admin-cash">
@@ -312,6 +347,28 @@ export default function Analytics() {
               </div>
             </div>
           </div>
+
+          <section className="admin-panel">
+            <h2 className="admin-panel__title">{carId ? 'Iskorišćenost vozila' : 'Iskorišćenost flote'}</h2>
+            <div className="admin-stats">
+              <Stat
+                label="Iskorišćenost"
+                value={formatPercent(fleetUtilization)}
+                sub={`${carId ? 'vozilo' : `${usageRows.length} vozila`} × ${periodDays} ${periodDays === 1 ? 'dan' : 'dana'}`}
+              />
+              <Stat label="Dani u najmu" value={fleetRented} sub={`od ${fleetAvailable} mogućih`} />
+              <Stat label="Slobodni dani" value={fleetAvailable - fleetRented} />
+              <Stat
+                label="ADR — prosečna zarada po danu najma"
+                value={fleetAdr === null ? '—' : formatMoney(roundCents(fleetAdr))}
+                sub="najam + dodaci / dani u najmu"
+              />
+            </div>
+            <p className="admin-muted admin-hint">
+              Računa se po danima najma (od dana preuzimanja do dana pre vraćanja), bez obzira na izabrani prikaz prihoda.
+              Rezervacije bez poznate cene zauzimaju vozilo, ali ne ulaze u ADR.
+            </p>
+          </section>
 
           {buckets.length > 1 && (
             <section className="admin-panel">
@@ -393,7 +450,7 @@ export default function Analytics() {
                         </td>
                         <td data-label="Prosek po rez.">
                           <div className="admin-nowrap">
-                            {c.reservations ? formatMoney(Math.round((c.total / c.reservations) * 100) / 100) : '—'}
+                            {c.reservations ? formatMoney(roundCents(c.total / c.reservations)) : '—'}
                           </div>
                         </td>
                       </tr>
@@ -421,7 +478,79 @@ export default function Analytics() {
                         </div>
                       </td>
                       <td data-label="Prosek po rez.">
-                        <div className="admin-nowrap">{average === null ? '—' : formatMoney(Math.round(average * 100) / 100)}</div>
+                        <div className="admin-nowrap">{average === null ? '—' : formatMoney(roundCents(average))}</div>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {!carId && (
+            <section className="admin-panel">
+              <h2 className="admin-panel__title">Iskorišćenost po automobilima</h2>
+              <div className="admin-table-wrap">
+                <table className="admin-table admin-table--responsive">
+                  <thead>
+                    <tr>
+                      <th>Vozilo</th>
+                      <th>Dani u najmu</th>
+                      <th>Slobodni dani</th>
+                      <th>Iskorišćenost</th>
+                      <th>ADR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usageRows.map((u) => (
+                      <tr key={u.car_id} className="admin-row" onClick={() => update({ vozilo: u.car_id })}>
+                        <td data-label="Vozilo">
+                          <div>
+                            <button type="button" className="admin-link" onClick={() => update({ vozilo: u.car_id })}>
+                              {u.car_name}
+                            </button>
+                          </div>
+                        </td>
+                        <td data-label="Dani u najmu">
+                          <div>{u.rented}</div>
+                        </td>
+                        <td data-label="Slobodni dani">
+                          <div>{u.free}</div>
+                        </td>
+                        <td data-label="Iskorišćenost">
+                          <div className="admin-total-bar">
+                            <strong className="admin-nowrap">{formatPercent(u.utilization)}</strong>
+                            <span className="admin-total-bar__track" aria-hidden="true">
+                              <span style={{ width: `${Math.min(u.utilization, 1) * 100}%` }} />
+                            </span>
+                          </div>
+                        </td>
+                        <td data-label="ADR">
+                          <div className="admin-nowrap">{u.adr === null ? '—' : formatMoney(roundCents(u.adr))}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td data-label="Vozilo">
+                        <div>
+                          <strong>Cela flota</strong>
+                        </div>
+                      </td>
+                      <td data-label="Dani u najmu">
+                        <div>{fleetRented}</div>
+                      </td>
+                      <td data-label="Slobodni dani">
+                        <div>{fleetAvailable - fleetRented}</div>
+                      </td>
+                      <td data-label="Iskorišćenost">
+                        <div>
+                          <strong>{formatPercent(fleetUtilization)}</strong>
+                        </div>
+                      </td>
+                      <td data-label="ADR">
+                        <div className="admin-nowrap">{fleetAdr === null ? '—' : formatMoney(roundCents(fleetAdr))}</div>
                       </td>
                     </tr>
                   </tfoot>

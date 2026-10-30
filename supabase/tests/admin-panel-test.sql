@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 63 od 63 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 68 od 68 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -134,6 +134,14 @@ begin
     ok := true;
   end;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'anon ne sme da menja cenovnik'); end if;
+
+  begin
+    perform admin_fleet_usage('2099-01-01', '2099-01-31');
+    ok := false;
+  exception when insufficient_privilege then
+    ok := true;
+  end;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'anon ne sme da vidi iskorišćenost flote'); end if;
 
   -- Rezervacija A sa sajta: 10.-12.6.2099 (2 dana) sa dečijim sedištem. Sajt
   -- "šalje" pogrešan iznos 120€ — baza mora da izračuna sama: 2 × 40 + 2 × 3 = 86€.
@@ -485,6 +493,35 @@ begin
   ok := (res ->> 'success')::boolean
     and exists (select 1 from jsonb_array_elements(res -> 'by_car') c where c ->> 'car_id' = car and (c ->> 'total')::numeric = 289);
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('analitika cele flote: test vozilo 289 u 2099. [%s]', left(res::text, 300))); end if;
+
+  -- Iskorišćenost, jun 2099: samo A (završena, 10.-12.6. = 2 dana najma, 86 €) — B je
+  -- otkazana, D "nije se pojavio". Dan vraćanja (12.6.) se ne računa.
+  res := admin_fleet_usage('2099-06-01', '2099-06-30', 'booked', car);
+  ok := (res ->> 'period_days')::int = 30
+    and jsonb_array_length(res -> 'cars') = 1
+    and (res -> 'cars' -> 0 ->> 'rented_days')::int = 2
+    and (res -> 'cars' -> 0 ->> 'priced_days')::int = 2
+    and (res -> 'cars' -> 0 ->> 'revenue')::numeric = 86;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('iskorišćenost jun: 2 dana u najmu od 30, prihod 86 € (ADR 43 €) [%s]', res)); end if;
+
+  -- Deo rezervacije u periodu: F 1.-4.9. (3 dana), period od 2.9. -> 2.9. i 3.9. = 2 dana, 82 €.
+  res := admin_fleet_usage('2099-09-02', '2099-09-30', 'booked', car);
+  ok := (res -> 'cars' -> 0 ->> 'rented_days')::int = 2 and (res -> 'cars' -> 0 ->> 'revenue')::numeric = 82;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('iskorišćenost: računa se samo deo rezervacije koji pada u period (2 dana, 82 €) [%s]', res)); end if;
+
+  -- Rezervacija bez cene (1.-5.12.2099, 4 dana) zauzima vozilo, ali ne ulazi u ADR.
+  res := admin_create_reservation(p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Kupac bez cene',
+    p_phone => '060 111 222', p_pickup => '2099-12-01', p_return => '2099-12-05', p_location => 'TEST lokacija');
+  res := admin_fleet_usage('2099-12-01', '2099-12-31', 'booked', car);
+  ok := (res -> 'cars' -> 0 ->> 'rented_days')::int = 4
+    and (res -> 'cars' -> 0 ->> 'priced_days')::int = 0
+    and (res -> 'cars' -> 0 ->> 'revenue')::numeric = 0;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('rezervacija bez cene: 4 dana zauzeto, 0 dana za ADR [%s]', res)); end if;
+
+  -- Realizovano = samo završene: F je potvrđena, pa septembar nema dana u najmu.
+  res := admin_fleet_usage('2099-09-01', '2099-09-30', 'realized', car);
+  ok := jsonb_array_length(res -> 'cars') = 0;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('iskorišćenost "realizovano" broji samo završene [%s]', res)); end if;
 
   reset role;
 

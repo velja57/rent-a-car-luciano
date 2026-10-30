@@ -178,6 +178,22 @@ Za ovu fazu ne treba ništa podešavati u Supabase-u.
 - Sve se računa iz trenutnih podataka, pa izmena datuma ili cene odmah važi i
   ništa se ne broji dvaput.
 
+### Iskorišćenost flote, slobodni dani i ADR (u Analitici prihoda)
+
+- **Dani u najmu** = naplaćeni dani u izabranom periodu (od dana preuzimanja
+  do dana pre vraćanja — rezervacija 29.–31.10. = 2 dana; dan vraćanja je
+  slobodan dan). Rezervacija koja počinje pre ili se završava posle perioda
+  računa se samo delom koji pada u period.
+- **Slobodni dani** = dani perioda − dani u najmu (za svako vozilo).
+- **Iskorišćenost** = dani u najmu / (broj vozila × dani perioda).
+- **ADR** (prosečna zarada po danu najma) = (najam + dodaci) / dani u najmu.
+  Rezervacije bez poznate cene zauzimaju vozilo (ulaze u iskorišćenost), ali
+  ne ulaze u ADR.
+- Uvek se računa po danima najma, bez obzira na izabrani prikaz prihoda;
+  „Ugovoreno / Realizovano“ važi i ovde. Klik na vozilo prikazuje samo njega.
+- Za ovo je potrebno ponovo pokrenuti [supabase/schema.sql](supabase/schema.sql)
+  (nova funkcija `admin_fleet_usage`), pa test — očekivano **68 od 68**.
+
 ### Stare rezervacije
 
 Uz svaku rezervaciju sa sajta sačuvan je tekst obračuna (npr. „2 dana × 38€ =
@@ -192,7 +208,7 @@ ih ne sabira i prikazuje koliko ih ima; cenu im upišeš preko „Izmeni“.
 2. Novi query → zalepi ceo
    [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql)
    → **Run**. Očekivano (crvena poruka je namerna):
-   `REZULTAT TESTA: 63 od 63 provera uspešno. Sve je u redu.`
+   `REZULTAT TESTA: 68 od 68 provera uspešno. Sve je u redu.`
 
 Mejl funkcije ne treba ponovo objavljivati za ovu fazu.
 

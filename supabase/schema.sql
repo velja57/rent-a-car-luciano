@@ -1795,6 +1795,92 @@ begin
 end;
 $$;
 
+-- Iskorišćenost flote za period (admin), po vozilu:
+--   rented_days  dani u najmu u periodu — naplaćeni dani (od preuzimanja do
+--                dana pre vraćanja, isto kao cena i prihod po danima); dan
+--                vraćanja se ne računa. Računaju se i rezervacije bez poznate
+--                cene (vozilo je tada zauzeto).
+--   priced_days  isti dani, samo za rezervacije sa poznatom cenom
+--   revenue      najam + dodaci tih dana (iz revenue_lines, umanjeno za povraćaje)
+-- ADR = revenue / priced_days. Slobodni dani i procenat iskorišćenosti se
+-- računaju u panelu: broj dana perioda × broj vozila u ponudi.
+-- p_scope kao u admin_revenue (booked = potvrđene, preuzete, završene;
+-- realized = samo završene).
+create or replace function admin_fleet_usage(
+  p_from date,
+  p_to date,
+  p_scope text default 'booked',
+  p_car_id text default null
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_statuses text[] := case
+    when p_scope = 'realized' then array['completed']
+    else array['confirmed', 'picked_up', 'completed']
+  end;
+  v_car text := nullif(trim(p_car_id), '');
+  result jsonb;
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if p_from is null or p_to is null or p_to < p_from or p_to - p_from > 3700 then
+    return jsonb_build_object('success', false, 'reason', 'invalid_range');
+  end if;
+
+  with res as (
+    select
+      r.car_id,
+      r.car_name,
+      r.rental_total is not null as priced,
+      least(r.return_date - 1, p_to) - greatest(r.pickup_date, p_from) + 1 as days_in_period
+    from reservations r
+    where r.status = any (v_statuses)
+      and r.pickup_date <= p_to
+      and r.return_date > p_from
+      and r.return_date > r.pickup_date
+      and (v_car is null or r.car_id = v_car)
+  ),
+  per_car as (
+    select
+      car_id,
+      max(car_name) as car_name,
+      sum(days_in_period) as rented_days,
+      coalesce(sum(days_in_period) filter (where priced), 0) as priced_days
+    from res
+    group by car_id
+  ),
+  revenue as (
+    select l.car_id, sum(l.rental + l.extras) as amount
+    from revenue_lines(p_from, p_to, 'rental', v_statuses, v_car) l
+    group by l.car_id
+  )
+  select jsonb_build_object(
+    'success', true,
+    'from', p_from,
+    'to', p_to,
+    'scope', case when p_scope = 'realized' then 'realized' else 'booked' end,
+    'period_days', p_to - p_from + 1,
+    'cars', coalesce(jsonb_agg(jsonb_build_object(
+        'car_id', c.car_id,
+        'car_name', c.car_name,
+        'rented_days', c.rented_days,
+        'priced_days', c.priced_days,
+        'revenue', coalesce(v.amount, 0)
+      ) order by c.car_id), '[]'::jsonb)
+  )
+  into result
+  from per_car c
+  left join revenue v on v.car_id = c.car_id;
+
+  return result;
+end;
+$$;
+
 -- Prava pozivanja: Supabase podrazumevano dozvoljava svima da pozovu svaku
 -- funkciju. Admin funkcije sme da pozove samo prijavljen korisnik (a one
 -- same proveravaju da li je admin); pomoćne funkcije niko spolja.
