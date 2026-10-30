@@ -15,6 +15,7 @@ const ICONS = {
     />
   ),
   plus: <path d="M12 5v14M5 12h14" strokeLinecap="round" />,
+  analytics: <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" strokeLinecap="round" />,
   site: <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5" strokeLinecap="round" strokeLinejoin="round" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />,
 };
@@ -31,7 +32,8 @@ const NAV = [
   { to: '/', label: 'Pregled', icon: 'overview', end: true },
   { to: '/rezervacije', label: 'Rezervacije', icon: 'reservations' },
   { to: '/kalendar', label: 'Kalendar', icon: 'calendar' },
-  { to: '/vozila', label: 'Vozila', icon: 'vehicles' },
+  { to: '/vozila', label: 'Vozila i cenovnik', icon: 'vehicles' },
+  { to: '/analitika', label: 'Analitika prihoda', icon: 'analytics' },
 ];
 
 // Bočni meni (na telefonu se otvara kao fioka) + sadržaj stranice.

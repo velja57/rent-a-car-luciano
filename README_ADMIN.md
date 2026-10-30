@@ -137,6 +137,65 @@ poslala potvrdu kao da je sa sajta.
 
 Za ovu fazu ne treba ništa podešavati u Supabase-u.
 
+## Novi admin panel — faza 4: cenovnik, cene rezervacija, uplate i analitika (oktobar 2026)
+
+### Kako sada radi cena
+
+- **Cenovnik je u bazi** i menja se u adminu: **Vozila i cenovnik** (cena po
+  danu svakog vozila, popust za duži najam, cene dodataka). Sajt prikazuje
+  cene iz baze, pa promena važi odmah na sajtu i za nove rezervacije.
+- **Iznos svake rezervacije računa baza** po tom cenovniku (i kad rezervacija
+  dolazi sa sajta). Ako je kupac na sajtu video drugačiji iznos (npr.
+  stranica otvorena pre promene cene), rezervacija važi po cenovniku, a u
+  napomeni stoji upozorenje.
+- Uz rezervaciju se čuva **snimak cene**: cena po danu, popust, broj dana,
+  najam, dodaci i ukupno. Kasnija promena cenovnika **ne menja** postojeće
+  rezervacije (Škoda rezervisana po 40 €/dan ostaje 2 × 40 = 80 € i kad
+  cena postane 45 €).
+- U detalju rezervacije sekcija **Cena** prikazuje samo **Iznos** (sa
+  „2 dana × 40 € = 80 €“) i **Dodatke**. U „Izmeni“ se menjaju cena po danu i
+  iznos dodataka — najam i ukupno računa baza. Kad se promene datumi, cena po
+  danu ostaje ona iz trenutka rezervacije (dugme „Primeni cenovnik“ je menja
+  na današnju).
+- **Uplate** (u detalju rezervacije): ručno beleženje uplate/avansa, povraćaja
+  i kaucije. „Naplaćeno“ je samo zabeleženo — potvrđena rezervacija se nikad
+  ne računa kao plaćena. Kaucija nije prihod.
+
+### Analitika prihoda (meni „Analitika prihoda“)
+
+- Ukupan prihod, najam, dodaci, broj rezervacija, prosek po rezervaciji,
+  prihod po svakom vozilu (klik na vozilo = detalj), grafikon kroz vreme.
+- Period: dan, mesec, godina ili raspon.
+- **Po danima najma** — iznos rezervacije je raspoređen na dane kada je
+  vozilo kod kupca (od dana preuzimanja do dana pre vraćanja — isti broj dana
+  kao na sajtu). Rezervacija 29.–31.10. po 40 € → 29.10. 40 €, 30.10. 40 €.
+  Zbir dana je uvek tačno iznos rezervacije (bez grešaka u zaokruživanju).
+- **Po datumu rezervacije** — ceo iznos na dan kada je rezervacija napravljena.
+- **Ugovoreno** = potvrđene, preuzete i završene; **Realizovano** = samo
+  završene. Otkazane i „nije se pojavio“ se ne računaju. Povraćaj umanjuje
+  prihod (prvo najam, ostatak dodatke). „Naplaćeno u periodu“ je odvojeno —
+  to su stvarno zabeležene uplate.
+- Sve se računa iz trenutnih podataka, pa izmena datuma ili cene odmah važi i
+  ništa se ne broji dvaput.
+
+### Stare rezervacije
+
+Uz svaku rezervaciju sa sajta sačuvan je tekst obračuna (npr. „2 dana × 38€ =
+76€ · Ukupno 76€“). Iz njega se cena popunjava **samo ako se sve slaže** (broj
+dana sa datumima, cena × dani = najam). Ostale ostaju „bez cene“ — analitika
+ih ne sabira i prikazuje koliko ih ima; cenu im upišeš preko „Izmeni“.
+
+### Šta treba da uradiš (jednokratno)
+
+1. Supabase → **SQL Editor** → New query → zalepi ceo
+   [supabase/schema.sql](supabase/schema.sql) → **Run** („Success“).
+2. Novi query → zalepi ceo
+   [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql)
+   → **Run**. Očekivano (crvena poruka je namerna):
+   `REZULTAT TESTA: 63 od 63 provera uspešno. Sve je u redu.`
+
+Mejl funkcije ne treba ponovo objavljivati za ovu fazu.
+
 ## Kad sajt bude hostovan
 
 Admin panel će biti dostupan na `<tvoj-domen>/admin.html`. Kad budemo radili

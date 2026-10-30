@@ -6,12 +6,11 @@ import { formatEur } from '../lib/pricing';
 import ResponseTime from './ResponseTime';
 import './HomeSections.css';
 
-const AIRPORT_PRICE = EXTRAS.find((e) => e.id === 'airport').price;
-
 // Ponuda za goste koji sleću na aerodrom Nikola Tesla (dijaspora, stranci).
 export default function AirportSection() {
   const { lang, t, paths } = useI18n();
   const a = t.airport;
+  const airportPrice = EXTRAS.find((e) => e.id === 'airport').price;
 
   return (
     <section className="airport-section" aria-labelledby="airport-title">
@@ -34,7 +33,7 @@ export default function AirportSection() {
             <p className="fleet__subtitle">{a.text}</p>
 
             <ul className="airport-card__points">
-              {a.points(formatEur(AIRPORT_PRICE, lang)).map((point) => (
+              {a.points(formatEur(airportPrice, lang)).map((point) => (
                 <li key={point}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />

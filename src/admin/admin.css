@@ -1283,7 +1283,7 @@
 
 .admin-vehicle {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.6fr) minmax(0, 0.9fr) minmax(0, 1.2fr) auto;
   align-items: end;
   gap: 12px 16px;
   padding: 16px 0;
@@ -1306,11 +1306,336 @@
   font-size: 13px;
 }
 
+.admin-vehicle__error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.admin-price-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px auto;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-price-row:last-child {
+  border-bottom: none;
+}
+
+.admin-price-row__field {
+  position: relative;
+}
+
+.admin-price-row__field input {
+  padding-right: 32px;
+}
+
+.admin-price-row__suffix {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-style: normal;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.admin-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Cena i uplate ---------- */
+
+.admin-amount {
+  font-size: 17px;
+}
+
+.admin-price-calc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--admin-muted-soft);
+  font-size: 14px;
+}
+
+.admin-price-calc strong {
+  font-size: 17px;
+  color: var(--color-accent);
+}
+
+.admin-money {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-money > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.admin-money strong {
+  font-size: 18px;
+}
+
+.admin-payment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+/* ---------- Analitika ---------- */
+
+.admin-analytics {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: opacity 0.15s ease;
+}
+
+.admin-analytics-filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.admin-analytics-filters__period {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-analytics-filters__period input,
+.admin-analytics-filters__car select {
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.admin-analytics-filters__period input[type='number'] {
+  width: 96px;
+}
+
+.admin-analytics-filters__car {
+  margin-left: auto;
+  min-width: 200px;
+}
+
+.admin-stats--5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.admin-stat__sub {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.admin-cash {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+}
+
+.admin-cash > div:first-child {
+  max-width: 420px;
+}
+
+.admin-cash .admin-money {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  flex: 1;
+  max-width: 560px;
+}
+
+.admin-alert--warning {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.admin-total-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 110px;
+}
+
+.admin-total-bar__track {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--admin-muted-soft);
+}
+
+.admin-total-bar__track span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--chart-rental);
+}
+
+.admin-table tfoot td {
+  border-top: 1px solid var(--color-border);
+  border-bottom: none;
+}
+
+/* Grafikon: najam i dodaci (paleta proverena za tamnu pozadinu, i za daltonizam). */
+.admin-chart {
+  --chart-rental: #b8893a;
+  --chart-extras: #5f8fdc;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-analytics,
+.admin-total-bar {
+  --chart-rental: #b8893a;
+}
+
+.admin-chart__legend {
+  display: flex;
+  gap: 18px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.admin-chart__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.admin-chart__swatch--rental {
+  background: var(--chart-rental, #b8893a);
+}
+
+.admin-chart__swatch--extras {
+  background: var(--chart-extras, #5f8fdc);
+}
+
+.admin-chart__plot {
+  position: relative;
+  min-height: 240px;
+}
+
+.admin-chart__plot svg {
+  display: block;
+  overflow: visible;
+}
+
+.admin-chart__grid {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.admin-chart__baseline {
+  stroke: rgba(255, 255, 255, 0.18);
+}
+
+.admin-chart__axis {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.admin-chart__rental {
+  fill: var(--chart-rental);
+}
+
+.admin-chart__extras {
+  fill: var(--chart-extras);
+}
+
+.admin-chart__bar--active .admin-chart__rental,
+.admin-chart__bar--active .admin-chart__extras {
+  filter: brightness(1.25);
+}
+
+.admin-chart__hit {
+  fill: transparent;
+  cursor: default;
+  outline: none;
+}
+
+.admin-chart__hit:focus-visible {
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.admin-chart__tooltip {
+  position: absolute;
+  z-index: 5;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 150px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-solid);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.admin-chart-table summary {
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+
+.admin-chart-table .admin-table-wrap {
+  margin-top: 10px;
+}
+
 /* ---------- Tablet i telefon ---------- */
 
 @media (max-width: 1100px) {
-  .admin-stats {
+  .admin-stats,
+  .admin-stats--5 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-money {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-payment-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-payment-form__note {
+    grid-column: 1 / -1;
+  }
+
+  .admin-analytics-filters__car {
+    margin-left: 0;
   }
 }
 
@@ -1470,8 +1795,17 @@
   .admin-filters,
   .admin-form__grid,
   .admin-extras,
-  .admin-vehicle {
+  .admin-vehicle,
+  .admin-payment-form {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-cash .admin-money {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-price-row {
+    grid-template-columns: minmax(0, 1fr) 100px auto;
   }
 
   .admin-cal {

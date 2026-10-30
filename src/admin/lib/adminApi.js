@@ -16,8 +16,12 @@ const REASONS = {
   invalid_phone: 'Upiši ispravan broj telefona (najmanje 6 cifara).',
   invalid_email: 'Email adresa nije ispravna.',
   invalid_location: 'Upiši lokaciju preuzimanja.',
-  invalid_price: 'Iznos mora biti između 0 i 100.000 €.',
+  invalid_price: 'Neispravan iznos (cena po danu do 10.000 €, ukupno do 100.000 €).',
   invalid_range: 'Neispravan period.',
+  invalid_discount: 'Popust mora biti između 0 i 90%.',
+  invalid_kind: 'Izaberi vrstu uplate.',
+  invalid_amount: 'Iznos mora biti veći od 0 (najviše 100.000 €).',
+  invalid_method: 'Izaberi način plaćanja.',
 };
 
 const NETWORK_ERROR = 'Veza sa bazom nije uspela. Proveri internet i pokušaj ponovo.';
@@ -58,7 +62,9 @@ function reservationParams(f) {
     p_return_location: f.returnLocation || null,
     p_note: f.note || null,
     p_language: f.language,
-    p_total_price: f.totalPrice === '' ? null : Number(f.totalPrice),
+    // Najam i ukupno računa baza: cena po danu × broj dana + dodaci.
+    p_daily_rate: f.dailyRate === '' ? null : Number(f.dailyRate),
+    p_extras_total: f.extrasTotal === '' ? null : Number(f.extrasTotal),
     p_extras: f.extras.length ? f.extras : null,
   };
 }
@@ -97,6 +103,33 @@ export const adminApi = {
   },
   saveVehicle: (carId, registration, notes) =>
     call('admin_upsert_vehicle', { p_car_id: carId, p_registration: registration || null, p_notes: notes || null }),
+  // Predlog cene po trenutnom cenovniku (null ako vozilo nije u cenovniku).
+  quote: async (carId, pickup, ret, extras) =>
+    (await call('admin_quote', { p_car_id: carId, p_pickup: pickup, p_return: ret, p_extras: extras.length ? extras : null }))
+      .quote,
+  async priceList() {
+    const { data, error } = await supabase.rpc('get_price_list');
+    if (error) {
+      console.error('[admin] get_price_list', error);
+      throw new AdminError('network', NETWORK_ERROR);
+    }
+    return data;
+  },
+  setCarPrice: (carId, price) => call('admin_set_car_price', { p_car_id: carId, p_price_per_day: price }),
+  setDiscount: (minDays, percent) => call('admin_set_discount', { p_min_days: minDays, p_discount_percent: percent }),
+  setExtraPrice: (id, price) => call('admin_set_extra_price', { p_id: id, p_price: price }),
+  addPayment: ({ reservationId, kind, amount, method, paidAt, note }) =>
+    call('admin_add_payment', {
+      p_reservation_id: reservationId,
+      p_kind: kind,
+      p_amount: amount,
+      p_method: method,
+      p_paid_at: paidAt || null,
+      p_note: note || null,
+    }),
+  voidPayment: (id, reason) => call('admin_void_payment', { p_payment_id: id, p_reason: reason || null }),
+  revenue: ({ from, to, mode, scope, carId }) =>
+    call('admin_revenue', { p_from: from, p_to: to, p_mode: mode, p_scope: scope, p_car_id: carId || null }),
 };
 
 // Učitavanje podataka za stranicu: { data, error, loading, reload }.

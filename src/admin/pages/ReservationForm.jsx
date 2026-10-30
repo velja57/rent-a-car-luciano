@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
-import { quote, rentalDays } from '../../lib/pricing';
+import { rentalDays } from '../../lib/pricing';
 import { adminApi, useAdminData } from '../lib/adminApi';
 import { formatDate, formatMoney, shortId, todayBelgrade } from '../lib/format';
-import { ACTIVE_STATUSES, DEFAULT_LOCATION, EXTRA_OPTIONS, LANGUAGES, VEHICLES, vehicleById } from '../lib/labels';
+import { ACTIVE_STATUSES, DEFAULT_LOCATION, extraOptions, LANGUAGES, VEHICLES, vehicleById } from '../lib/labels';
 
 const AVAILABILITY_DEBOUNCE_MS = 400;
+
+const toCents = (value) => Math.round(Number(value) * 100);
 
 const EMPTY_FORM = {
   carId: '',
@@ -23,7 +25,8 @@ const EMPTY_FORM = {
   dob: '',
   language: 'sr',
   extras: [],
-  totalPrice: '',
+  dailyRate: '',
+  extrasTotal: '',
   note: '',
 };
 
@@ -42,7 +45,9 @@ function formFromReservation(r) {
     dob: r.date_of_birth ?? '',
     language: r.language ?? 'sr',
     extras: r.extras ?? [],
-    totalPrice: r.total_price === null ? '' : String(r.total_price),
+    // Snimak cene iz trenutka rezervacije — ostaje dok ga admin ne promeni.
+    dailyRate: r.daily_rate === null ? '' : String(Number(r.daily_rate)),
+    extrasTotal: r.extras_total === null ? '' : String(Number(r.extras_total)),
     note: r.note ?? '',
   };
 }
@@ -58,9 +63,15 @@ function validate(f) {
   if (!f.customerName.trim()) e.customerName = 'Upiši ime i prezime kupca.';
   if (!/^[0-9+\s/()-]{6,}$/.test(f.phone.trim())) e.phone = 'Upiši ispravan broj telefona (najmanje 6 cifara).';
   if (f.email.trim() && !/^\S+@\S+\.\S+$/.test(f.email.trim())) e.email = 'Email adresa nije ispravna.';
-  if (f.totalPrice !== '') {
-    const price = Number(f.totalPrice);
-    if (!Number.isFinite(price) || price < 0 || price > 100000) e.totalPrice = 'Iznos mora biti između 0 i 100.000 €.';
+  if (f.dailyRate !== '') {
+    const rate = Number(f.dailyRate);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 10000) e.dailyRate = 'Cena po danu mora biti između 0 i 10.000 €.';
+  } else if (f.extrasTotal !== '' && Number(f.extrasTotal) > 0) {
+    e.dailyRate = 'Upiši cenu po danu (dodaci se računaju uz najam).';
+  }
+  if (f.extrasTotal !== '') {
+    const extras = Number(f.extrasTotal);
+    if (!Number.isFinite(extras) || extras < 0 || extras > 100000) e.extrasTotal = 'Iznos dodataka mora biti između 0 i 100.000 €.';
   }
   return e;
 }
@@ -73,7 +84,7 @@ const REASON_FIELDS = {
   invalid_name: 'customerName',
   invalid_phone: 'phone',
   invalid_email: 'email',
-  invalid_price: 'totalPrice',
+  invalid_price: 'dailyRate',
   unavailable: 'returnDate',
 };
 
@@ -105,12 +116,14 @@ export default function ReservationForm() {
     pickupDate: params.get('od') ?? '',
   }));
   const [loaded, setLoaded] = useState(!editing);
-  // Kod nove rezervacije iznos prati predlog po cenovniku dok ga admin ne promeni ručno.
+  // Kod nove rezervacije cena prati cenovnik dok je admin ne promeni ručno;
+  // kod izmene ostaje cena iz trenutka rezervacije.
   const [priceTouched, setPriceTouched] = useState(editing);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [availability, setAvailability] = useState({ state: 'idle', conflicts: [] });
+  const [suggestion, setSuggestion] = useState(null); // predlog po cenovniku iz baze (admin_quote)
 
   useEffect(() => {
     if (editing && original && !loaded) {
@@ -121,11 +134,35 @@ export default function ReservationForm() {
 
   const vehicle = vehicleById(form.carId);
   const days = rentalDays(form.pickupDate, form.returnDate);
-  const suggestion = vehicle && days > 0 ? quote(vehicle, days, form.extras) : null;
+  const extrasKey = form.extras.join(',');
+
+  // Predlog cene po trenutnom cenovniku (računa baza, isto kao za sajt).
+  useEffect(() => {
+    if (!loaded || !form.carId || days <= 0) {
+      setSuggestion(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      adminApi
+        .quote(form.carId, form.pickupDate, form.returnDate, extrasKey ? extrasKey.split(',') : [])
+        .then((q) => !cancelled && setSuggestion(q))
+        .catch(() => !cancelled && setSuggestion(null));
+    }, AVAILABILITY_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [loaded, form.carId, form.pickupDate, form.returnDate, days, extrasKey]);
 
   useEffect(() => {
-    if (!priceTouched) setForm((f) => ({ ...f, totalPrice: suggestion ? String(suggestion.total) : '' }));
-  }, [priceTouched, suggestion?.total]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (priceTouched) return;
+    setForm((f) => ({
+      ...f,
+      dailyRate: suggestion ? String(suggestion.daily_rate) : '',
+      extrasTotal: suggestion ? String(suggestion.extras_total) : '',
+    }));
+  }, [priceTouched, suggestion]);
 
   // Zauzetost vozila za izabrani period (rezervacija koja se menja se ne računa).
   useEffect(() => {
@@ -206,6 +243,18 @@ export default function ReservationForm() {
   const cancelHref = editing ? `/rezervacije/${id}` : '/rezervacije';
   const unknownCar = editing && original && !vehicleById(original.car_id);
   const pastPickup = !editing && form.pickupDate && form.pickupDate < todayBelgrade();
+
+  // Obračun kao u bazi: najam = cena po danu × dani, ukupno = najam + dodaci.
+  const setPrice = (field) => (e) => {
+    setPriceTouched(true);
+    set(field)(e);
+  };
+  const priced = form.dailyRate !== '' && Number.isFinite(Number(form.dailyRate)) && days > 0;
+  const rentalCents = priced ? toCents(form.dailyRate) * days : 0;
+  const extrasCents = form.extrasTotal === '' ? 0 : toCents(form.extrasTotal) || 0;
+  const matchesSuggestion =
+    suggestion && priced && toCents(form.dailyRate) === toCents(suggestion.daily_rate) && extrasCents === toCents(suggestion.extras_total);
+  const unsplitTotal = editing && original && original.total_price !== null && original.daily_rate === null;
 
   return (
     <div className="admin-page">
@@ -313,7 +362,7 @@ export default function ReservationForm() {
           <h2 className="admin-panel__title">Cena i dodaci</h2>
           <fieldset className="admin-extras">
             <legend className="admin-muted">Dodaci</legend>
-            {EXTRA_OPTIONS.map((extra) => (
+            {extraOptions().map((extra) => (
               <label key={extra.id} className="admin-check">
                 <input type="checkbox" checked={form.extras.includes(extra.id)} onChange={() => toggleExtra(extra.id)} />
                 <span>{extra.name}</span>
@@ -324,50 +373,92 @@ export default function ReservationForm() {
             ))}
           </fieldset>
           <div className="admin-form__grid">
-            <Field label="Ukupan iznos (€)" error={errors.totalPrice} hint="Prazno = iznos nije dogovoren.">
+            <Field label="Cena po danu (€)" error={errors.dailyRate} hint="Prazno = cena nije dogovorena.">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                max="10000"
+                step="0.01"
+                value={form.dailyRate}
+                onChange={setPrice('dailyRate')}
+              />
+            </Field>
+            <Field label="Dodaci ukupno (€)" error={errors.extrasTotal}>
               <input
                 type="number"
                 inputMode="decimal"
                 min="0"
                 max="100000"
                 step="0.01"
-                value={form.totalPrice}
-                onChange={(e) => {
-                  setPriceTouched(true);
-                  set('totalPrice')(e);
-                }}
+                value={form.extrasTotal}
+                onChange={setPrice('extrasTotal')}
               />
             </Field>
-            <div className="admin-suggestion">
-              {suggestion ? (
-                <>
-                  <span className="admin-muted">Po cenovniku sajta:</span>
-                  <strong>{formatMoney(suggestion.total)}</strong>
-                  <span className="admin-muted">
-                    {days} × {formatMoney(suggestion.rate)}
-                    {suggestion.tier.discount > 0 && ` (popust ${Math.round(suggestion.tier.discount * 100)}%)`}
-                    {suggestion.extrasTotal > 0 && ` + dodaci ${formatMoney(suggestion.extrasTotal)}`}
-                  </span>
-                  {String(suggestion.total) !== form.totalPrice && (
-                    <button
-                      type="button"
-                      className="admin-link"
-                      onClick={() => {
-                        // Nova rezervacija: iznos ponovo prati predlog (menja se sa datumima i dodacima).
-                        if (!editing) setPriceTouched(false);
-                        setForm((f) => ({ ...f, totalPrice: String(suggestion.total) }));
-                        setErrors((prev) => ({ ...prev, totalPrice: undefined }));
-                      }}
-                    >
-                      Primeni predlog
-                    </button>
-                  )}
-                </>
-              ) : (
-                <span className="admin-muted">Izaberi vozilo i datume za predlog cene.</span>
-              )}
-            </div>
           </div>
+
+          <div className="admin-price-calc" aria-live="polite">
+            {priced ? (
+              <>
+                <span>
+                  Najam {days} × {formatMoney(form.dailyRate)} = {formatMoney(rentalCents / 100)}
+                  {extrasCents > 0 && ` · dodaci ${formatMoney(extrasCents / 100)}`}
+                </span>
+                <strong>Ukupno {formatMoney((rentalCents + extrasCents) / 100)}</strong>
+              </>
+            ) : (
+              <span className="admin-muted">
+                {days > 0 ? 'Upiši cenu po danu — ukupan iznos se računa sam.' : 'Izaberi datume — iznos se računa sam.'}
+              </span>
+            )}
+          </div>
+          {unsplitTotal && (
+            <p className="admin-muted admin-hint">
+              Ranije unet iznos {formatMoney(original.total_price)} nema raspodelu na najam i dodatke. Upiši cenu po
+              danu da bi rezervacija ušla u analitiku prihoda.
+            </p>
+          )}
+
+          <div className="admin-suggestion">
+            {suggestion ? (
+              <>
+                <span className="admin-muted">Po cenovniku:</span>
+                <strong>{formatMoney(suggestion.total)}</strong>
+                <span className="admin-muted">
+                  {suggestion.days} × {formatMoney(suggestion.daily_rate)}
+                  {suggestion.discount_percent > 0 && ` (popust ${suggestion.discount_percent}%)`}
+                  {suggestion.extras_total > 0 && ` + dodaci ${formatMoney(suggestion.extras_total)}`}
+                </span>
+                {!matchesSuggestion && (
+                  <button
+                    type="button"
+                    className="admin-link"
+                    onClick={() => {
+                      // Nova rezervacija: cena ponovo prati cenovnik (menja se sa datumima i dodacima).
+                      if (!editing) setPriceTouched(false);
+                      setForm((f) => ({
+                        ...f,
+                        dailyRate: String(suggestion.daily_rate),
+                        extrasTotal: String(suggestion.extras_total),
+                      }));
+                      setErrors((prev) => ({ ...prev, dailyRate: undefined, extrasTotal: undefined }));
+                    }}
+                  >
+                    Primeni cenovnik
+                  </button>
+                )}
+              </>
+            ) : (
+              <span className="admin-muted">
+                {form.carId && days > 0 ? 'Vozilo nije u cenovniku — cenu upiši ručno.' : 'Izaberi vozilo i datume za predlog cene.'}
+              </span>
+            )}
+          </div>
+          {editing && original?.daily_rate !== null && !matchesSuggestion && suggestion && (
+            <p className="admin-muted admin-hint">
+              Rezervacija zadržava cenu iz trenutka rezervacije. „Primeni cenovnik“ je menja na današnju cenu.
+            </p>
+          )}
         </section>
 
         <section className="admin-panel">

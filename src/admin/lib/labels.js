@@ -71,11 +71,31 @@ export function vehicleById(id) {
   return fleet.find((car) => car.id === id) ?? null;
 }
 
-export const EXTRA_OPTIONS = EXTRAS.map((extra) => ({ ...extra, name: sr.extras[extra.id] ?? extra.id }));
+// Dodaci sa trenutnim cenama (cene stižu iz baze — src/lib/priceList.js).
+export function extraOptions() {
+  return EXTRAS.map((extra) => ({ ...extra, name: sr.extras[extra.id] ?? extra.id }));
+}
 
 export function extraName(id) {
   return sr.extras[id] ?? id;
 }
+
+// Poreklo cene rezervacije (kolona price_source).
+export const PRICE_SOURCES = {
+  price_list: 'po cenovniku',
+  admin: 'uneo admin',
+  reconstructed: 'iz obračuna sa sajta',
+};
+
+// Ručno beleženje novca (tabela payments). Kaucija nije prihod.
+export const PAYMENT_KINDS = {
+  payment: 'Uplata / avans',
+  refund: 'Povraćaj kupcu',
+  deposit_received: 'Kaucija primljena',
+  deposit_returned: 'Kaucija vraćena',
+};
+
+export const PAYMENT_METHODS = { cash: 'Gotovina', card: 'Kartica', bank: 'Uplata na račun', other: 'Drugo' };
 
 // Nazivi polja u istoriji promena.
 export const FIELD_LABELS = {
@@ -98,7 +118,17 @@ export const FIELD_LABELS = {
   extras: 'Dodaci',
   price_summary: 'Obračun sa sajta',
   source: 'Izvor',
+  list_price: 'Cena iz cenovnika',
+  discount_percent: 'Popust (%)',
+  daily_rate: 'Cena po danu',
+  rental_days: 'Broj dana',
+  rental_total: 'Najam',
+  extras_total: 'Dodaci (iznos)',
+  price_source: 'Poreklo cene',
 };
+
+// Polja istorije promena koja su iznosi u evrima.
+export const MONEY_FIELDS = ['total_price', 'list_price', 'daily_rate', 'rental_total', 'extras_total'];
 
 export const EVENT_LABELS = {
   created: 'Rezervacija napravljena',

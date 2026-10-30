@@ -83,6 +83,40 @@ begin
   end if;
 end $$;
 
+-- Snimak cene u trenutku rezervacije (kasnija promena cenovnika ga ne menja):
+--   list_price        cena po danu iz cenovnika (pre popusta)
+--   discount_percent  popust za dužinu najma
+--   daily_rate        cena po danu koja se naplaćuje
+--   rental_days       broj dana (vraćanje − preuzimanje, isto kao na sajtu)
+--   rental_total      najam = daily_rate × rental_days
+--   extras_total      dodaci ukupno
+--   total_price       najam + dodaci (kolona iznad)
+--   price_source      price_list = izračunala baza po cenovniku, admin = cenu
+--                     uneo admin, reconstructed = popunjeno iz sačuvanog teksta
+--                     obračuna stare rezervacije
+alter table reservations add column if not exists list_price numeric(10, 2);
+alter table reservations add column if not exists discount_percent numeric(5, 2);
+alter table reservations add column if not exists daily_rate numeric(10, 2);
+alter table reservations add column if not exists rental_days integer;
+alter table reservations add column if not exists rental_total numeric(10, 2);
+alter table reservations add column if not exists extras_total numeric(10, 2);
+alter table reservations add column if not exists price_source text;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'reservations_price_source_check') then
+    alter table reservations
+      add constraint reservations_price_source_check
+      check (price_source is null or price_source in ('price_list', 'admin', 'reconstructed'));
+  end if;
+  -- Ukupno je uvek tačno najam + dodaci (kad je raspodela poznata).
+  if not exists (select 1 from pg_constraint where conname = 'reservations_price_parts_check') then
+    alter table reservations
+      add constraint reservations_price_parts_check
+      check (rental_total is null or total_price = rental_total + coalesce(extras_total, 0));
+  end if;
+end $$;
+
 -- Sprečava da dve AKTIVNE rezervacije (confirmed/picked_up/completed) za ISTO
 -- vozilo imaju preklapajuće datume — provera se radi na nivou baze, pa je
 -- sigurna i kad dva korisnika rezervišu u istom trenutku (race condition).
@@ -142,6 +176,123 @@ $$;
 
 grant execute on function get_booked_dates(text) to anon;
 
+-- ============================================================================
+-- CENOVNIK — cene vozila, popusti za duži najam i dodaci
+-- ============================================================================
+-- Menja se u admin panelu (Vozila). Sajt čita cene odavde (get_price_list),
+-- a iznos svake rezervacije računa baza (price_quote). Početne vrednosti su
+-- iste kao u src/data/fleet.js, cars.js i rental.js; ponovno pokretanje ovog
+-- fajla NE vraća cene koje je admin promenio (on conflict do nothing).
+-- Cene su u celim evrima, popusti u celim procentima (isti rezultat kao sajt).
+
+create table if not exists price_list (
+  car_id text primary key check (car_id ~ '^[a-z0-9-]{1,60}$'),
+  price_per_day integer not null check (price_per_day between 1 and 10000),
+  updated_at timestamptz not null default now(),
+  updated_by text
+);
+
+alter table price_list enable row level security;
+
+insert into price_list (car_id, price_per_day) values
+  ('fiat-500', 21), ('renault-clio', 37), ('toyota-yaris-cross', 38), ('toyota-corolla', 43),
+  ('skoda-octavia', 44), ('dacia-duster', 48), ('kia-sportage', 53), ('golf', 55),
+  ('bmw-serija-3', 57), ('audi', 60), ('skoda-superb', 61), ('renault-trafic', 70)
+on conflict (car_id) do nothing;
+
+create table if not exists discount_tiers (
+  min_days integer primary key check (min_days between 1 and 365),
+  discount_percent integer not null check (discount_percent between 0 and 90)
+);
+
+alter table discount_tiers enable row level security;
+
+insert into discount_tiers (min_days, discount_percent) values (1, 0), (3, 10), (7, 15), (14, 20), (30, 30)
+on conflict (min_days) do nothing;
+
+create table if not exists rental_extras (
+  id text primary key check (id ~ '^[a-z0-9-]{1,40}$'),
+  price integer not null check (price between 0 and 10000),
+  per text not null check (per in ('day', 'rental')),
+  sort integer not null default 0
+);
+
+alter table rental_extras enable row level security;
+
+insert into rental_extras (id, price, per, sort) values
+  ('additional-driver', 0, 'rental', 1), ('child-seat', 3, 'day', 2), ('full-cover', 8, 'day', 3),
+  ('airport', 15, 'rental', 4), ('cross-border', 30, 'rental', 5)
+on conflict (id) do nothing;
+
+-- Cenovnik za sajt (javni podaci, bez ličnih podataka).
+create or replace function get_price_list()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'cars', coalesce((select jsonb_object_agg(car_id, price_per_day) from price_list), '{}'::jsonb),
+    'discounts', coalesce(
+      (select jsonb_agg(jsonb_build_object('min_days', min_days, 'discount_percent', discount_percent) order by min_days)
+       from discount_tiers),
+      '[]'::jsonb
+    ),
+    'extras', coalesce(
+      (select jsonb_agg(jsonb_build_object('id', id, 'price', price, 'per', per) order by sort, id) from rental_extras),
+      '[]'::jsonb
+    )
+  );
+$$;
+
+grant execute on function get_price_list() to anon, authenticated;
+
+-- Iznos najma po cenovniku — ista pravila kao quote() na sajtu (src/lib/pricing.js):
+-- broj dana = vraćanje − preuzimanje; popust po dužini najma; cena po danu se
+-- zaokružuje na ceo evro; dodatak "po danu" × broj dana, "po najmu" jednom.
+-- Vraća null ako vozilo nije u cenovniku ili datumi nisu ispravni.
+create or replace function price_quote(p_car_id text, p_pickup date, p_return date, p_extras text[] default null)
+returns jsonb
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  n_days integer := p_return - p_pickup;
+  base_price integer;
+  pct integer;
+  rate numeric;
+  extras_sum numeric;
+  extra_ids text[];
+begin
+  if n_days is null or n_days <= 0 then
+    return null;
+  end if;
+  select price_per_day into base_price from price_list where car_id = p_car_id;
+  if base_price is null then
+    return null;
+  end if;
+  pct := coalesce((select discount_percent from discount_tiers where min_days <= n_days order by min_days desc limit 1), 0);
+  rate := round(base_price * (100 - pct) / 100.0);
+  select coalesce(sum(case when per = 'day' then price * n_days else price end), 0), coalesce(array_agg(id order by sort, id), '{}')
+  into extras_sum, extra_ids
+  from rental_extras
+  where id = any (coalesce(p_extras, '{}'));
+
+  return jsonb_build_object(
+    'list_price', base_price,
+    'discount_percent', pct,
+    'daily_rate', rate,
+    'days', n_days,
+    'rental_total', rate * n_days,
+    'extras', to_jsonb(extra_ids),
+    'extras_total', extras_sum,
+    'total', rate * n_days + extras_sum
+  );
+end;
+$$;
+
 -- Starije verzije funkcije se brišu, inače bi postojalo više funkcija istog
 -- imena i poziv sa sajta ne bi znao koju da izabere. Nova verzija prima i
 -- iznos i dodatke (opciono — sajt koji ih ne šalje radi kao i pre).
@@ -170,9 +321,26 @@ set search_path = public
 as $$
 declare
   new_id uuid;
+  q jsonb;
+  warning text;
 begin
   if p_pickup is null or p_return is null or p_return <= p_pickup then
     return jsonb_build_object('success', false, 'reason', 'invalid_dates');
+  end if;
+
+  -- Iznos računa baza po cenovniku. Iznos koji šalje sajt služi samo za proveru:
+  -- ako se razlikuje (npr. stranica otvorena pre promene cene), rezervacija važi
+  -- po cenovniku, a admin u napomeni vidi upozorenje.
+  q := price_quote(p_car_id, p_pickup, p_return, p_extras);
+  if q is null then
+    warning := 'Iznos nije izračunat: vozilo nije u cenovniku'
+      || case when p_total_price is not null then format(' (sajt je prikazao %s€)', trim_scale(round(p_total_price, 2))) else '' end || '.';
+  elsif p_total_price is not null and round(p_total_price, 2) <> (q ->> 'total')::numeric then
+    warning := format(
+      'Upozorenje: kupac je na sajtu video %s€, a po cenovniku je %s€.',
+      trim_scale(round(p_total_price, 2)),
+      q ->> 'total'
+    );
   end if;
 
   -- Ista obavezna polja kao u formi na sajtu (email i datum rođenja više nisu
@@ -192,18 +360,26 @@ begin
     insert into reservations (
       car_id, car_name, customer_name, email, phone, date_of_birth,
       pickup_date, return_date, pickup_location, note, language, price_summary,
-      total_price, extras
+      extras, total_price, list_price, discount_percent, daily_rate, rental_days,
+      rental_total, extras_total, price_source
     ) values (
       p_car_id, p_car_name, p_customer_name, trim(p_email), p_phone, p_dob,
-      p_pickup, p_return, p_location, nullif(trim(p_note), ''),
+      p_pickup, p_return, p_location,
+      nullif(concat_ws(' | ', nullif(trim(p_note), ''), warning), ''),
       case when p_language = 'en' then 'en' else 'sr' end,
       left(nullif(trim(p_price_summary), ''), 600),
-      -- Procena cene iz forme (računa se u browseru). Nerealan iznos se ne
-      -- upisuje; konačan iznos admin može da ispravi.
-      case when p_total_price between 0 and 100000 then round(p_total_price, 2) end,
-      (select array_agg(e) from (
-        select e from unnest(p_extras) e where e ~ '^[a-z0-9-]{1,40}$' limit 10
-      ) x)
+      case
+        when q is not null then nullif(array(select jsonb_array_elements_text(q -> 'extras')), '{}')
+        else (select array_agg(e) from (select e from unnest(p_extras) e where e ~ '^[a-z0-9-]{1,40}$' limit 10) x)
+      end,
+      (q ->> 'total')::numeric,
+      (q ->> 'list_price')::numeric,
+      (q ->> 'discount_percent')::numeric,
+      (q ->> 'daily_rate')::numeric,
+      (q ->> 'days')::integer,
+      (q ->> 'rental_total')::numeric,
+      (q ->> 'extras_total')::numeric,
+      case when q is not null then 'price_list' end
     )
     returning id into new_id;
   exception when exclusion_violation then
@@ -643,6 +819,78 @@ begin
 end;
 $$;
 
+-- Cena rezervacije iz admin panela: admin zadaje cenu po danu i iznos dodataka
+-- (forma ih predlaže po cenovniku), a najam i ukupno računa baza:
+-- najam = cena po danu × broj dana, ukupno = najam + dodaci.
+-- Vraća { priced: false } kad cena nije zadata, { error } kad je neispravna.
+create or replace function reservation_price(
+  p_car_id text,
+  p_pickup date,
+  p_return date,
+  p_extras text[],
+  p_daily_rate numeric,
+  p_extras_total numeric
+) returns jsonb
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  q jsonb := price_quote(p_car_id, p_pickup, p_return, p_extras);
+  n_days integer := p_return - p_pickup;
+  rate numeric;
+  extras_sum numeric;
+  rental numeric;
+begin
+  if p_daily_rate is null then
+    return jsonb_build_object('priced', false);
+  end if;
+  if n_days is null or n_days <= 0 then
+    return jsonb_build_object('error', 'invalid_dates');
+  end if;
+  rate := round(p_daily_rate, 2);
+  extras_sum := round(coalesce(p_extras_total, 0), 2);
+  rental := round(rate * n_days, 2);
+  if rate < 0 or rate > 10000 or extras_sum < 0 or rental + extras_sum > 100000 then
+    return jsonb_build_object('error', 'invalid_price');
+  end if;
+
+  return jsonb_build_object(
+    'priced', true,
+    'daily_rate', rate,
+    'rental_days', n_days,
+    'rental_total', rental,
+    'extras_total', extras_sum,
+    'total', rental + extras_sum,
+    'list_price', q -> 'list_price',
+    'discount_percent', q -> 'discount_percent',
+    'matches_price_list',
+      q is not null and rate = (q ->> 'daily_rate')::numeric and extras_sum = (q ->> 'extras_total')::numeric
+  );
+end;
+$$;
+
+-- Predlog cene za admin formu (po trenutnom cenovniku); quote je null ako
+-- vozilo nije u cenovniku.
+create or replace function admin_quote(p_car_id text, p_pickup date, p_return date, p_extras text[] default null)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  return jsonb_build_object('success', true, 'quote', price_quote(p_car_id, p_pickup, p_return, p_extras));
+end;
+$$;
+
+-- Starije verzije (sa ručno unetim ukupnim iznosom) se brišu.
+drop function if exists admin_create_reservation(text, text, text, text, date, date, text, text, date, time, time, text, text, text, numeric, text[]);
+drop function if exists admin_update_reservation(uuid, text, text, text, text, date, date, text, text, date, time, time, text, text, text, numeric, text[]);
+
 -- Ručno uneta rezervacija (npr. posle telefonskog poziva). Ista pravila
 -- zauzetosti kao za sajt — preklapanje odbija baza (exclusion constraint).
 create or replace function admin_create_reservation(
@@ -660,7 +908,8 @@ create or replace function admin_create_reservation(
   p_return_location text default null,
   p_note text default null,
   p_language text default 'sr',
-  p_total_price numeric default null,
+  p_daily_rate numeric default null,
+  p_extras_total numeric default null,
   p_extras text[] default null
 ) returns jsonb
 language plpgsql
@@ -668,6 +917,8 @@ security definer
 set search_path = public
 as $$
 declare
+  price jsonb;
+  priced boolean;
   input_error text;
   new_id uuid;
 begin
@@ -675,8 +926,11 @@ begin
     return jsonb_build_object('success', false, 'reason', 'forbidden');
   end if;
 
-  input_error := reservation_input_error(
-    p_car_id, p_car_name, p_customer_name, p_phone, p_email, p_pickup, p_return, p_location, p_total_price
+  price := reservation_price(p_car_id, p_pickup, p_return, p_extras, p_daily_rate, p_extras_total);
+  priced := coalesce((price ->> 'priced')::boolean, false);
+  input_error := coalesce(
+    reservation_input_error(p_car_id, p_car_name, p_customer_name, p_phone, p_email, p_pickup, p_return, p_location, null),
+    price ->> 'error'
   );
   if input_error is not null then
     return jsonb_build_object('success', false, 'reason', input_error);
@@ -686,15 +940,27 @@ begin
     insert into reservations (
       car_id, car_name, customer_name, email, phone, date_of_birth,
       pickup_date, return_date, pickup_time, return_time, pickup_location, return_location,
-      note, language, total_price, extras, source
+      note, language, extras, source,
+      total_price, list_price, discount_percent, daily_rate, rental_days, rental_total, extras_total, price_source
     ) values (
       trim(p_car_id), trim(p_car_name), trim(p_customer_name), nullif(trim(p_email), ''), trim(p_phone), p_dob,
       p_pickup, p_return, p_pickup_time, p_return_time, trim(p_location), nullif(trim(p_return_location), ''),
       nullif(trim(p_note), ''),
       case when p_language = 'en' then 'en' else 'sr' end,
-      round(p_total_price, 2),
-      p_extras,
-      'admin'
+      nullif(p_extras, '{}'),
+      'admin',
+      (price ->> 'total')::numeric,
+      (price ->> 'list_price')::numeric,
+      (price ->> 'discount_percent')::numeric,
+      (price ->> 'daily_rate')::numeric,
+      (price ->> 'rental_days')::integer,
+      (price ->> 'rental_total')::numeric,
+      (price ->> 'extras_total')::numeric,
+      case
+        when not priced then null
+        when (price ->> 'matches_price_list')::boolean then 'price_list'
+        else 'admin'
+      end
     )
     returning id into new_id;
   exception when exclusion_violation then
@@ -706,6 +972,9 @@ end;
 $$;
 
 -- Izmena podataka rezervacije (status se menja posebno, admin_set_status).
+-- Cena po danu ostaje ona iz trenutka rezervacije dok je admin ne promeni:
+-- kad se promene datumi, najam se preračunava po TOJ ceni, ne po današnjem
+-- cenovniku.
 create or replace function admin_update_reservation(
   p_id uuid,
   p_car_id text,
@@ -722,7 +991,8 @@ create or replace function admin_update_reservation(
   p_return_location text default null,
   p_note text default null,
   p_language text default 'sr',
-  p_total_price numeric default null,
+  p_daily_rate numeric default null,
+  p_extras_total numeric default null,
   p_extras text[] default null
 ) returns jsonb
 language plpgsql
@@ -730,21 +1000,45 @@ security definer
 set search_path = public
 as $$
 declare
+  prev reservations;
+  price jsonb;
+  priced boolean;
+  same_price boolean;
+  new_source text;
   input_error text;
 begin
   if not is_admin() then
     return jsonb_build_object('success', false, 'reason', 'forbidden');
   end if;
 
-  input_error := reservation_input_error(
-    p_car_id, p_car_name, p_customer_name, p_phone, p_email, p_pickup, p_return, p_location, p_total_price
+  price := reservation_price(p_car_id, p_pickup, p_return, p_extras, p_daily_rate, p_extras_total);
+  priced := coalesce((price ->> 'priced')::boolean, false);
+  input_error := coalesce(
+    reservation_input_error(p_car_id, p_car_name, p_customer_name, p_phone, p_email, p_pickup, p_return, p_location, null),
+    price ->> 'error'
   );
   if input_error is not null then
     return jsonb_build_object('success', false, 'reason', input_error);
   end if;
-  if not exists (select 1 from reservations where id = p_id) then
+
+  select * into prev from reservations where id = p_id for update;
+  if not found then
     return jsonb_build_object('success', false, 'reason', 'not_found');
   end if;
+
+  -- Cena po danu i dodaci nepromenjeni -> zadržava se poreklo cene (npr. cenovnik
+  -- iz trenutka rezervacije); promenjeni -> "po cenovniku" ako se poklapa sa
+  -- današnjim cenovnikom, inače "uneo admin".
+  same_price := priced
+    and prev.daily_rate is not distinct from (price ->> 'daily_rate')::numeric
+    and coalesce(prev.extras_total, 0) = (price ->> 'extras_total')::numeric
+    and prev.price_source is not null;
+  new_source := case
+    when not priced then null
+    when same_price then prev.price_source
+    when (price ->> 'matches_price_list')::boolean then 'price_list'
+    else 'admin'
+  end;
 
   begin
     update reservations set
@@ -762,8 +1056,17 @@ begin
       return_location = nullif(trim(p_return_location), ''),
       note = nullif(trim(p_note), ''),
       language = case when p_language = 'en' then 'en' else 'sr' end,
-      total_price = round(p_total_price, 2),
-      extras = p_extras,
+      extras = nullif(p_extras, '{}'),
+      -- Stara rezervacija bez poznate raspodele cene: iznos se ne briše ako
+      -- admin nije zadao cenu po danu.
+      total_price = case when priced or prev.daily_rate is not null then (price ->> 'total')::numeric else prev.total_price end,
+      daily_rate = (price ->> 'daily_rate')::numeric,
+      rental_days = (price ->> 'rental_days')::integer,
+      rental_total = (price ->> 'rental_total')::numeric,
+      extras_total = (price ->> 'extras_total')::numeric,
+      list_price = case when same_price then prev.list_price else (price ->> 'list_price')::numeric end,
+      discount_percent = case when same_price then prev.discount_percent else (price ->> 'discount_percent')::numeric end,
+      price_source = new_source,
       updated_at = now()
     where id = p_id;
   exception when exclusion_violation then
@@ -1134,6 +1437,364 @@ begin
 end;
 $$;
 
+-- ============================================================================
+-- CENOVNIK U ADMIN PANELU
+-- ============================================================================
+-- Promena cene važi samo za NOVE rezervacije — postojeće čuvaju svoj snimak cene.
+
+create or replace function admin_set_car_price(p_car_id text, p_price_per_day integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if coalesce(p_car_id, '') !~ '^[a-z0-9-]{1,60}$' then
+    return jsonb_build_object('success', false, 'reason', 'invalid_car');
+  end if;
+  if p_price_per_day is null or p_price_per_day not between 1 and 10000 then
+    return jsonb_build_object('success', false, 'reason', 'invalid_price');
+  end if;
+
+  insert into price_list (car_id, price_per_day, updated_at, updated_by)
+  values (p_car_id, p_price_per_day, now(), current_actor())
+  on conflict (car_id) do update set
+    price_per_day = excluded.price_per_day,
+    updated_at = now(),
+    updated_by = excluded.updated_by;
+
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+create or replace function admin_set_discount(p_min_days integer, p_discount_percent integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if p_discount_percent is null or p_discount_percent not between 0 and 90 then
+    return jsonb_build_object('success', false, 'reason', 'invalid_discount');
+  end if;
+
+  update discount_tiers set discount_percent = p_discount_percent where min_days = p_min_days;
+  if not found then
+    return jsonb_build_object('success', false, 'reason', 'not_found');
+  end if;
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+create or replace function admin_set_extra_price(p_id text, p_price integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if p_price is null or p_price not between 0 and 10000 then
+    return jsonb_build_object('success', false, 'reason', 'invalid_price');
+  end if;
+
+  update rental_extras set price = p_price where id = p_id;
+  if not found then
+    return jsonb_build_object('success', false, 'reason', 'not_found');
+  end if;
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+-- ============================================================================
+-- STARE REZERVACIJE — snimak cene iz sačuvanog teksta obračuna
+-- ============================================================================
+-- Sajt je uz svaku rezervaciju sačuvao tekst obračuna (kolona price_summary,
+-- ili u napomeni posle "Procenjena cena:" / "Iznos:"), npr.
+--   "2 dana × 38€ = 76€ · Ukupno 76€ (≈ 8.910 din)"
+--   "7 days × €45 (−15%) = €315 · Child seat €21 · Total €336 (≈ …)"
+-- Iz njega se cena popunjava SAMO ako se sve slaže: broj dana sa datumima
+-- rezervacije, cena po danu × dani = najam, ukupno ≥ najam (i isti iznos kao
+-- već upisani, ako postoji). Inače rezervacija ostaje bez cene — ništa se ne
+-- izmišlja.
+create or replace function reconstruct_reservation_price(r reservations)
+returns jsonb
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  src text := coalesce(
+    nullif(trim(r.price_summary), ''),
+    trim((regexp_match(r.note, '(?:Procenjena cena|Iznos): ([^|]+)'))[1])
+  );
+  m text[];
+  total_match text[];
+  n integer;
+  rate numeric;
+  pct numeric;
+  rental numeric;
+  total numeric;
+begin
+  if src is null then
+    return null;
+  end if;
+  m := regexp_match(src, '^(\d+) \S+ × €?([0-9.,]+)€?(?: \(−(\d+)%\))? = €?([0-9.,]+)€?');
+  total_match := regexp_match(src, '(?:Ukupno|Total) €?([0-9.,]+)');
+  if m is null or total_match is null then
+    return null;
+  end if;
+
+  -- Cene su u celim evrima; tačka/zarez su samo razdvajanje hiljada.
+  n := m[1]::integer;
+  rate := regexp_replace(m[2], '[.,]', '', 'g')::numeric;
+  pct := coalesce(m[3]::numeric, 0);
+  rental := regexp_replace(m[4], '[.,]', '', 'g')::numeric;
+  total := regexp_replace(total_match[1], '[.,]', '', 'g')::numeric;
+
+  if n <> r.return_date - r.pickup_date or rate * n <> rental or total < rental then
+    return null;
+  end if;
+  if r.total_price is not null and r.total_price <> total then
+    return null;
+  end if;
+
+  return jsonb_build_object(
+    'daily_rate', rate,
+    'rental_days', n,
+    'rental_total', rental,
+    'extras_total', total - rental,
+    'total', total,
+    'discount_percent', pct,
+    -- Cena iz cenovnika (pre popusta) je poznata samo kad nije bilo popusta.
+    'list_price', case when pct = 0 then rate end
+  );
+end;
+$$;
+
+-- Popunjavanje (samo rezervacije bez snimka cene; bezbedno pokretati ponovo).
+-- Svaka popunjena rezervacija dobija zapis u istoriji promena.
+update reservations r set
+  daily_rate = (s.x ->> 'daily_rate')::numeric,
+  rental_days = (s.x ->> 'rental_days')::integer,
+  rental_total = (s.x ->> 'rental_total')::numeric,
+  extras_total = (s.x ->> 'extras_total')::numeric,
+  total_price = (s.x ->> 'total')::numeric,
+  discount_percent = (s.x ->> 'discount_percent')::numeric,
+  list_price = (s.x ->> 'list_price')::numeric,
+  price_source = 'reconstructed'
+from (
+  select r2.id, reconstruct_reservation_price(r2) as x
+  from reservations r2
+  where r2.rental_total is null
+) s
+where r.id = s.id and s.x is not null;
+
+-- Iznos koji je ranije ručno unet u admin panelu, a rezervacija nema dodatke:
+-- ceo iznos je najam (pouzdano). Sa dodacima se raspodela ne može znati.
+update reservations set
+  rental_days = return_date - pickup_date,
+  rental_total = total_price,
+  extras_total = 0,
+  daily_rate = round(total_price / (return_date - pickup_date), 2),
+  price_source = 'admin'
+where rental_total is null
+  and total_price is not null
+  and coalesce(cardinality(extras), 0) = 0
+  and return_date > pickup_date;
+
+-- ============================================================================
+-- PRIHODI — raspodela po danima i analitika
+-- ============================================================================
+
+-- Stavke prihoda za period, po rezervaciji i danu. Prihod rezervacije je
+-- najam i dodaci umanjeni za zabeležene povraćaje (prvo najam, ostatak dodaci).
+--   p_mode = 'rental'  — po danima najma: iznos se deli na dane od preuzimanja
+--                        do dana pre vraćanja (isti broj dana kao na sajtu);
+--                        ostatak centi ide prvim danima, pa je zbir dana uvek
+--                        tačno jednak iznosu rezervacije
+--   p_mode = 'booking' — ceo iznos na dan kada je rezervacija napravljena
+-- Računa se uvek iz trenutnih podataka rezervacije, pa izmena datuma ili cene
+-- odmah važi i nijedan iznos se ne broji dvaput.
+create or replace function revenue_lines(
+  p_from date,
+  p_to date,
+  p_mode text,
+  p_statuses text[],
+  p_car_id text default null
+) returns table (reservation_id uuid, car_id text, car_name text, day date, rental numeric, extras numeric)
+language sql
+stable
+set search_path = public
+as $$
+  with res as (
+    select
+      r.id,
+      r.car_id,
+      r.car_name,
+      r.pickup_date,
+      r.return_date - r.pickup_date as n_days,
+      (r.created_at at time zone 'Europe/Belgrade')::date as booked_on,
+      round(greatest(r.rental_total - t.refunded, 0) * 100)::bigint as rental_cents,
+      round(greatest(coalesce(r.extras_total, 0) - greatest(t.refunded - r.rental_total, 0), 0) * 100)::bigint as extras_cents
+    from reservations r
+    cross join lateral payment_totals(r.id) t
+    where r.status = any (p_statuses)
+      and r.rental_total is not null
+      and r.return_date > r.pickup_date
+      and (p_car_id is null or r.car_id = p_car_id)
+  )
+  select id, car_id, car_name, booked_on, rental_cents / 100.0, extras_cents / 100.0
+  from res
+  where p_mode = 'booking' and booked_on between p_from and p_to
+  union all
+  select
+    res.id,
+    res.car_id,
+    res.car_name,
+    g.d::date,
+    (res.rental_cents / res.n_days + case when g.d::date - res.pickup_date < res.rental_cents % res.n_days then 1 else 0 end) / 100.0,
+    (res.extras_cents / res.n_days + case when g.d::date - res.pickup_date < res.extras_cents % res.n_days then 1 else 0 end) / 100.0
+  from res
+  cross join lateral generate_series(
+    greatest(res.pickup_date, p_from)::timestamp,
+    least(res.pickup_date + res.n_days - 1, p_to)::timestamp,
+    interval '1 day'
+  ) as g(d)
+  where p_mode = 'rental';
+$$;
+
+-- Analitika prihoda za period (admin). p_scope:
+--   booked   — ugovoreno: potvrđene, preuzete i završene rezervacije
+--   realized — realizovano: samo završene
+-- Otkazane i "nije se pojavio" se nikad ne računaju. Rezervacije bez poznate
+-- cene se ne sabiraju (vraća se njihov broj). "cash" su stvarno zabeležene
+-- uplate i povraćaji u periodu (po datumu uplate) — odvojeno od vrednosti.
+create or replace function admin_revenue(
+  p_from date,
+  p_to date,
+  p_mode text default 'rental',
+  p_scope text default 'booked',
+  p_car_id text default null
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_mode text := case when p_mode = 'booking' then 'booking' else 'rental' end;
+  v_scope text := case when p_scope = 'realized' then 'realized' else 'booked' end;
+  v_statuses text[] := case
+    when p_scope = 'realized' then array['completed']
+    else array['confirmed', 'picked_up', 'completed']
+  end;
+  v_car text := nullif(trim(p_car_id), '');
+  result jsonb;
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if p_from is null or p_to is null or p_to < p_from or p_to - p_from > 3700 then
+    return jsonb_build_object('success', false, 'reason', 'invalid_range');
+  end if;
+
+  with lines as (
+    select * from revenue_lines(p_from, p_to, v_mode, v_statuses, v_car)
+  )
+  select jsonb_build_object(
+    'success', true,
+    'from', p_from,
+    'to', p_to,
+    'mode', v_mode,
+    'scope', v_scope,
+    'car_id', v_car,
+    'totals', (
+      select jsonb_build_object(
+        'rental', coalesce(sum(l.rental), 0),
+        'extras', coalesce(sum(l.extras), 0),
+        'total', coalesce(sum(l.rental + l.extras), 0),
+        'reservations', count(distinct l.reservation_id)
+      )
+      from lines l
+    ),
+    'daily', coalesce((
+      select jsonb_agg(jsonb_build_object('day', x.day, 'rental', x.rental, 'extras', x.extras) order by x.day)
+      from (select l.day, sum(l.rental) as rental, sum(l.extras) as extras from lines l group by l.day) x
+    ), '[]'::jsonb),
+    'by_car', coalesce((
+      select jsonb_agg(jsonb_build_object(
+          'car_id', x.car_id,
+          'car_name', x.car_name,
+          'reservations', x.n,
+          'rental', x.rental,
+          'extras', x.extras,
+          'total', x.rental + x.extras
+        ) order by x.rental + x.extras desc, x.car_id)
+      from (
+        select l.car_id, max(l.car_name) as car_name, count(distinct l.reservation_id) as n,
+          sum(l.rental) as rental, sum(l.extras) as extras
+        from lines l
+        group by l.car_id
+      ) x
+    ), '[]'::jsonb),
+    'reservations', case when v_car is null then '[]'::jsonb else coalesce((
+      select jsonb_agg(jsonb_build_object(
+          'id', r.id,
+          'customer_name', r.customer_name,
+          'pickup_date', r.pickup_date,
+          'return_date', r.return_date,
+          'status', r.status,
+          'total_price', r.total_price,
+          'rental', x.rental,
+          'extras', x.extras
+        ) order by r.pickup_date, r.created_at)
+      from (
+        select l.reservation_id, sum(l.rental) as rental, sum(l.extras) as extras
+        from lines l
+        group by l.reservation_id
+      ) x
+      join reservations r on r.id = x.reservation_id
+    ), '[]'::jsonb) end,
+    'unpriced', (
+      select count(*)
+      from reservations r
+      where r.status = any (v_statuses)
+        and r.rental_total is null
+        and (v_car is null or r.car_id = v_car)
+        and case
+          when v_mode = 'booking' then (r.created_at at time zone 'Europe/Belgrade')::date between p_from and p_to
+          else r.pickup_date <= p_to and r.return_date > p_from
+        end
+    ),
+    'cash', (
+      select jsonb_build_object(
+        'received', coalesce(sum(p.amount) filter (where p.kind = 'payment'), 0),
+        'refunded', coalesce(sum(p.amount) filter (where p.kind = 'refund'), 0),
+        'collected', coalesce(sum(p.amount) filter (where p.kind = 'payment'), 0)
+                   - coalesce(sum(p.amount) filter (where p.kind = 'refund'), 0)
+      )
+      from payments p
+      join reservations r on r.id = p.reservation_id
+      where p.voided_at is null
+        and p.paid_at between p_from and p_to
+        and (v_car is null or r.car_id = v_car)
+    )
+  )
+  into result;
+
+  return result;
+end;
+$$;
+
 -- Prava pozivanja: Supabase podrazumevano dozvoljava svima da pozovu svaku
 -- funkciju. Admin funkcije sme da pozove samo prijavljen korisnik (a one
 -- same proveravaju da li je admin); pomoćne funkcije niko spolja.
@@ -1157,7 +1818,10 @@ begin
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and p.proname in ('current_actor', 'payment_totals', 'reservation_json', 'reservation_input_error')
+      and p.proname in (
+        'current_actor', 'payment_totals', 'reservation_json', 'reservation_input_error', 'price_quote',
+        'reservation_price', 'reconstruct_reservation_price', 'revenue_lines'
+      )
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f);
   end loop;

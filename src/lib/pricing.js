@@ -3,7 +3,14 @@ import { DISCOUNT_TIERS, EUR_TO_RSD, EXTRAS } from '../data/rental.js';
 const DAY_MS = 86_400_000;
 const LOCALES = { sr: 'sr-RS', en: 'en-GB' };
 
-export const MAX_DISCOUNT_PERCENT = Math.round(Math.max(...DISCOUNT_TIERS.map((t) => t.discount)) * 100);
+const maxDiscountPercent = () => Math.round(Math.max(...DISCOUNT_TIERS.map((t) => t.discount)) * 100);
+
+// Najveći popust ("do −30%"). Osvežava se kad se cenovnik učita iz baze (src/lib/priceList.js).
+export let MAX_DISCOUNT_PERCENT = maxDiscountPercent();
+
+export function refreshPricingConstants() {
+  MAX_DISCOUNT_PERCENT = maxDiscountPercent();
+}
 
 export function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -31,8 +38,9 @@ export function tierLabel(index, daysWord) {
   return next ? `${tier.minDays}–${next.minDays - 1} ${daysWord(next.minDays - 1)}` : `${tier.minDays}+ ${daysWord(tier.minDays)}`;
 }
 
+// Računa se u celim procentima — isti rezultat kao u bazi (price_quote u supabase/schema.sql).
 export function dailyRate(car, days = 1) {
-  return Math.round(car.pricePerDay * (1 - tierFor(days).discount));
+  return Math.round((car.pricePerDay * (100 - discountPercent(tierFor(days)))) / 100);
 }
 
 // Najniža dnevna cena (najduži najam) — za prikaz "od X€".

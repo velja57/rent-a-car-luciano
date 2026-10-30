@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router';
+import { usePriceList } from '../lib/priceList';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import AdminLayout from './components/AdminLayout';
 import { ToastProvider } from './components/Toast';
 import { adminApi } from './lib/adminApi';
+import Analytics from './pages/Analytics';
 import Calendar from './pages/Calendar';
 import Overview from './pages/Overview';
 import ReservationDetail from './pages/ReservationDetail';
@@ -86,6 +88,8 @@ function Message({ title, text, onSignOut }) {
 // da se umesto praznih stranica prikaže jasna poruka.
 function AdminPanel({ session }) {
   const [access, setAccess] = useState('checking'); // checking | ok | denied | error
+  // Cene vozila i dodataka iz baze (forme i predlozi prikazuju aktuelni cenovnik).
+  usePriceList();
   const userId = session.user.id;
   const signOut = () => supabase.auth.signOut();
 
@@ -126,6 +130,7 @@ function AdminPanel({ session }) {
             <Route path="rezervacije/:id/izmena" element={<ReservationForm />} />
             <Route path="kalendar" element={<Calendar />} />
             <Route path="vozila" element={<Vehicles />} />
+            <Route path="analitika" element={<Analytics />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

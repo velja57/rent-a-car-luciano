@@ -5,6 +5,7 @@ import StatusBadge from '../components/StatusBadge';
 import { ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
 import { adminApi, useAdminData } from '../lib/adminApi';
+import Payments from '../components/Payments';
 import { ageFrom, formatDate, formatDateTime, formatMoney, formatTime, shortId } from '../lib/format';
 import {
   actorLabel,
@@ -12,6 +13,9 @@ import {
   extraName,
   FIELD_LABELS,
   LANGUAGES,
+  MONEY_FIELDS,
+  PAYMENT_KINDS,
+  PRICE_SOURCES,
   SOURCES,
   STATUSES,
   TRANSITIONS,
@@ -29,7 +33,12 @@ function Row({ label, children }) {
 // Vrednost iz istorije promena u čitljivom obliku.
 function formatValue(field, value) {
   if (value === null || value === undefined || value === '') return '—';
+  if (MONEY_FIELDS.includes(field)) return formatMoney(value);
   switch (field) {
+    case 'price_source':
+      return PRICE_SOURCES[value] ?? value;
+    case 'discount_percent':
+      return `${Number(value)}%`;
     case 'status':
       return STATUSES[value] ?? value;
     case 'pickup_date':
@@ -39,8 +48,6 @@ function formatValue(field, value) {
     case 'pickup_time':
     case 'return_time':
       return formatTime(value);
-    case 'total_price':
-      return formatMoney(value);
     case 'extras':
       return Array.isArray(value) && value.length ? value.map(extraName).join(', ') : '—';
     case 'language':
@@ -58,7 +65,12 @@ function EventDetails({ event }) {
     return <span className="admin-muted">{SOURCES[changes.source] ?? ''}</span>;
   }
   if (event.action === 'payment_added' || event.action === 'payment_voided') {
-    return <span className="admin-muted">{formatMoney(changes.amount)}</span>;
+    return (
+      <span className="admin-muted">
+        {PAYMENT_KINDS[changes.kind] ?? changes.kind}: {formatMoney(changes.amount)}
+        {changes.reason && ` — ${changes.reason}`}
+      </span>
+    );
   }
   return (
     <ul className="admin-changes">
@@ -190,13 +202,32 @@ export default function ReservationDetail() {
           <dl className="admin-dl">
             <Row label="Iznos">
               {r.total_price === null ? (
-                <span className="admin-warning">Nije unet — dodaj ga preko „Izmeni“</span>
+                <span className="admin-warning">Nije poznat — dodaj ga preko „Izmeni“</span>
               ) : (
-                <strong>{formatMoney(r.total_price)}</strong>
+                <>
+                  <strong className="admin-amount">{formatMoney(r.total_price)}</strong>
+                  {r.daily_rate !== null && (
+                    <div className="admin-muted">
+                      {r.rental_days} {r.rental_days === 1 ? 'dan' : 'dana'} × {formatMoney(r.daily_rate)}
+                      {/* Popust važi samo za cenu iz cenovnika, ne za ručno unetu. */}
+                      {Number(r.discount_percent) > 0 && r.price_source !== 'admin' && ` (popust ${Number(r.discount_percent)}%)`} ={' '}
+                      {formatMoney(r.rental_total)}
+                      {r.price_source && ` · ${PRICE_SOURCES[r.price_source]}`}
+                    </div>
+                  )}
+                </>
               )}
             </Row>
-            <Row label="Dodaci">{r.extras?.length ? r.extras.map(extraName).join(', ') : '—'}</Row>
-            {r.price_summary && <Row label="Obračun sa sajta">{r.price_summary}</Row>}
+            <Row label="Dodaci">
+              {r.extras?.length || Number(r.extras_total) > 0 ? (
+                <>
+                  {r.extras?.length ? r.extras.map(extraName).join(', ') : 'Dodaci'}
+                  {r.extras_total !== null && <strong> · {formatMoney(r.extras_total)}</strong>}
+                </>
+              ) : (
+                '—'
+              )}
+            </Row>
           </dl>
         </section>
 
@@ -205,6 +236,8 @@ export default function ReservationDetail() {
           <p className="admin-note">{r.note || <span className="admin-muted">Nema napomene.</span>}</p>
         </section>
       </div>
+
+      <Payments reservation={r} payments={data.payments} onChange={reload} />
 
       <section className="admin-panel">
         <h2 className="admin-panel__title">Istorija promena</h2>
