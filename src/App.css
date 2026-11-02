@@ -707,11 +707,6 @@
   align-items: flex-end;
 }
 
-.site-footer__contact .call-notice {
-  max-width: 280px;
-  text-align: left;
-}
-
 .site-footer__contact a {
   text-decoration: none;
   color: var(--color-text-muted);
