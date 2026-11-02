@@ -46,11 +46,10 @@ export default {
     call: (phone) => `Call ${phone}`,
     callShort: 'Call',
     whatsapp: 'WhatsApp',
-    callDesktopNotice: [
-      "Unfortunately you can't call us directly from a computer, but here's an email where you can write to us directly: ",
-      ". If you'd like to call us right away, the phone number is right below — feel free to give us a call!",
-    ],
+    callDesktopNotice: "Calls aren't possible from a computer — reach us one of the ways below:",
     callDesktopEmail: 'luciano@gmail.com',
+    callDesktopCopy: 'Copy',
+    callDesktopCopied: 'Copied!',
   },
 
   specs: {

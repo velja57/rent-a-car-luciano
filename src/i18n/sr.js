@@ -46,11 +46,10 @@ export default {
     call: (phone) => `Pozovi ${phone}`,
     callShort: 'Pozovi',
     whatsapp: 'WhatsApp',
-    callDesktopNotice: [
-      'Nažalost, sa računara ne možete direktno da nas pozovete, ali evo mejla gde možete direktno da nam pišete: ',
-      '. Ukoliko želite da nas odmah pozovete, broj telefona Vam se nalazi ispod — budite slobodni da nas pozovete!',
-    ],
+    callDesktopNotice: 'Pozivi sa računara nažalost nisu mogući — javite nam se na jedan od načina ispod:',
     callDesktopEmail: 'luciano@gmail.com',
+    callDesktopCopy: 'Kopiraj',
+    callDesktopCopied: 'Kopirano!',
   },
 
   specs: {

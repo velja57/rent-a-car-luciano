@@ -1461,12 +1461,50 @@
   border-radius: var(--radius-md);
 }
 
-.call-notice a {
-  color: var(--color-accent);
+.call-notice__text {
+  margin-bottom: 8px;
+}
+
+.call-notice__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(212, 162, 78, 0.08);
+  text-decoration: none;
+  color: var(--color-text);
   font-weight: 700;
 }
 
-/* U uskom header-u i footeru poruka "lebdi" iznad sadržaja umesto da ga gura. */
+.call-notice__item + .call-notice__item {
+  margin-top: 6px;
+}
+
+a.call-notice__item:hover {
+  background: rgba(212, 162, 78, 0.16);
+  color: var(--color-accent);
+}
+
+.call-notice__copy {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+
+.call-notice__copy:hover {
+  filter: brightness(1.08);
+}
+
+/* U uskom header-u poruka "lebdi" ispod dugmeta umesto da ga gura. */
 .call-notice--popover {
   position: absolute;
   top: calc(100% + 8px);
