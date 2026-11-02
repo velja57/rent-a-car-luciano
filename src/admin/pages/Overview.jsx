@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router';
 import StatusBadge from '../components/StatusBadge';
 import { ErrorState, LoadingState } from '../components/States';
 import { adminApi, useAdminData } from '../lib/adminApi';
-import { formatDate, formatTime } from '../lib/format';
+import { formatDate, formatTime, todayBelgrade } from '../lib/format';
 import { STATUS_ORDER, STATUSES } from '../lib/labels';
 
 function DayList({ title, empty, rows, kind }) {
@@ -41,6 +42,25 @@ function DayList({ title, empty, rows, kind }) {
 
 export default function Overview() {
   const { data, error, loading, reload } = useAdminData(() => adminApi.overview(), []);
+
+  // Pregled često ostane otvoren u tabu danima. Podaci se ponovo učitavaju kad
+  // se vratiš na tab i kad u Beogradu počne novi dan (provera svakog minuta).
+  useEffect(() => {
+    let day = todayBelgrade();
+    const onVisible = () => document.visibilityState === 'visible' && reload();
+    const timer = setInterval(() => {
+      const now = todayBelgrade();
+      if (now !== day) {
+        day = now;
+        reload();
+      }
+    }, 60_000);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [reload]);
 
   if (!data && loading) return <LoadingState />;
   if (!data && error) return <ErrorState error={error} onRetry={reload} />;
