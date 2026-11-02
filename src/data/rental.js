@@ -28,7 +28,6 @@ export const EUR_TO_RSD = 117.2;
 
 // Dodatne usluge u formi za rezervaciju. per: 'day' = po danu, 'rental' = jednom po najmu.
 export const EXTRAS = [
-  { id: 'additional-driver', price: 0, per: 'rental' },
   { id: 'child-seat', price: 3, per: 'day' },
   { id: 'full-cover', price: 8, per: 'day' },
   { id: 'airport', price: 15, per: 'rental' },

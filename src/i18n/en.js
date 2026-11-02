@@ -90,7 +90,6 @@ export default {
   },
 
   extras: {
-    'additional-driver': 'Additional driver',
     'child-seat': 'Child seat',
     'full-cover': 'Full insurance (zero excess)',
     airport: 'Airport pick-up or return',

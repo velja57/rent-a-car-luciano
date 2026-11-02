@@ -90,7 +90,6 @@ export default {
   },
 
   extras: {
-    'additional-driver': 'Dodatni vozač',
     'child-seat': 'Dečije sedište',
     'full-cover': 'Puno kasko (bez učešća u šteti)',
     airport: 'Preuzimanje ili vraćanje na aerodromu',
