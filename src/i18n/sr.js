@@ -100,7 +100,6 @@ export default {
     'Osnovno osiguranje',
     'Neograničena kilometraža',
     'Besplatno otkazivanje do 48h',
-    'Dodatni vozač bez doplate',
     'Bez skrivenih troškova',
   ],
 

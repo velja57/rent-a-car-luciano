@@ -100,7 +100,6 @@ export default {
     'Basic insurance',
     'Unlimited mileage',
     'Free cancellation up to 48h',
-    'Additional driver at no extra cost',
     'No hidden fees',
   ],
 
