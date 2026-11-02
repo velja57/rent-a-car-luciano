@@ -135,9 +135,13 @@ export default {
 
   footer: {
     tagline: 'Iznajmljivanje vozila novije generacije.',
-    address: 'Kralja Mihaila Zetskog 44, Batajnica, Beograd',
+    address: 'Kralja Mihaila Zetskog 43, Batajnica, Beograd',
     hours: 'Radno vreme: 08:00 - 16:00 (radnim danima)',
     rights: 'Sva prava zadržana.',
+    openNow: 'Sada smo dostupni',
+    closedNow: 'Van radnog vremena',
+    directions: 'Pokaži mi pravac',
+    mapTitle: 'Lokacija — Luciano Rent a Car na mapi',
   },
 
   calendar: {
@@ -166,7 +170,7 @@ export default {
     callText: 'Besplatan savet pri izboru vozila i odgovor na sva pitanja.',
     callOpen: 'Sada smo dostupni',
     callClosed: 'Van radnog vremena · javljamo se prvog radnog dana',
-    defaultLocation: 'Kralja Mihaila Zetskog 44, Batajnica, Beograd',
+    defaultLocation: 'Kralja Mihaila Zetskog 43, Batajnica, Beograd',
     name: 'Ime i prezime',
     email: 'Email',
     phone: 'Broj telefona',
