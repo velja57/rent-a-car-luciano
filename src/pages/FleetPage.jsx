@@ -31,13 +31,14 @@ const SORTS = [
 ];
 
 const FILTER_KEYS = ['tip', 'menjac', 'gorivo', 'slobodna'];
-const FIRST_DISCOUNT_TIER = DISCOUNT_TIERS.find((tier) => tier.discount > 0);
 const allIds = fleet.map((c) => c.id);
-const minPrice = Math.min(...fleet.map(lowestRate));
 
 export default function FleetPage() {
   const { lang, t } = useI18n();
   const f = t.fleetPage;
+  // Računa se pri prikazu — cene i popusti stižu iz baze (src/lib/priceList.js).
+  const firstDiscountTier = DISCOUNT_TIERS.find((tier) => tier.discount > 0) ?? DISCOUNT_TIERS[0];
+  const minPrice = Math.min(...fleet.map(lowestRate));
   usePageMeta(t.meta.fleetTitle, t.meta.fleetDescription(fleet.length, formatEur(minPrice, lang), MAX_DISCOUNT_PERCENT));
 
   const [params, setParams] = useSearchParams();
@@ -127,7 +128,7 @@ export default function FleetPage() {
                   {tierFor(days).discount > 0 ? (
                     <span className="fleet-search__badge">{f.discountApplied(discountPercent(tierFor(days)))}</span>
                   ) : (
-                    <span>{f.discountHint(FIRST_DISCOUNT_TIER.minDays, discountPercent(FIRST_DISCOUNT_TIER))}</span>
+                    <span>{f.discountHint(firstDiscountTier.minDays, discountPercent(firstDiscountTier))}</span>
                   )}
                 </>
               ) : (

@@ -8,11 +8,11 @@ import ReservationModal from './ReservationModal';
 import './Fleet.css';
 
 const featured = fleet.filter((c) => c.featured);
-const minPrice = Math.min(...fleet.map(lowestRate));
 
 // Izdvojena vozila na početnoj — cela flota je na stranici /vozila.
 export default function FleetTeaser() {
   const { lang, t, paths } = useI18n();
+  const minPrice = Math.min(...fleet.map(lowestRate));
   const [reservationCar, setReservationCar] = useState(null);
   // Dugme koje je otvorilo formu — fokus mu se vraća kad se forma zatvori.
   const triggerRef = useRef(null);
