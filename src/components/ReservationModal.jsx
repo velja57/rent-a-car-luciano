@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { EXTRAS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
+import { EXTRAS, MAX_ONLINE_DAYS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { dictionaries, useI18n } from '../i18n';
 import { bookingMessage, isWorkingNow, priceLine, questionMessage, whatsappUrl } from '../lib/contact';
 import { discountPercent, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
@@ -177,6 +177,8 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     if (!form.returnDate) next.returnDate = e.return;
     else if (form.pickupDate && form.returnDate <= form.pickupDate) {
       next.returnDate = e.returnOrder;
+    } else if (days > MAX_ONLINE_DAYS) {
+      next.returnDate = e.tooLong(MAX_ONLINE_DAYS);
     }
 
     if (!form.location.trim()) {
@@ -286,6 +288,12 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
       if (data?.reason === 'unavailable') {
         setAvailability('unavailable');
         setErrors((prev) => ({ ...prev, returnDate: r.errors.unavailable }));
+      } else if (data?.reason === 'too_long') {
+        setErrors((prev) => ({ ...prev, returnDate: r.errors.tooLong(MAX_ONLINE_DAYS) }));
+      } else if (data?.reason === 'too_many') {
+        setSubmitError(r.errors.tooMany);
+      } else if (data?.reason === 'rate_limited') {
+        setSubmitError(r.errors.busy);
       } else {
         setSubmitError(r.errors.submit);
       }

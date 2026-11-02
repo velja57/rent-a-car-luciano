@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 68 od 68 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 73 od 73 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -547,6 +547,69 @@ begin
   where l.reservation_id = id_a;
   ok := ok and num = 6;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'A po danima: 10.6. i 11.6. po 40 € najma (dan vraćanja se ne računa), dodaci 6 € odvojeno'); end if;
+
+  -- =========================================================================
+  -- 6. Limiti za rezervacije sa sajta (zaštita od lažnih rezervacija)
+  -- =========================================================================
+  -- Tri buduće rezervacije sa istim kontaktom, napravljene pre 2 dana (ne ulaze
+  -- u limit po satu).
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location, created_at)
+  select car, 'TEST vozilo', 'TEST Limit ' || g, 'limit@example.com', '061 999 0001', '1990-01-01',
+    make_date(2098, g, 1), make_date(2098, g, 3), 'TEST', now() - interval '2 days'
+  from generate_series(1, 3) g;
+
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  set local role anon;
+
+  -- 1.5.-1.6.2098 = 31 dan -> odbijeno; 1.5.-31.5.2098 = 30 dana -> prolazi.
+  res := create_reservation(car, 'TEST vozilo', 'TEST Dugi', 'dugi@example.com', '062 333 4444', '1990-01-01',
+    '2098-05-01', '2098-06-01', 'TEST lokacija', null);
+  ok := res ->> 'reason' = 'too_long';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: najam duži od 30 dana mora biti odbijen [%s]', res)); end if;
+
+  res := create_reservation(car, 'TEST vozilo', 'TEST Dugi', 'dugi@example.com', '062 333 4444', '1990-01-01',
+    '2098-05-01', '2098-05-31', 'TEST lokacija', null);
+  ok := (res ->> 'success')::boolean;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: najam od tačno 30 dana prolazi [%s]', res)); end if;
+
+  -- Četvrta buduća rezervacija istog kontakta: isti telefon u drugom zapisu, pa
+  -- isti email velikim slovima -> oba odbijena.
+  res := create_reservation(car, 'TEST vozilo', 'TEST Limit 4', 'drugi@example.com', '+381 61 999 0001', '1990-01-01',
+    '2098-07-01', '2098-07-03', 'TEST lokacija', null);
+  ok := res ->> 'reason' = 'too_many';
+  res := create_reservation(car, 'TEST vozilo', 'TEST Limit 5', 'LIMIT@example.com', '063 777 8888', '1990-01-01',
+    '2098-08-01', '2098-08-03', 'TEST lokacija', null);
+  ok := ok and res ->> 'reason' = 'too_many';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: najviše 3 buduće rezervacije po telefonu ili emailu [%s]', res)); end if;
+
+  reset role;
+
+  -- Popuna do 10 rezervacija sa sajta u poslednjih sat vremena (računajući i
+  -- prave, ako ih ima), pa sledeća sa sajta mora biti odbijena.
+  select count(*) into n from reservations where source = 'web' and created_at > now() - interval '1 hour';
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location)
+  select car, 'TEST vozilo', 'TEST Popuna ' || g, 'popuna' || g || '@example.com', '064 000 ' || lpad(g::text, 4, '0'),
+    '1990-01-01', make_date(2097, 1, 1) + g * 3, make_date(2097, 1, 1) + g * 3 + 1, 'TEST'
+  from generate_series(1, greatest(10 - n, 0)::int) g;
+
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  set local role anon;
+  res := create_reservation(car, 'TEST vozilo', 'TEST Novi', 'novi@example.com', '065 123 4567', '1990-01-01',
+    '2097-06-01', '2097-06-03', 'TEST lokacija', null);
+  ok := res ->> 'reason' = 'rate_limited';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: najviše 10 rezervacija sa sajta na sat [%s]', res)); end if;
+  reset role;
+
+  -- Admin panel nema ova ograničenja: najam od 40 dana dok je limit po satu dostignut.
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+  res := admin_create_reservation(p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Dugi admin',
+    p_phone => '061 999 0001', p_pickup => '2097-07-01', p_return => '2097-08-10', p_location => 'TEST lokacija');
+  ok := (res ->> 'success')::boolean;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('admin: telefonska rezervacija od 40 dana nema limite sajta [%s]', res)); end if;
+  reset role;
 
   raise exception using
     message = format(

@@ -323,6 +323,7 @@ declare
   new_id uuid;
   q jsonb;
   warning text;
+  phone_digits text;
 begin
   if p_pickup is null or p_return is null or p_return <= p_pickup then
     return jsonb_build_object('success', false, 'reason', 'invalid_dates');
@@ -354,6 +355,44 @@ begin
     or p_dob is null
   then
     return jsonb_build_object('success', false, 'reason', 'invalid_input');
+  end if;
+
+  -- Zaštita od lažnih rezervacija: funkciju može da pozove svako sa javnim
+  -- ključem sajta, a svaka rezervacija odmah zauzima vozilo. Ograničenja važe
+  -- samo za sajt — admin panel (admin_create_reservation) ih nema.
+  --   too_long      najam preko sajta najviše 30 dana (duži se dogovara telefonom)
+  --   too_many      najviše 3 buduće aktivne rezervacije sa istim telefonom ili emailom
+  --   rate_limited  najviše 10 rezervacija sa sajta na sat, za ceo sajt
+  if p_return - p_pickup > 30 then
+    return jsonb_build_object('success', false, 'reason', 'too_long');
+  end if;
+
+  -- Rezervacije sa sajta se upisuju jedna po jedna, da dve istovremene ne bi
+  -- obe prošle proveru limita.
+  perform pg_advisory_xact_lock(hashtext('create_reservation'));
+
+  -- Telefon se poredi po poslednjih 9 cifara (060 111 222 = +381 60 111 222).
+  phone_digits := right(regexp_replace(p_phone, '\D', '', 'g'), 9);
+  if (
+    select count(*)
+    from reservations r
+    where r.source = 'web'
+      and r.status in ('confirmed', 'picked_up')
+      and r.return_date >= current_date
+      and (
+        lower(trim(r.email)) = lower(trim(p_email))
+        or (length(phone_digits) >= 6 and right(regexp_replace(r.phone, '\D', '', 'g'), 9) = phone_digits)
+      )
+  ) >= 3 then
+    return jsonb_build_object('success', false, 'reason', 'too_many');
+  end if;
+
+  if (
+    select count(*)
+    from reservations
+    where source = 'web' and created_at > now() - interval '1 hour'
+  ) >= 10 then
+    return jsonb_build_object('success', false, 'reason', 'rate_limited');
   end if;
 
   begin

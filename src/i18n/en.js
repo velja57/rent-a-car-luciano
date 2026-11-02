@@ -193,6 +193,9 @@ export default {
       location: 'Please enter a pick-up location.',
       unavailable: 'The car is not available for the selected dates. Please choose different dates.',
       submit: 'Something went wrong while sending your booking. Please try again or give us a call.',
+      tooLong: (n) => `Online bookings are limited to ${n} days. For a longer rental, please give us a call.`,
+      tooMany: 'You already have 3 active bookings. To add another, please call us or message us on WhatsApp.',
+      busy: "We can't take online bookings right now. Please call us or message us on WhatsApp.",
     },
     availability: {
       checking: 'Checking availability…',

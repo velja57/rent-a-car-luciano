@@ -193,6 +193,9 @@ export default {
       location: 'Unesi lokaciju preuzimanja.',
       unavailable: 'Vozilo nije dostupno u izabranom periodu. Izaberi druge datume.',
       submit: 'Došlo je do greške prilikom slanja rezervacije. Pokušaj ponovo ili nas pozovi telefonom.',
+      tooLong: (n) => `Preko sajta možeš rezervisati najviše ${n} dana. Za duži najam pozovi nas telefonom.`,
+      tooMany: 'Već imaš 3 aktivne rezervacije. Za novu nas pozovi telefonom ili piši na WhatsApp.',
+      busy: 'Trenutno ne možemo da primimo online rezervaciju. Pozovi nas telefonom ili piši na WhatsApp.',
     },
     availability: {
       checking: 'Proveravamo dostupnost vozila…',

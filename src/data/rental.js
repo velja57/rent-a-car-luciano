@@ -22,6 +22,10 @@ export const DISCOUNT_TIERS = [
   { minDays: 30, discount: 0.3 },
 ];
 
+// Najduži najam koji kupac može da rezerviše preko sajta (duži se dogovara
+// telefonom). Isto ograničenje proverava i baza (create_reservation).
+export const MAX_ONLINE_DAYS = 30;
+
 // Okvirni srednji kurs NBS — ažuriraj povremeno. Cene u dinarima su informativne,
 // osnovna valuta je evro.
 export const EUR_TO_RSD = 117.2;
