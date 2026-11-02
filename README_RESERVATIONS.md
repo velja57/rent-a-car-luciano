@@ -151,3 +151,42 @@ na njihovom jeziku (datum, lokacija, šta da ponesu, telefon) i beleži
 
 Napomena: dok domen nije verifikovan u Resend-u, podsetnici (kao i potvrde)
 stižu samo na adresu Resend naloga.
+
+## Zaštita od zloupotrebe (novembar 2026)
+
+**Lažne rezervacije.** Funkciju za rezervaciju može da pozove svako ko otvori
+sajt, a svaka rezervacija odmah zauzima vozilo. Zato baza (`create_reservation`)
+odbija rezervaciju sa sajta kada:
+
+- najam traje duže od **30 dana** (duži se dogovara telefonom, admin ga unosi
+  u admin panelu);
+- isti telefon ili email već ima **3 buduće aktivne** rezervacije;
+- je sa sajta u poslednjih sat vremena stiglo **10 rezervacija** (za ceo sajt).
+
+Kupac tada vidi poruku da pozove telefonom ili piše na WhatsApp. Admin panel
+nema ova ograničenja.
+
+**Mejl funkcija.** `send-reservation-email` sada šalje mejl samo kada poziv
+nosi tajno zaglavlje `x-webhook-secret`, koje zna samo Database Webhook. Bez
+toga bi bilo ko sa javnim ključem sajta mogao da pošalje mejl na bilo koju
+adresu u ime firme.
+
+### Šta treba da uradiš (jednokratno, OVIM redom)
+
+1. **Tajna za funkciju:** Edge Functions → Secrets → dodaj `WEBHOOK_SECRET` =
+   duga nasumična lozinka (30+ slova i brojeva).
+2. **Ista tajna u webhook-u:** Database → Webhooks → webhook za `reservations`
+   → Edit → HTTP Headers → Add a new header: ime `x-webhook-secret`, vrednost
+   ista lozinka iz koraka 1 → Save.
+3. **Nova verzija funkcije:** Edge Functions → `send-reservation-email` →
+   zameni kod sadržajem
+   [supabase/functions/send-reservation-email/index.ts](supabase/functions/send-reservation-email/index.ts)
+   → Deploy.
+4. **Baza:** SQL Editor → zalepi ceo [supabase/schema.sql](supabase/schema.sql)
+   → Run. Zatim zalepi ceo
+   [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql) → Run.
+   Očekivano (crvena poruka je namerna):
+   `REZULTAT TESTA: 73 od 73 provera uspešno. Sve je u redu.`
+
+Redosled 1 → 2 → 3 je važan: ako se funkcija objavi pre nego što tajna postoji
+na oba mesta, mejlovi o rezervacijama ne stižu dok se to ne podesi.

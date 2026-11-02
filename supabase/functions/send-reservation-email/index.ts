@@ -8,7 +8,11 @@
 // Vlasnik uvek dobija mejl na srpskom; iznos i jezik kupca su mu u
 // napomeni (isto se vidi i u admin panelu).
 //
-// Potreban secret: RESEND_API_KEY
+// Potrebni secrets:
+// - RESEND_API_KEY
+// - WEBHOOK_SECRET: duga nasumična lozinka. Isti tekst mora biti u Database
+//   Webhook-u kao HTTP zaglavlje x-webhook-secret. Bez nje funkciju bi mogao da
+//   pozove bilo ko sa javnim ključem sajta i pošalje mejl na bilo koju adresu.
 // Opciono:
 // - RESERVATION_FROM_EMAIL (adresa sa koje se šalje; mora biti verifikovan
 //   domen na Resend-u, u suprotnom koristi Resend-ov test domen)
@@ -16,6 +20,7 @@
 //   podrazumevano luciano@gmail.com, isto kao u footeru sajta)
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
 const FROM_EMAIL = Deno.env.get('RESERVATION_FROM_EMAIL') ?? 'onboarding@resend.dev';
 const OWNER_EMAIL = Deno.env.get('OWNER_NOTIFICATION_EMAIL') ?? 'luciano@gmail.com';
 
@@ -81,6 +86,14 @@ async function sendEmail(to: string, subject: string, html: string) {
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
+  }
+  // Samo Database Webhook zna tajnu. Ako tajna nije podešena, funkcija ne šalje
+  // ništa (bolje bez mejla nego otvorena za zloupotrebu).
+  if (!WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: 'WEBHOOK_SECRET nije podešen' }), { status: 500 });
+  }
+  if (req.headers.get('x-webhook-secret') !== WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
   }
   if (!RESEND_API_KEY) {
     return new Response(JSON.stringify({ error: 'RESEND_API_KEY nije podešen' }), { status: 500 });
