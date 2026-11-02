@@ -161,7 +161,7 @@ odbija rezervaciju sa sajta kada:
 - najam traje duže od **30 dana** (duži se dogovara telefonom, admin ga unosi
   u admin panelu);
 - isti telefon ili email već ima **3 buduće aktivne** rezervacije;
-- je sa sajta u poslednjih sat vremena stiglo **10 rezervacija** (za ceo sajt).
+- je sa sajta u poslednjih sat vremena stiglo **30 rezervacija** (za ceo sajt).
 
 Kupac tada vidi poruku da pozove telefonom ili piše na WhatsApp. Admin panel
 nema ova ograničenja.

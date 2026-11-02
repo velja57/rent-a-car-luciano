@@ -362,7 +362,7 @@ begin
   -- samo za sajt — admin panel (admin_create_reservation) ih nema.
   --   too_long      najam preko sajta najviše 30 dana (duži se dogovara telefonom)
   --   too_many      najviše 3 buduće aktivne rezervacije sa istim telefonom ili emailom
-  --   rate_limited  najviše 10 rezervacija sa sajta na sat, za ceo sajt
+  --   rate_limited  najviše 30 rezervacija sa sajta na sat, za ceo sajt
   if p_return - p_pickup > 30 then
     return jsonb_build_object('success', false, 'reason', 'too_long');
   end if;
@@ -391,7 +391,7 @@ begin
     select count(*)
     from reservations
     where source = 'web' and created_at > now() - interval '1 hour'
-  ) >= 10 then
+  ) >= 30 then
     return jsonb_build_object('success', false, 'reason', 'rate_limited');
   end if;
 

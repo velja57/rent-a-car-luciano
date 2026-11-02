@@ -585,21 +585,21 @@ begin
 
   reset role;
 
-  -- Popuna do 10 rezervacija sa sajta u poslednjih sat vremena (računajući i
+  -- Popuna do 30 rezervacija sa sajta u poslednjih sat vremena (računajući i
   -- prave, ako ih ima), pa sledeća sa sajta mora biti odbijena.
   select count(*) into n from reservations where source = 'web' and created_at > now() - interval '1 hour';
   insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
     pickup_location)
   select car, 'TEST vozilo', 'TEST Popuna ' || g, 'popuna' || g || '@example.com', '064 000 ' || lpad(g::text, 4, '0'),
     '1990-01-01', make_date(2097, 1, 1) + g * 3, make_date(2097, 1, 1) + g * 3 + 1, 'TEST'
-  from generate_series(1, greatest(10 - n, 0)::int) g;
+  from generate_series(1, greatest(30 - n, 0)::int) g;
 
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   set local role anon;
   res := create_reservation(car, 'TEST vozilo', 'TEST Novi', 'novi@example.com', '065 123 4567', '1990-01-01',
     '2097-06-01', '2097-06-03', 'TEST lokacija', null);
   ok := res ->> 'reason' = 'rate_limited';
-  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: najviše 10 rezervacija sa sajta na sat [%s]', res)); end if;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: najviše 30 rezervacija sa sajta na sat [%s]', res)); end if;
   reset role;
 
   -- Admin panel nema ova ograničenja: najam od 40 dana dok je limit po satu dostignut.
