@@ -6,6 +6,8 @@ import { bookingMessage, isWorkingNow, priceLine, questionMessage, whatsappUrl }
 import { discountPercent, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { useBookedDates } from '../lib/useBookedDates';
+import { useCallNotice } from '../lib/useCallNotice';
+import CallNotice from './CallNotice';
 import DateRangeFields from './DateRangeFields';
 
 // Koliko čekamo nakon poslednjeg unosa datuma pre nego što proverimo
@@ -33,12 +35,6 @@ function formatExtraPrice(extra, t, lang) {
 
 function openInNewTab(url) {
   window.open(url, '_blank', 'noopener,noreferrer');
-}
-
-// Na računaru (bez dodirnog ekrana) klik na "tel:" link obično ne radi ništa
-// vidljivo — zato tu umesto poziva prikazujemo poruku sa mejlom i brojem.
-function isTouchDevice() {
-  return typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 }
 
 const ICONS = {
@@ -92,7 +88,7 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
   const [errors, setErrors] = useState({});
   const [sent, setSent] = useState(false);
   const [whatsappOpened, setWhatsappOpened] = useState(false);
-  const [showCallNotice, setShowCallNotice] = useState(false);
+  const { showCallNotice, handleCallClick } = useCallNotice();
   const [availability, setAvailability] = useState('idle'); // idle | checking | available | unavailable | error
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -192,13 +188,6 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
 
     setErrors(next);
     return Object.keys(next).length === 0;
-  };
-
-  const handleCallClick = (e) => {
-    if (!isTouchDevice()) {
-      e.preventDefault();
-      setShowCallNotice(true);
-    }
   };
 
   // (2) WhatsApp: kratka gotova poruka sa vozilom, datumima i cenom.
@@ -563,13 +552,7 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
                 </small>
               </a>
 
-              {showCallNotice && (
-                <p className="booking-call__notice" aria-live="polite">
-                  {r.callDesktopNotice[0]}
-                  <a href={`mailto:${r.callDesktopEmail}`}>{r.callDesktopEmail}</a>
-                  {r.callDesktopNotice[1]}
-                </p>
-              )}
+              {showCallNotice && <CallNotice />}
 
               <button
                 type="button"

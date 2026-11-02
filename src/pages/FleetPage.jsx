@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import CallNotice from '../components/CallNotice';
 import DateRangeFields from '../components/DateRangeFields';
 import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
@@ -8,6 +9,7 @@ import { fleet, fuelKind, VEHICLE_TYPES } from '../data/fleet';
 import { DISCOUNT_TIERS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
 import { whatsappUrl } from '../lib/contact';
+import { useCallNotice } from '../lib/useCallNotice';
 import { discountPercent, formatEur, lowestRate, MAX_DISCOUNT_PERCENT, tierFor } from '../lib/pricing';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { useAvailability } from '../lib/useAvailability';
@@ -40,6 +42,7 @@ export default function FleetPage() {
   const firstDiscountTier = DISCOUNT_TIERS.find((tier) => tier.discount > 0) ?? DISCOUNT_TIERS[0];
   const minPrice = Math.min(...fleet.map(lowestRate));
   usePageMeta(t.meta.fleetTitle, t.meta.fleetDescription(fleet.length, formatEur(minPrice, lang), MAX_DISCOUNT_PERCENT));
+  const { showCallNotice, handleCallClick } = useCallNotice();
 
   const [params, setParams] = useSearchParams();
   const { pickup, ret, days, setDates } = useRentalDates();
@@ -283,13 +286,14 @@ export default function FleetPage() {
             <p className="fleet-help__text">{f.helpText}</p>
           </div>
           <div className="fleet-help__actions">
-            <a className="car-form__cta" href={PHONE_HREF}>
+            <a className="car-form__cta" href={PHONE_HREF} onClick={handleCallClick}>
               {t.common.call(PHONE_DISPLAY)}
             </a>
             <a className="car-form__more" href={whatsappUrl(f.helpMessage)} target="_blank" rel="noopener noreferrer">
               {f.whatsappMessage}
             </a>
           </div>
+          {showCallNotice && <CallNotice />}
         </section>
       </div>
 

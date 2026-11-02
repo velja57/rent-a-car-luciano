@@ -1,7 +1,10 @@
 import { useI18n } from '../i18n';
+import { useCallNotice } from '../lib/useCallNotice';
+import CallNotice from './CallNotice';
 
 export default function Footer() {
   const { t } = useI18n();
+  const { showCallNotice, handleCallClick } = useCallNotice();
 
   return (
     <footer id="kontakt" className="site-footer">
@@ -13,7 +16,10 @@ export default function Footer() {
           <p className="site-footer__text">{t.footer.hours}</p>
         </div>
         <div className="site-footer__contact">
-          <a href="tel:+381604848086">060 484 8086</a>
+          <a href="tel:+381604848086" onClick={handleCallClick}>
+            060 484 8086
+          </a>
+          {showCallNotice && <CallNotice />}
           <a href="mailto:luciano@gmail.com">luciano@gmail.com</a>
           <a href="https://www.instagram.com/luciano_tehnicki_pregled/" target="_blank" rel="noopener noreferrer">
             Instagram

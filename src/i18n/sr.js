@@ -46,6 +46,11 @@ export default {
     call: (phone) => `Pozovi ${phone}`,
     callShort: 'Pozovi',
     whatsapp: 'WhatsApp',
+    callDesktopNotice: [
+      'Nažalost, sa računara ne možete direktno da nas pozovete, ali evo mejla gde možete direktno da nam pišete: ',
+      '. Ukoliko želite da nas odmah pozovete, broj telefona Vam se nalazi ispod — budite slobodni da nas pozovete!',
+    ],
+    callDesktopEmail: 'luciano@gmail.com',
   },
 
   specs: {
@@ -164,11 +169,6 @@ export default {
     callText: 'Besplatan savet pri izboru vozila i odgovor na sva pitanja.',
     callOpen: 'Sada smo dostupni',
     callClosed: 'Van radnog vremena · javljamo se prvog radnog dana',
-    callDesktopNotice: [
-      'Nažalost, sa računara ne možete direktno da nas pozovete, ali evo mejla gde možete direktno da nam pišete: ',
-      '. Ukoliko želite da nas odmah pozovete, broj telefona Vam se nalazi ispod — budite slobodni da nas pozovete!',
-    ],
-    callDesktopEmail: 'luciano@gmail.com',
     defaultLocation: 'Kralja Mihaila Zetskog 44, Batajnica, Beograd',
     name: 'Ime i prezime',
     email: 'Email',

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import CallNotice from '../components/CallNotice';
 import DateRangeFields from '../components/DateRangeFields';
 import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
@@ -9,6 +10,7 @@ import { fleet } from '../data/fleet';
 import { PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
 import { bookingMessage, whatsappUrl } from '../lib/contact';
+import { useCallNotice } from '../lib/useCallNotice';
 import { formatEur, formatNumber, formatRsd, lowestRate, MAX_DISCOUNT_PERCENT, quote, tierLabel } from '../lib/pricing';
 import { useAvailability } from '../lib/useAvailability';
 import { useBookedDates } from '../lib/useBookedDates';
@@ -45,6 +47,7 @@ function VehicleDetails({ rawCar }) {
   const v = t.vehiclePage;
   const car = localize(rawCar);
   usePageMeta(t.meta.vehicleTitle(car.name), t.meta.vehicleDescription(car, formatEur(lowestRate(car), lang)));
+  const { showCallNotice, handleCallClick } = useCallNotice();
 
   const { pickup, ret, days, setDates } = useRentalDates();
   const availability = useAvailability([car.id], pickup, ret);
@@ -182,10 +185,11 @@ function VehicleDetails({ rawCar }) {
                 >
                   {t.common.whatsapp}
                 </a>
-                <a className="vehicle-quick" href={PHONE_HREF}>
+                <a className="vehicle-quick" href={PHONE_HREF} onClick={handleCallClick}>
                   {t.common.callShort} {PHONE_DISPLAY}
                 </a>
               </div>
+              {showCallNotice && <CallNotice />}
             </div>
 
             <ul className="vehicle-panel__included">

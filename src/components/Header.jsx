@@ -3,6 +3,8 @@ import { Link, NavLink, useLocation } from 'react-router';
 import { PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
 import { translatePath } from '../i18n/routes';
+import CallNotice from './CallNotice';
+import { useCallNotice } from '../lib/useCallNotice';
 
 const LANGUAGES = [
   { id: 'sr', label: 'SR', name: 'Srpski' },
@@ -39,6 +41,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const { showCallNotice, handleCallClick } = useCallNotice();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -88,9 +91,12 @@ export default function Header() {
         </nav>
         <div className="site-header__actions">
           <LanguageSwitch className="lang-switch--header" />
-          <a className="site-header__cta" href={PHONE_HREF}>
-            {t.nav.call}
-          </a>
+          <div className="site-header__call">
+            <a className="site-header__cta" href={PHONE_HREF} onClick={handleCallClick}>
+              {t.nav.call}
+            </a>
+            {showCallNotice && <CallNotice className="call-notice call-notice--popover" />}
+          </div>
           <button
             type="button"
             className="site-header__menu-btn"

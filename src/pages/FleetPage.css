@@ -296,6 +296,11 @@
   gap: 10px;
 }
 
+/* Treći element u .fleet-help (flex red) — ide u sopstveni red ispod. */
+.fleet-help .call-notice {
+  flex-basis: 100%;
+}
+
 .fleet-help__actions .car-form__cta,
 .fleet-help__actions .car-form__more {
   display: inline-block;
