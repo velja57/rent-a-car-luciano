@@ -1349,6 +1349,13 @@
   margin-top: 4px;
 }
 
+/* Omotač dugmeta za poziv i poruke ispod njega (zatvara se na mouse leave). */
+.booking-call-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* Poziv: najlični kontakt — istaknut broj i oznaka da smo dostupni */
 .booking-call {
   display: flex;

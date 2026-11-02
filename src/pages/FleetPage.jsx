@@ -42,7 +42,7 @@ export default function FleetPage() {
   const firstDiscountTier = DISCOUNT_TIERS.find((tier) => tier.discount > 0) ?? DISCOUNT_TIERS[0];
   const minPrice = Math.min(...fleet.map(lowestRate));
   usePageMeta(t.meta.fleetTitle, t.meta.fleetDescription(fleet.length, formatEur(minPrice, lang), MAX_DISCOUNT_PERCENT));
-  const { showCallNotice, handleCallClick } = useCallNotice();
+  const { showCallNotice, handleCallClick, handleMouseLeave } = useCallNotice();
 
   const [params, setParams] = useSearchParams();
   const { pickup, ret, days, setDates } = useRentalDates();
@@ -280,7 +280,7 @@ export default function FleetPage() {
           </ul>
         </section>
 
-        <section className="fleet-help">
+        <section className="fleet-help" onMouseLeave={handleMouseLeave}>
           <div>
             <h2 className="fleet-help__title">{f.helpTitle}</h2>
             <p className="fleet-help__text">{f.helpText}</p>

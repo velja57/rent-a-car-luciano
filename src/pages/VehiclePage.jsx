@@ -47,7 +47,7 @@ function VehicleDetails({ rawCar }) {
   const v = t.vehiclePage;
   const car = localize(rawCar);
   usePageMeta(t.meta.vehicleTitle(car.name), t.meta.vehicleDescription(car, formatEur(lowestRate(car), lang)));
-  const { showCallNotice, handleCallClick } = useCallNotice();
+  const { showCallNotice, handleCallClick, handleMouseLeave } = useCallNotice();
 
   const { pickup, ret, days, setDates } = useRentalDates();
   const availability = useAvailability([car.id], pickup, ret);
@@ -174,7 +174,7 @@ function VehicleDetails({ rawCar }) {
             >
               {period ? v.reserveFor(formatEur(period.total, lang)) : t.common.reserveNow}
             </button>
-            <div className="vehicle-panel__quick">
+            <div className="vehicle-panel__quick" onMouseLeave={handleMouseLeave}>
               <span className="vehicle-panel__quick-label">{v.quick}</span>
               <div className="vehicle-panel__quick-actions">
                 <a

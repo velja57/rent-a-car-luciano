@@ -41,7 +41,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
-  const { showCallNotice, handleCallClick } = useCallNotice();
+  const { showCallNotice, handleCallClick, handleMouseLeave } = useCallNotice();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -91,7 +91,7 @@ export default function Header() {
         </nav>
         <div className="site-header__actions">
           <LanguageSwitch className="lang-switch--header" />
-          <div className="site-header__call">
+          <div className="site-header__call" onMouseLeave={handleMouseLeave}>
             <a className="site-header__cta" href={PHONE_HREF} onClick={handleCallClick}>
               {t.nav.call}
             </a>

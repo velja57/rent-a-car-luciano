@@ -88,7 +88,7 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
   const [errors, setErrors] = useState({});
   const [sent, setSent] = useState(false);
   const [whatsappOpened, setWhatsappOpened] = useState(false);
-  const { showCallNotice, handleCallClick } = useCallNotice();
+  const { showCallNotice, handleCallClick, handleMouseLeave } = useCallNotice();
   const [availability, setAvailability] = useState('idle'); // idle | checking | available | unavailable | error
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -533,26 +533,28 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
                 </p>
               )}
 
-              <a className="booking-call" href={PHONE_HREF} onClick={handleCallClick}>
-                <span className={`booking-call__status${workingNow ? ' booking-call__status--open' : ''}`}>
-                  <i aria-hidden="true" />
-                  {workingNow ? r.callOpen : r.callClosed}
-                </span>
-                <span className="booking-call__main">
-                  <span className="booking-call__icon">
-                    <Icon name="phone" />
+              <div className="booking-call-wrap" onMouseLeave={handleMouseLeave}>
+                <a className="booking-call" href={PHONE_HREF} onClick={handleCallClick}>
+                  <span className={`booking-call__status${workingNow ? ' booking-call__status--open' : ''}`}>
+                    <i aria-hidden="true" />
+                    {workingNow ? r.callOpen : r.callClosed}
                   </span>
-                  <span className="booking-call__text">
-                    <strong>{r.callTitle}</strong>
-                    <span className="booking-call__number">{PHONE_DISPLAY}</span>
+                  <span className="booking-call__main">
+                    <span className="booking-call__icon">
+                      <Icon name="phone" />
+                    </span>
+                    <span className="booking-call__text">
+                      <strong>{r.callTitle}</strong>
+                      <span className="booking-call__number">{PHONE_DISPLAY}</span>
+                    </span>
                   </span>
-                </span>
-                <small className="booking-call__hint">
-                  {r.callText} {r.callHint}
-                </small>
-              </a>
+                  <small className="booking-call__hint">
+                    {r.callText} {r.callHint}
+                  </small>
+                </a>
 
-              {showCallNotice && <CallNotice />}
+                {showCallNotice && <CallNotice />}
+              </div>
 
               <button
                 type="button"

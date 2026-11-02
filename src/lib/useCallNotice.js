@@ -15,5 +15,9 @@ export function useCallNotice() {
     }
   };
 
-  return { showCallNotice, handleCallClick };
+  // Zatvara poruku kad pokazivač napusti dugme/poruku — spoji na onMouseLeave
+  // omotača koji sadrži i dugme i <CallNotice />.
+  const handleMouseLeave = () => setShowCallNotice(false);
+
+  return { showCallNotice, handleCallClick, handleMouseLeave };
 }
