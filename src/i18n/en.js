@@ -164,6 +164,11 @@ export default {
     callText: 'Free advice on choosing a car and answers to all your questions.',
     callOpen: "We're available now",
     callClosed: "Outside working hours · we'll get back to you on the next working day",
+    callDesktopNotice: [
+      "Unfortunately you can't call us directly from a computer, but here's an email where you can write to us directly: ",
+      ". If you'd like to call us right away, the phone number is right below — feel free to give us a call!",
+    ],
+    callDesktopEmail: 'luciano@gmail.com',
     defaultLocation: 'Kralja Mihaila Zetskog 44, Batajnica, Belgrade',
     name: 'Full name',
     email: 'Email',

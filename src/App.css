@@ -1446,6 +1446,22 @@
   color: var(--color-text-muted);
 }
 
+.booking-call__notice {
+  margin-top: -4px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-surface-solid);
+  border: 1px solid rgba(212, 162, 78, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.booking-call__notice a {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
 .reservation-success {
   padding-top: 6px;
 }
