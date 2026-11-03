@@ -13,6 +13,15 @@ const SEARCH_DEBOUNCE_MS = 350;
 // Kolone po kojima može da se sortira (isti spisak kao u admin_list_reservations).
 const SORTABLE = ['created_at', 'customer_name', 'car_name', 'pickup_date', 'return_date', 'total_price', 'status'];
 
+// Preostalo za naplatu: "—" za otkazane, "nije se pojavio" i rezervacije bez cene.
+function Balance({ value }) {
+  if (value === null || value === undefined) return <span className="admin-muted">—</span>;
+  const balance = Number(value);
+  if (balance < 0) return <span className="admin-warning">Preplaćeno {formatMoney(-balance)}</span>;
+  if (balance > 0) return <span className="admin-warning">{formatMoney(balance)}</span>;
+  return <span className="admin-muted">{formatMoney(0)}</span>;
+}
+
 function SortHeader({ column, label, sort, desc, onSort }) {
   const active = sort === column;
   return (
@@ -180,7 +189,7 @@ export default function Reservations() {
       {data && rows.length > 0 && (
         <>
           <div className={`admin-table-wrap${loading ? ' admin-table-wrap--loading' : ''}`}>
-            <table className="admin-table admin-table--responsive">
+            <table className="admin-table admin-table--responsive admin-table--reservations">
               <thead>
                 <tr>
                   <SortHeader column="created_at" label="Rezervacija" sort={sort} desc={desc} onSort={onSort} />
@@ -188,6 +197,8 @@ export default function Reservations() {
                   <SortHeader column="car_name" label="Vozilo" sort={sort} desc={desc} onSort={onSort} />
                   <SortHeader column="pickup_date" label="Termin" sort={sort} desc={desc} onSort={onSort} />
                   <SortHeader column="total_price" label="Iznos" sort={sort} desc={desc} onSort={onSort} />
+                  <th>Naplaćeno</th>
+                  <th>Preostalo</th>
                   <SortHeader column="status" label="Status" sort={sort} desc={desc} onSort={onSort} />
                 </tr>
               </thead>
@@ -242,6 +253,16 @@ export default function Reservations() {
                     <td data-label="Iznos">
                       <div className="admin-nowrap" title={r.total_price === null ? 'Iznos nije unet' : undefined}>
                         {formatMoney(r.total_price)}
+                      </div>
+                    </td>
+                    <td data-label="Naplaćeno">
+                      <div className={`admin-nowrap${Number(r.net_paid) === 0 ? ' admin-muted' : ''}`}>
+                        {formatMoney(r.net_paid)}
+                      </div>
+                    </td>
+                    <td data-label="Preostalo">
+                      <div className="admin-nowrap">
+                        <Balance value={r.balance} />
                       </div>
                     </td>
                     <td data-label="Status">

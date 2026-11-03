@@ -47,6 +47,11 @@ export function todayBelgrade() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date());
 }
 
+// Vreme iz baze (UTC) -> datum YYYY-MM-DD po beogradskom vremenu.
+export function dateBelgrade(timestamp) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date(timestamp));
+}
+
 // Računanje sa datumima YYYY-MM-DD (u UTC, da vremenska zona ne pomera dan).
 export function addDays(iso, n) {
   const d = new Date(`${iso}T00:00:00Z`);

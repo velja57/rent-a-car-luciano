@@ -649,6 +649,19 @@
   font-size: 12.5px;
 }
 
+/* Lista rezervacija ima 8 kolona — da stane bez bočnog skrolovanja od 1280px. */
+@media (min-width: 761px) {
+  .admin-table--reservations th,
+  .admin-table--reservations td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .admin-table--reservations .admin-ellipsis {
+    max-width: 150px;
+  }
+}
+
 .admin-row {
   cursor: pointer;
   transition: background 0.12s ease;
@@ -1467,6 +1480,37 @@
   grid-template-columns: repeat(3, minmax(120px, 1fr));
   flex: 1;
   max-width: 560px;
+}
+
+/* Spisak uplata ispod zbira (cela širina panela). */
+.admin-period-payments {
+  flex-basis: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-period-payments__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.admin-period-payments__status .admin-warning {
+  font-size: 12.5px;
+}
+
+.admin-period-payments__error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-period-payments__more {
+  align-self: flex-start;
 }
 
 .admin-alert--warning {

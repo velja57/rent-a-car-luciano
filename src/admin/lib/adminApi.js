@@ -25,6 +25,7 @@ const REASONS = {
 };
 
 const NETWORK_ERROR = 'Veza sa bazom nije uspela. Proveri internet i pokušaj ponovo.';
+const OUTDATED_DB = 'Baza još nije ažurirana: pokreni najnoviji supabase/schema.sql u Supabase SQL Editoru.';
 
 export class AdminError extends Error {
   constructor(reason, message) {
@@ -37,6 +38,8 @@ async function call(fn, params) {
   const { data, error } = await supabase.rpc(fn, params);
   if (error) {
     console.error(`[admin] ${fn}`, error);
+    // Funkcija ne postoji u bazi — schema.sql nije pokrenut posle izmene koda.
+    if (error.code === 'PGRST202') throw new AdminError('outdated_db', OUTDATED_DB);
     throw new AdminError('network', NETWORK_ERROR);
   }
   if (data?.success === false) {
@@ -132,6 +135,8 @@ export const adminApi = {
     call('admin_revenue', { p_from: from, p_to: to, p_mode: mode, p_scope: scope, p_car_id: carId || null }),
   fleetUsage: ({ from, to, scope, carId }) =>
     call('admin_fleet_usage', { p_from: from, p_to: to, p_scope: scope, p_car_id: carId || null }),
+  // Uplate i povraćaji u periodu — stavke iza zbira "Naplaćeno u periodu".
+  listPayments: ({ from, to, carId }) => call('admin_list_payments', { p_from: from, p_to: to, p_car_id: carId || null }),
 };
 
 // Učitavanje podataka za stranicu: { data, error, loading, reload }.

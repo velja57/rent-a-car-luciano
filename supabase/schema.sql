@@ -1834,6 +1834,70 @@ begin
 end;
 $$;
 
+-- Spisak uplata i povraćaja u periodu (po datumu uplate) — stavke iza zbira
+-- "Naplaćeno u periodu" u analitici (isti uslovi kao cash u admin_revenue:
+-- bez poništenih stavki i bez kaucije). Uz svaku stavku ide njena rezervacija
+-- sa ukupno naplaćenim i preostalim iz reservation_json (balance < 0 =
+-- preplaćeno, null = otkazana / "nije se pojavio" / bez cene).
+create or replace function admin_list_payments(
+  p_from date,
+  p_to date,
+  p_car_id text default null
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_car text := nullif(trim(p_car_id), '');
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if p_from is null or p_to is null or p_to < p_from or p_to - p_from > 3700 then
+    return jsonb_build_object('success', false, 'reason', 'invalid_range');
+  end if;
+
+  return jsonb_build_object(
+    'success', true,
+    'rows', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', p.id,
+          'kind', p.kind,
+          'amount', p.amount,
+          'method', p.method,
+          'paid_at', p.paid_at,
+          'note', p.note,
+          'reservation', jsonb_build_object(
+            'id', r.id,
+            'customer_name', r.customer_name,
+            'car_id', r.car_id,
+            'car_name', r.car_name,
+            'status', r.status,
+            'pickup_date', r.pickup_date,
+            'return_date', r.return_date,
+            'created_at', r.created_at,
+            'total_price', r.total_price,
+            'net_paid', x.j -> 'net_paid',
+            'balance', x.j -> 'balance'
+          )
+        )
+        order by p.paid_at desc, p.created_at desc
+      )
+      from payments p
+      join reservations r on r.id = p.reservation_id
+      cross join lateral reservation_json(r) as x(j)
+      where p.voided_at is null
+        and p.kind in ('payment', 'refund')
+        and p.paid_at between p_from and p_to
+        and (v_car is null or r.car_id = v_car)
+    ), '[]'::jsonb)
+  );
+end;
+$$;
+
 -- Iskorišćenost flote za period (admin), po vozilu:
 --   rented_days  dani u najmu u periodu — naplaćeni dani (od preuzimanja do
 --                dana pre vraćanja, isto kao cena i prihod po danima); dan

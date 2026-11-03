@@ -1,4 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router';
+import PeriodPayments from '../components/PeriodPayments';
 import RevenueChart from '../components/RevenueChart';
 import StatusBadge from '../components/StatusBadge';
 import { ErrorState, LoadingState } from '../components/States';
@@ -345,6 +346,9 @@ export default function Analytics() {
                 <span className="admin-muted">Naplaćeno neto</span>
                 <strong>{formatMoney(data.cash.collected)}</strong>
               </div>
+            </div>
+            <div className="admin-period-payments">
+              <PeriodPayments key={`${from}|${to}|${carId}`} from={from} to={to} carId={carId} mode={mode} scope={scope} />
             </div>
           </div>
 

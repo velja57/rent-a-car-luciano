@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 73 od 73 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 78 od 78 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -609,6 +609,53 @@ begin
     p_phone => '061 999 0001', p_pickup => '2097-07-01', p_return => '2097-08-10', p_location => 'TEST lokacija');
   ok := (res ->> 'success')::boolean;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('admin: telefonska rezervacija od 40 dana nema limite sajta [%s]', res)); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 7. Spisak uplata u periodu (stavke iza "Naplaćeno u periodu")
+  -- =========================================================================
+  perform set_config('request.jwt.claims', '{"role":"authenticated","email":"neko-drugi@example.com"}', true);
+  set local role authenticated;
+  res := admin_list_payments('2099-06-01', '2099-06-30', car);
+  ok := res ->> 'reason' = 'forbidden';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('ne-admin: spisak uplata mora biti zabranjen [%s]', res)); end if;
+  reset role;
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+
+  -- Jun, A: uplate 50 (10.6.) i 30 (12.6.); poništen povraćaj i kaucija se ne prikazuju.
+  res := admin_list_payments('2099-06-01', '2099-06-30', car);
+  ok := jsonb_array_length(res -> 'rows') = 2
+    and (res -> 'rows' -> 0 ->> 'amount')::numeric = 30
+    and (res -> 'rows' -> 1 ->> 'amount')::numeric = 50
+    and (res -> 'rows' -> 0 -> 'reservation' ->> 'id')::uuid = id_a
+    and (res -> 'rows' -> 0 -> 'reservation' ->> 'balance')::numeric = 6;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('spisak uplata jun: 30 i 50 €, najnovija prva, bez poništenih i kaucije; A preostalo 6 € [%s]', left(res::text, 300))); end if;
+
+  -- Uplata na otkazanoj B i preplata A: obe su u spisku, zbir = "Naplaćeno neto".
+  res := admin_add_payment(id_b, 'payment', 20, 'cash', '2099-06-20');
+  res := admin_add_payment(id_a, 'payment', 100, 'bank', '2099-06-25');
+  res := admin_list_payments('2099-06-01', '2099-06-30', car);
+  ok := jsonb_array_length(res -> 'rows') = 4
+    and (res -> 'rows' -> 0 -> 'reservation' ->> 'balance')::numeric = -94
+    and (res -> 'rows' -> 1 -> 'reservation' ->> 'status') = 'cancelled'
+    and (res -> 'rows' -> 1 -> 'reservation' -> 'balance') = 'null'::jsonb
+    and (select sum(case when r ->> 'kind' = 'refund' then -1 else 1 end * (r ->> 'amount')::numeric)
+         from jsonb_array_elements(res -> 'rows') r)
+      = (admin_revenue('2099-06-01', '2099-06-30', 'rental', 'booked', car) -> 'cash' ->> 'collected')::numeric;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('spisak uplata: preplaćeno (−94 €), uplata na otkazanoj, zbir = naplaćeno neto [%s]', left(res::text, 400))); end if;
+
+  -- Povraćaj E (5.10.) je u spisku; filter po vozilu.
+  res := admin_list_payments('2099-10-01', '2099-10-31', car);
+  ok := jsonb_array_length(res -> 'rows') = 1 and res -> 'rows' -> 0 ->> 'kind' = 'refund';
+  res := admin_list_payments('2099-10-01', '2099-10-31', 'nepostojece-vozilo');
+  ok := ok and jsonb_array_length(res -> 'rows') = 0;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('spisak uplata: povraćaj u oktobru, filter po vozilu [%s]', res)); end if;
+
+  res := admin_list_payments('2099-06-30', '2099-06-01', car);
+  ok := res ->> 'reason' = 'invalid_range';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('spisak uplata: neispravan period [%s]', res)); end if;
   reset role;
 
   raise exception using
