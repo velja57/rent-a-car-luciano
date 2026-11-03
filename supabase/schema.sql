@@ -1715,7 +1715,9 @@ $$;
 --   booked   — ugovoreno: potvrđene, preuzete i završene rezervacije
 --   realized — realizovano: samo završene
 -- Otkazane i "nije se pojavio" se nikad ne računaju. Rezervacije bez poznate
--- cene se ne sabiraju (vraća se njihov broj). "cash" su stvarno zabeležene
+-- cene se ne sabiraju (vraća se njihov broj i prvih 20 po imenu — sa iznosom,
+-- ako je poznat samo ukupan iznos bez podele na najam i dodatke, što je slučaj
+-- kod starijih rezervacija sa dodacima). "cash" su stvarno zabeležene
 -- uplate i povraćaji u periodu (po datumu uplate) — odvojeno od vrednosti.
 create or replace function admin_revenue(
   p_from date,
@@ -1748,6 +1750,17 @@ begin
 
   with lines as (
     select * from revenue_lines(p_from, p_to, v_mode, v_statuses, v_car)
+  ),
+  unpriced as (
+    select r.id, r.customer_name, r.car_id, r.car_name, r.pickup_date, r.return_date, r.total_price, r.created_at
+    from reservations r
+    where r.status = any (v_statuses)
+      and r.rental_total is null
+      and (v_car is null or r.car_id = v_car)
+      and case
+        when v_mode = 'booking' then (r.created_at at time zone 'Europe/Belgrade')::date between p_from and p_to
+        else r.pickup_date <= p_to and r.return_date > p_from
+      end
   )
   select jsonb_build_object(
     'success', true,
@@ -1803,17 +1816,19 @@ begin
       ) x
       join reservations r on r.id = x.reservation_id
     ), '[]'::jsonb) end,
-    'unpriced', (
-      select count(*)
-      from reservations r
-      where r.status = any (v_statuses)
-        and r.rental_total is null
-        and (v_car is null or r.car_id = v_car)
-        and case
-          when v_mode = 'booking' then (r.created_at at time zone 'Europe/Belgrade')::date between p_from and p_to
-          else r.pickup_date <= p_to and r.return_date > p_from
-        end
-    ),
+    'unpriced', (select count(*) from unpriced),
+    'unpriced_reservations', coalesce((
+      select jsonb_agg(jsonb_build_object(
+          'id', u.id,
+          'customer_name', u.customer_name,
+          'car_id', u.car_id,
+          'car_name', u.car_name,
+          'pickup_date', u.pickup_date,
+          'return_date', u.return_date,
+          'total_price', u.total_price
+        ) order by u.pickup_date, u.created_at)
+      from (select * from unpriced order by pickup_date, created_at limit 20) u
+    ), '[]'::jsonb),
     'cash', (
       select jsonb_build_object(
         'received', coalesce(sum(p.amount) filter (where p.kind = 'payment'), 0),

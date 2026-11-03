@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 78 od 78 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 79 od 79 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -656,6 +656,30 @@ begin
   res := admin_list_payments('2099-06-30', '2099-06-01', car);
   ok := res ->> 'reason' = 'invalid_range';
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('spisak uplata: neispravan period [%s]', res)); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 8. Rezervacije koje analitika ne može da uračuna — po imenu
+  -- =========================================================================
+  -- Stara rezervacija sa dodatkom: poznat je samo ukupan iznos (54 €), bez
+  -- podele na najam i dodatke (kao pre prebacivanja cenovnika u bazu).
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location, total_price, extras)
+  values (car, 'TEST vozilo', 'TEST Bez podele', 'test@example.com', '060 111 222', '1990-01-01', '2099-12-10', '2099-12-12',
+    'TEST', 54, array['child-seat']);
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+  -- Decembar: "TEST Kupac bez cene" (1.-5.12., iznos nije unet) i "TEST Bez podele" (10.-12.12., 54 €).
+  res := admin_revenue('2099-12-01', '2099-12-31', 'rental', 'booked', car);
+  ok := (res ->> 'unpriced')::int = 2
+    and jsonb_array_length(res -> 'unpriced_reservations') = 2
+    and res -> 'unpriced_reservations' -> 0 ->> 'customer_name' = 'TEST Kupac bez cene'
+    and res -> 'unpriced_reservations' -> 0 -> 'total_price' = 'null'::jsonb
+    and res -> 'unpriced_reservations' -> 1 ->> 'customer_name' = 'TEST Bez podele'
+    and (res -> 'unpriced_reservations' -> 1 ->> 'total_price')::numeric = 54
+    and (res -> 'totals' ->> 'total')::numeric = 0;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('analitika navodi rezervacije bez cene po imenu (bez iznosa / 54 € bez podele) [%s]', left(res::text, 400))); end if;
   reset role;
 
   raise exception using

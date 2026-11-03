@@ -124,6 +124,8 @@ export default function ReservationForm() {
   const [saving, setSaving] = useState(false);
   const [availability, setAvailability] = useState({ state: 'idle', conflicts: [] });
   const [suggestion, setSuggestion] = useState(null); // predlog po cenovniku iz baze (admin_quote)
+  // Stanje predloga: dok stiže iz baze ne sme da piše "nije u cenovniku".
+  const [quoteState, setQuoteState] = useState('idle'); // idle | loading | ready | error
 
   useEffect(() => {
     if (editing && original && !loaded) {
@@ -140,14 +142,24 @@ export default function ReservationForm() {
   useEffect(() => {
     if (!loaded || !form.carId || days <= 0) {
       setSuggestion(null);
+      setQuoteState('idle');
       return undefined;
     }
     let cancelled = false;
+    setQuoteState('loading');
     const timer = setTimeout(() => {
       adminApi
         .quote(form.carId, form.pickupDate, form.returnDate, extrasKey ? extrasKey.split(',') : [])
-        .then((q) => !cancelled && setSuggestion(q))
-        .catch(() => !cancelled && setSuggestion(null));
+        .then((q) => {
+          if (cancelled) return;
+          setSuggestion(q);
+          setQuoteState('ready');
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setSuggestion(null);
+          setQuoteState('error');
+        });
     }, AVAILABILITY_DEBOUNCE_MS);
     return () => {
       cancelled = true;
@@ -450,7 +462,13 @@ export default function ReservationForm() {
               </>
             ) : (
               <span className="admin-muted">
-                {form.carId && days > 0 ? 'Vozilo nije u cenovniku — cenu upiši ručno.' : 'Izaberi vozilo i datume za predlog cene.'}
+                {!form.carId || days <= 0
+                  ? 'Izaberi vozilo i datume za predlog cene.'
+                  : quoteState === 'error'
+                    ? 'Predlog cene trenutno nije dostupan — cenu upiši ručno.'
+                    : quoteState === 'ready'
+                      ? 'Vozilo nije u cenovniku — cenu upiši ručno.'
+                      : 'Učitavam predlog cene…'}
               </span>
             )}
           </div>

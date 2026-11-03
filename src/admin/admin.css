@@ -1518,6 +1518,28 @@
   color: var(--color-accent);
 }
 
+/* Spisak rezervacija bez cene u analitici (ime je link na rezervaciju). */
+.admin-unpriced {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-unpriced ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-unpriced a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .admin-total-bar {
   display: flex;
   flex-direction: column;

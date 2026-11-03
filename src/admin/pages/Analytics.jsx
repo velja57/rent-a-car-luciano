@@ -102,12 +102,62 @@ function reservationsWord(n) {
   return 'rezervacija';
 }
 
+// 1 rezervacija nije uračunata; 2–4 rezervacije nisu uračunate; 5 rezervacija nije uračunato.
+function notCountedWord(n) {
+  const lastTwo = n % 100;
+  const last = n % 10;
+  if (last === 1 && lastTwo !== 11) return 'nije uračunata';
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return 'nisu uračunate';
+  return 'nije uračunato';
+}
+
 // 0.333 -> "33,3%"
 function formatPercent(share) {
   return `${(Math.round(share * 1000) / 10).toLocaleString('sr-RS')}%`;
 }
 
 const roundCents = (amount) => Math.round(amount * 100) / 100;
+
+// Rezervacije koje prihod ne može da uračuna: bez iznosa, ili samo sa ukupnim
+// iznosom bez podele na najam i dodatke (starije rezervacije sa dodacima).
+// rows stiže iz baze (prvih 20); starija baza šalje samo broj.
+function UnpricedAlert({ count, rows }) {
+  const one = count === 1;
+  if (!rows) {
+    return (
+      <div className="admin-alert admin-alert--warning">
+        {one
+          ? '1 rezervacija u ovom periodu nema poznatu cenu i nije uračunata. Otvori je u listi rezervacija i upiši cenu preko „Izmeni“.'
+          : `${count} ${reservationsWord(count)} u ovom periodu nemaju poznatu cenu i nisu uračunate. Otvori ih u listi rezervacija i upiši cenu preko „Izmeni“.`}
+      </div>
+    );
+  }
+  return (
+    <div className="admin-alert admin-alert--warning admin-unpriced">
+      <p>
+        {count} {reservationsWord(count)} u ovom periodu {notCountedWord(count)} u prihod:
+      </p>
+      <ul>
+        {rows.map((r) => (
+          <li key={r.id}>
+            <Link to={`/rezervacije/${r.id}`}>{r.customer_name}</Link>
+            {' · '}
+            {vehicleById(r.car_id)?.name ?? r.car_name} · {formatDate(r.pickup_date)} → {formatDate(r.return_date)}
+            {' — '}
+            {r.total_price === null
+              ? 'iznos nije unet'
+              : `iznos ${formatMoney(r.total_price)} nije podeljen na najam i dodatke`}
+          </li>
+        ))}
+        {count > rows.length && <li>… i još {count - rows.length}</li>}
+      </ul>
+      <p>
+        Otvori rezervaciju → „Izmeni“ → upiši „Cena po danu“ (i „Dodaci ukupno“, ako ih ima) ili klikni „Primeni
+        cenovnik“ → „Sačuvaj izmene“.
+      </p>
+    </div>
+  );
+}
 
 function Stat({ label, value, sub }) {
   return (
@@ -309,13 +359,7 @@ export default function Analytics() {
 
       {data && (
         <div className={loading ? 'admin-table-wrap--loading admin-analytics' : 'admin-analytics'}>
-          {data.unpriced > 0 && (
-            <div className="admin-alert admin-alert--warning">
-              {data.unpriced === 1
-                ? '1 rezervacija u ovom periodu nema poznatu cenu i nije uračunata. Otvori je u listi rezervacija i upiši cenu preko „Izmeni“.'
-                : `${data.unpriced} ${reservationsWord(data.unpriced)} u ovom periodu nemaju poznatu cenu i nisu uračunate. Otvori ih u listi rezervacija i upiši cenu preko „Izmeni“.`}
-            </div>
-          )}
+          {data.unpriced > 0 && <UnpricedAlert count={data.unpriced} rows={data.unpriced_reservations} />}
 
           <div className="admin-stats admin-stats--5">
             <Stat label="Ukupan prihod" value={formatMoney(totals.total)} />
