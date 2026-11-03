@@ -45,6 +45,8 @@ export default {
     return: 'Vraćanje',
     call: (phone) => `Pozovi ${phone}`,
     callShort: 'Pozovi',
+    // Prikazuje se samo u radno vreme (tada važi).
+    responseTime: 'Prosečno vreme odgovora: manje od 3 minuta',
     whatsapp: 'WhatsApp',
     callDesktopNotice: 'Pozivi sa računara nažalost nisu mogući — javite nam se na jedan od načina ispod:',
     callDesktopEmail: 'luciano@gmail.com',
@@ -209,6 +211,9 @@ export default {
       location: 'Unesi lokaciju preuzimanja.',
       unavailable: 'Vozilo nije dostupno u izabranom periodu. Izaberi druge datume.',
       submit: 'Došlo je do greške prilikom slanja rezervacije. Pokušaj ponovo ili nas pozovi telefonom.',
+      tooLong: (n) => `Preko sajta možeš rezervisati najviše ${n} dana. Za duži najam pozovi nas telefonom.`,
+      tooMany: 'Već imaš 3 aktivne rezervacije. Za novu nas pozovi telefonom ili piši na WhatsApp.',
+      busy: 'Trenutno ne možemo da primimo online rezervaciju. Pozovi nas telefonom ili piši na WhatsApp.',
     },
     availability: {
       checking: 'Proveravamo dostupnost vozila…',
@@ -249,7 +254,7 @@ export default {
       [
         // Srpski datum već završava tačkom ("18.11.2026."), pa tada nema dodatne tačke.
         `Zdravo! Želim da rezervišem vozilo ${car}${dates ? ` od ${dates.from} do ${dates.to}` : '.'}`,
-        price && `Procenjena cena: ${price}`,
+        price && `Iznos: ${price}`,
         'Da li je slobodno?',
       ]
         .filter(Boolean)
@@ -266,9 +271,23 @@ export default {
       pickup: 'Preuzimanje',
       return: 'Vraćanje',
       location: 'Lokacija preuzimanja',
-      price: 'Procenjena cena',
+      price: 'Iznos',
       note: 'Napomena',
     },
+  },
+
+  airport: {
+    eyebrow: 'Aerodrom Nikola Tesla',
+    title: ['Sletiš u Beograd — ', 'auto te već čeka'],
+    text: 'Za goste iz dijaspore i inostranstva: vozilo dovozimo na aerodrom Nikola Tesla, ti preuzmeš ključeve i kreneš. Cene vozila su iste kao u poslovnici — plaćaš samo dostavu.',
+    points: (price) => [
+      'Vozilo stiže na aerodrom za 30–45 minuta',
+      `Dostava samo ${price} — za preuzimanje ili vraćanje`,
+      'Idealno za dijasporu i goste iz inostranstva',
+    ],
+    cta: 'Izaberi vozilo',
+    whatsapp: 'Dogovori dolazak na aerodrom',
+    whatsappMessage: 'Zdravo! Stižem na aerodrom Nikola Tesla i treba mi vozilo. Datum i vreme dolaska: ',
   },
 
   teaser: {

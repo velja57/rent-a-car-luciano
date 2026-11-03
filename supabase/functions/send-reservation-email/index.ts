@@ -1,13 +1,18 @@
 // Supabase Edge Function — šalje email potvrdu kupcu i notifikaciju
 // vlasniku preko Resend-a. Poziva se automatski preko Database Webhook-a
 // na INSERT u `reservations` (podešavanje: README_RESERVATIONS.md).
+// Rezervacije koje unosi admin (kolona `source` = 'admin') se preskaču.
 //
 // Kupac dobija mejl na jeziku sajta na kom je rezervisao (kolona `language`,
-// 'sr' ili 'en'), sa procenjenom cenom i dodacima (kolona `price_summary`).
-// Vlasnik uvek dobija mejl na srpskom; procena cene i jezik kupca su mu u
+// 'sr' ili 'en'), sa iznosom i dodacima (kolona `price_summary`).
+// Vlasnik uvek dobija mejl na srpskom; iznos i jezik kupca su mu u
 // napomeni (isto se vidi i u admin panelu).
 //
-// Potreban secret: RESEND_API_KEY
+// Potrebni secrets:
+// - RESEND_API_KEY
+// - WEBHOOK_SECRET: duga nasumična lozinka. Isti tekst mora biti u Database
+//   Webhook-u kao HTTP zaglavlje x-webhook-secret. Bez nje funkciju bi mogao da
+//   pozove bilo ko sa javnim ključem sajta i pošalje mejl na bilo koju adresu.
 // Opciono:
 // - RESERVATION_FROM_EMAIL (adresa sa koje se šalje; mora biti verifikovan
 //   domen na Resend-u, u suprotnom koristi Resend-ov test domen)
@@ -15,6 +20,7 @@
 //   podrazumevano luciano@gmail.com, isto kao u footeru sajta)
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET');
 const FROM_EMAIL = Deno.env.get('RESERVATION_FROM_EMAIL') ?? 'onboarding@resend.dev';
 const OWNER_EMAIL = Deno.env.get('OWNER_NOTIFICATION_EMAIL') ?? 'luciano@gmail.com';
 
@@ -45,7 +51,7 @@ const CUSTOMER_TEXT = {
     pickup: 'Preuzimanje',
     return: 'Vraćanje',
     location: 'Lokacija preuzimanja',
-    price: 'Procenjena cena',
+    price: 'Iznos',
     closing:
       'Javićemo se uskoro telefonom ili mejlom da potvrdimo sve detalje. Hvala što si izabrao Luciano Rent a Car!',
   },
@@ -56,7 +62,7 @@ const CUSTOMER_TEXT = {
     pickup: 'Pick-up',
     return: 'Return',
     location: 'Pick-up location',
-    price: 'Estimated price',
+    price: 'Price',
     closing:
       "We'll contact you shortly by phone or email to confirm all the details. Thank you for choosing Luciano Rent a Car!",
   },
@@ -81,6 +87,14 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
   }
+  // Samo Database Webhook zna tajnu. Ako tajna nije podešena, funkcija ne šalje
+  // ništa (bolje bez mejla nego otvorena za zloupotrebu).
+  if (!WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: 'WEBHOOK_SECRET nije podešen' }), { status: 500 });
+  }
+  if (req.headers.get('x-webhook-secret') !== WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
   if (!RESEND_API_KEY) {
     return new Response(JSON.stringify({ error: 'RESEND_API_KEY nije podešen' }), { status: 500 });
   }
@@ -94,6 +108,16 @@ Deno.serve(async (req: Request) => {
 
   // Supabase Database Webhook šalje { type: 'INSERT', table, record, old_record, schema }
   const record = (payload as { record?: Record<string, unknown> })?.record;
+
+  // Rezervacija koju je uneo admin (npr. posle telefonskog poziva) — bez mejla,
+  // ni kupcu ni vlasniku.
+  if (record?.source === 'admin') {
+    return new Response(JSON.stringify({ skipped: 'admin' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   if (!record || typeof record.email !== 'string') {
     return new Response(JSON.stringify({ error: 'Nedostaje record/email u payload-u' }), { status: 400 });
   }

@@ -45,6 +45,8 @@ export default {
     return: 'Return',
     call: (phone) => `Call ${phone}`,
     callShort: 'Call',
+    // Shown only during working hours (when it applies).
+    responseTime: 'Average response time: under 3 minutes',
     whatsapp: 'WhatsApp',
     callDesktopNotice: "Calls aren't possible from a computer — reach us one of the ways below:",
     callDesktopEmail: 'luciano@gmail.com',
@@ -209,6 +211,9 @@ export default {
       location: 'Please enter a pick-up location.',
       unavailable: 'The car is not available for the selected dates. Please choose different dates.',
       submit: 'Something went wrong while sending your booking. Please try again or give us a call.',
+      tooLong: (n) => `Online bookings are limited to ${n} days. For a longer rental, please give us a call.`,
+      tooMany: 'You already have 3 active bookings. To add another, please call us or message us on WhatsApp.',
+      busy: "We can't take online bookings right now. Please call us or message us on WhatsApp.",
     },
     availability: {
       checking: 'Checking availability…',
@@ -246,7 +251,7 @@ export default {
     whatsappBooking: (car, dates, price) =>
       [
         `Hi! I'd like to book the ${car}${dates ? ` from ${dates.from} to ${dates.to}` : ''}.`,
-        price && `Estimated price: ${price}`,
+        price && `Price: ${price}`,
         'Is it available?',
       ]
         .filter(Boolean)
@@ -263,9 +268,23 @@ export default {
       pickup: 'Pick-up',
       return: 'Return',
       location: 'Pick-up location',
-      price: 'Estimated price',
+      price: 'Price',
       note: 'Note',
     },
+  },
+
+  airport: {
+    eyebrow: 'Nikola Tesla Airport',
+    title: ['Land in Belgrade — ', 'your car is already waiting'],
+    text: 'For visitors from abroad and the diaspora: we deliver the car to Nikola Tesla Airport, you take the keys and go. Car prices are the same as at our office — you only pay for delivery.',
+    points: (price) => [
+      'The car arrives at the airport in 30–45 minutes',
+      `Delivery only ${price} — for pick-up or return`,
+      'Ideal for the diaspora and international visitors',
+    ],
+    cta: 'Choose a car',
+    whatsapp: 'Arrange an airport pick-up',
+    whatsappMessage: "Hi! I'm arriving at Nikola Tesla Airport and need a car. Arrival date and time: ",
   },
 
   teaser: {

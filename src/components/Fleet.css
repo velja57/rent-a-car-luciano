@@ -2,7 +2,8 @@
 /* Sve klase su sa prefiksom fleet / date-range / discount-ladder — ne diraju
    ostatak sajta. Stranice: src/pages/FleetPage.css i VehiclePage.css. */
 .fleet,
-.vehicle-page {
+.vehicle-page,
+.airport-section {
   --fleet-mono: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   --fleet-line: rgba(212, 162, 78, 0.28);
   --fleet-glow: rgba(212, 162, 78, 0.45);

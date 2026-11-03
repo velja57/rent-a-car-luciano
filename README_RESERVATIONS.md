@@ -131,3 +131,62 @@ jeziku, sa tom cenom. Za to su potrebna dva jednokratna koraka:
 Redosled nije bitan: dok korak 1 nije urađen, sajt šalje rezervaciju po
 starom (bez jezika i cene za kupca), a vlasnik i dalje vidi procenu cene u
 napomeni.
+
+## Podsetnik kupcu dan pre preuzimanja (oktobar 2026)
+
+Svako jutro (08:00 UTC = 09:00 zimi / 10:00 leti) Supabase pokreće funkciju
+`send-pickup-reminders`. Ona kupcima čije je preuzimanje SUTRA šalje podsetnik
+na njihovom jeziku (datum, lokacija, šta da ponesu, telefon) i beleži
+`reminder_sent_at`, pa se podsetnik ne šalje dva puta. Jednokratno podešavanje:
+
+1. **Funkcija:** Edge Functions → Deploy a new function → naziv
+   `send-pickup-reminders` → zalepi kod iz
+   [supabase/functions/send-pickup-reminders/index.ts](supabase/functions/send-pickup-reminders/index.ts) → Deploy.
+   Zatim u podešavanjima te funkcije isključi **Verify JWT** (funkciju štiti
+   tajni ključ iz koraka 2, a ne JWT).
+2. **Tajni ključ:** Edge Functions → Secrets → dodaj `CRON_SECRET` = neka duga
+   nasumična lozinka (npr. 30+ slova i brojeva), koju zapamtiš za korak 3.
+3. **Raspored:** SQL Editor → zalepi [supabase/podsetnik-cron.sql](supabase/podsetnik-cron.sql),
+   zameni `OVDE-TVOJA-TAJNA` istom lozinkom iz koraka 2 → Run.
+
+Napomena: dok domen nije verifikovan u Resend-u, podsetnici (kao i potvrde)
+stižu samo na adresu Resend naloga.
+
+## Zaštita od zloupotrebe (novembar 2026)
+
+**Lažne rezervacije.** Funkciju za rezervaciju može da pozove svako ko otvori
+sajt, a svaka rezervacija odmah zauzima vozilo. Zato baza (`create_reservation`)
+odbija rezervaciju sa sajta kada:
+
+- najam traje duže od **30 dana** (duži se dogovara telefonom, admin ga unosi
+  u admin panelu);
+- isti telefon ili email već ima **3 buduće aktivne** rezervacije;
+- je sa sajta u poslednjih sat vremena stiglo **30 rezervacija** (za ceo sajt).
+
+Kupac tada vidi poruku da pozove telefonom ili piše na WhatsApp. Admin panel
+nema ova ograničenja.
+
+**Mejl funkcija.** `send-reservation-email` sada šalje mejl samo kada poziv
+nosi tajno zaglavlje `x-webhook-secret`, koje zna samo Database Webhook. Bez
+toga bi bilo ko sa javnim ključem sajta mogao da pošalje mejl na bilo koju
+adresu u ime firme.
+
+### Šta treba da uradiš (jednokratno, OVIM redom)
+
+1. **Tajna za funkciju:** Edge Functions → Secrets → dodaj `WEBHOOK_SECRET` =
+   duga nasumična lozinka (30+ slova i brojeva).
+2. **Ista tajna u webhook-u:** Database → Webhooks → webhook za `reservations`
+   → Edit → HTTP Headers → Add a new header: ime `x-webhook-secret`, vrednost
+   ista lozinka iz koraka 1 → Save.
+3. **Nova verzija funkcije:** Edge Functions → `send-reservation-email` →
+   zameni kod sadržajem
+   [supabase/functions/send-reservation-email/index.ts](supabase/functions/send-reservation-email/index.ts)
+   → Deploy.
+4. **Baza:** SQL Editor → zalepi ceo [supabase/schema.sql](supabase/schema.sql)
+   → Run. Zatim zalepi ceo
+   [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql) → Run.
+   Očekivano (crvena poruka je namerna):
+   `REZULTAT TESTA: 73 od 73 provera uspešno. Sve je u redu.`
+
+Redosled 1 → 2 → 3 je važan: ako se funkcija objavi pre nego što tajna postoji
+na oba mesta, mejlovi o rezervacijama ne stižu dok se to ne podesi.

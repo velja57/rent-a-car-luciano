@@ -7,6 +7,8 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    // Svaka funkcija je zaseban modul (kao u Deno-u), pa se nazivi ne sudaraju.
+    "moduleDetection": "force",
     "types": []
   },
   "include": ["**/*.ts"]

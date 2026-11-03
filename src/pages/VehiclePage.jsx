@@ -5,6 +5,7 @@ import DateRangeFields from '../components/DateRangeFields';
 import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
 import ReservationModal from '../components/ReservationModal';
+import ResponseTime from '../components/ResponseTime';
 import VehicleGallery from '../components/VehicleGallery';
 import { fleet } from '../data/fleet';
 import { PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
@@ -190,6 +191,7 @@ function VehicleDetails({ rawCar }) {
                 </a>
               </div>
               {showCallNotice && <CallNotice />}
+              <ResponseTime className="response-time--center" />
             </div>
 
             <ul className="vehicle-panel__included">
