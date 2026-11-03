@@ -54,6 +54,164 @@ niko spolja ne može da napravi novi nalog.
    ta rezervacija više ne bi trebalo da blokira te datume za novo
    rezervisanje istog vozila.
 
+## Novi admin panel — faza 1: baza (oktobar 2026)
+
+Baza je pripremljena za novi admin panel (rezervacije, kalendar, uplate,
+finansije). Sam izgled panela dolazi u sledećim fazama; do tada `/admin`
+radi kao i pre. Sve izmene samo DODAJU — nijedna postojeća rezervacija se ne
+menja i sajt radi kao i pre (i pre i posle pokretanja SQL-a).
+
+Šta je novo u [supabase/schema.sql](supabase/schema.sql):
+
+- **Statusi:** Potvrđena → Preuzeta → Završena, plus Otkazana i „Nije se
+  pojavio“. Otkazana i „nije se pojavio“ oslobađaju datume; ostale ih
+  zauzimaju. Dan vraćanja je i dalje zauzet (kao do sada).
+- **Rezervacija** dobija: iznos (EUR) i dodatke kao podatke, vreme
+  preuzimanja/vraćanja, mesto vraćanja, izvor (sajt/admin). Za rezervacije
+  primljene telefonom email i datum rođenja nisu obavezni (forma na sajtu ih
+  i dalje traži).
+- **Uplate** (ručno beleženje): uplata/avans, povraćaj, primljena i vraćena
+  kaucija. Kaucija se ne računa kao prihod. Pogrešna stavka se poništava, ne
+  briše.
+- **Istorija promena:** svaka izmena rezervacije i uplate se automatski
+  beleži (šta, ko, kada).
+- **Registarske oznake** vozila (vozila su i dalje u `src/data/fleet.js`).
+- **Admin nalozi** su u tabeli `admin_users` umesto upisane adrese u kodu.
+  Drugi admin se dodaje u SQL Editoru:
+  `insert into admin_users (email) values ('nova@adresa.com');`
+  (plus nalog u Authentication → Users sa istom adresom).
+
+### Šta treba da uradiš (jednokratno)
+
+1. **Pokreni šemu:** Supabase → SQL Editor → New query → otvori
+   [supabase/schema.sql](supabase/schema.sql), kopiraj CEO sadržaj, zalepi →
+   **Run**. Treba da piše „Success. No rows returned“.
+2. **Pokreni test:** SQL Editor → New query → zalepi ceo
+   [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql)
+   → **Run**. Rezultat se pojavljuje kao crvena poruka „ERROR“ — to je
+   namerno (tako baza poništi sve što je test upisao). Treba da piše:
+   `REZULTAT TESTA: 44 od 44 provera uspešno. Sve je u redu.`
+   Test koristi izmišljeno vozilo i 2099. godinu — prave rezervacije ne dira,
+   ništa ne ostaje u bazi i ne šalje se nijedan mejl.
+3. **Proveri registraciju:** Authentication → Sign In / Providers → Email →
+   „Allow new users to sign up“ mora biti **isključeno**.
+
+## Novi admin panel — faza 2: izgled i rezervacije (oktobar 2026)
+
+Posle prijave na `/admin`:
+
+- **Pregled** — današnja preuzimanja i vraćanja, vozila kod kupaca, broj
+  rezervacija po statusu.
+- **Rezervacije** — pretraga (ime, telefon, email, vozilo, registracija, ID),
+  filteri (status, vozilo, period), sortiranje klikom na naslov kolone,
+  po 25 na strani. Klik na red otvara detalj.
+- **Detalj** — svi podaci, promena statusa (uvek uz potvrdu), istorija
+  promena (ko je šta promenio i kada).
+- **Izmena i nova rezervacija** — dok biraš vozilo i datume, panel proverava
+  da li je vozilo slobodno i predlaže iznos po cenovniku sajta (možeš ga
+  promeniti). Zauzet termin se ne može sačuvati (proverava i baza).
+- Na telefonu se meni otvara dugmetom ☰ gore levo, a tabela postaje kartice.
+
+### Šta treba da uradiš (jednokratno)
+
+Ručno uneta rezervacija (npr. posle poziva) ne treba da šalje mejl ni kupcu
+ni tebi. Za to: Supabase → **Edge Functions** → `send-reservation-email` →
+zameni kod sadržajem
+[supabase/functions/send-reservation-email/index.ts](supabase/functions/send-reservation-email/index.ts)
+→ **Deploy**. Dok to ne uradiš, ručno uneta rezervacija sa emailom bi
+poslala potvrdu kao da je sa sajta.
+
+## Novi admin panel — faza 3: kalendar i vozila (oktobar 2026)
+
+- **Kalendar** — svako vozilo je jedan red, svaka rezervacija traka od dana
+  preuzimanja do dana vraćanja (uključujući dan vraćanja, kao što računa i
+  sajt). Boja = status. Prikaz po mesecu ili 2 nedelje, „Prethodni / Danas /
+  Sledeći“. Otkazane i „nije se pojavio“ se prikazuju samo ako se uključi
+  opcija (precrtane). Klik na traku otvara rezervaciju, klik na prazan dan
+  otvara novu rezervaciju za to vozilo i taj datum. Ako bi se dve aktivne
+  rezervacije istog vozila ikad preklopile (baza to ne dozvoljava), kalendar
+  ih označava crveno i prikazuje upozorenje.
+- **Vozila** — unos registarske oznake i interne beleške za svako vozilo.
+  Oznaka se vidi u listi, detalju i kalendaru, i po njoj radi pretraga.
+  Ovo se ne prikazuje na sajtu.
+
+Za ovu fazu ne treba ništa podešavati u Supabase-u.
+
+## Novi admin panel — faza 4: cenovnik, cene rezervacija, uplate i analitika (oktobar 2026)
+
+### Kako sada radi cena
+
+- **Cenovnik je u bazi** i menja se u adminu: **Vozila i cenovnik** (cena po
+  danu svakog vozila, popust za duži najam, cene dodataka). Sajt prikazuje
+  cene iz baze, pa promena važi odmah na sajtu i za nove rezervacije.
+- **Iznos svake rezervacije računa baza** po tom cenovniku (i kad rezervacija
+  dolazi sa sajta). Ako je kupac na sajtu video drugačiji iznos (npr.
+  stranica otvorena pre promene cene), rezervacija važi po cenovniku, a u
+  napomeni stoji upozorenje.
+- Uz rezervaciju se čuva **snimak cene**: cena po danu, popust, broj dana,
+  najam, dodaci i ukupno. Kasnija promena cenovnika **ne menja** postojeće
+  rezervacije (Škoda rezervisana po 40 €/dan ostaje 2 × 40 = 80 € i kad
+  cena postane 45 €).
+- U detalju rezervacije sekcija **Cena** prikazuje samo **Iznos** (sa
+  „2 dana × 40 € = 80 €“) i **Dodatke**. U „Izmeni“ se menjaju cena po danu i
+  iznos dodataka — najam i ukupno računa baza. Kad se promene datumi, cena po
+  danu ostaje ona iz trenutka rezervacije (dugme „Primeni cenovnik“ je menja
+  na današnju).
+- **Uplate** (u detalju rezervacije): ručno beleženje uplate/avansa, povraćaja
+  i kaucije. „Naplaćeno“ je samo zabeleženo — potvrđena rezervacija se nikad
+  ne računa kao plaćena. Kaucija nije prihod.
+
+### Analitika prihoda (meni „Analitika prihoda“)
+
+- Ukupan prihod, najam, dodaci, broj rezervacija, prosek po rezervaciji,
+  prihod po svakom vozilu (klik na vozilo = detalj), grafikon kroz vreme.
+- Period: dan, mesec, godina ili raspon.
+- **Po danima najma** — iznos rezervacije je raspoređen na dane kada je
+  vozilo kod kupca (od dana preuzimanja do dana pre vraćanja — isti broj dana
+  kao na sajtu). Rezervacija 29.–31.10. po 40 € → 29.10. 40 €, 30.10. 40 €.
+  Zbir dana je uvek tačno iznos rezervacije (bez grešaka u zaokruživanju).
+- **Po datumu rezervacije** — ceo iznos na dan kada je rezervacija napravljena.
+- **Ugovoreno** = potvrđene, preuzete i završene; **Realizovano** = samo
+  završene. Otkazane i „nije se pojavio“ se ne računaju. Povraćaj umanjuje
+  prihod (prvo najam, ostatak dodatke). „Naplaćeno u periodu“ je odvojeno —
+  to su stvarno zabeležene uplate.
+- Sve se računa iz trenutnih podataka, pa izmena datuma ili cene odmah važi i
+  ništa se ne broji dvaput.
+
+### Iskorišćenost flote, slobodni dani i ADR (u Analitici prihoda)
+
+- **Dani u najmu** = naplaćeni dani u izabranom periodu (od dana preuzimanja
+  do dana pre vraćanja — rezervacija 29.–31.10. = 2 dana; dan vraćanja je
+  slobodan dan). Rezervacija koja počinje pre ili se završava posle perioda
+  računa se samo delom koji pada u period.
+- **Slobodni dani** = dani perioda − dani u najmu (za svako vozilo).
+- **Iskorišćenost** = dani u najmu / (broj vozila × dani perioda).
+- **ADR** (prosečna zarada po danu najma) = (najam + dodaci) / dani u najmu.
+  Rezervacije bez poznate cene zauzimaju vozilo (ulaze u iskorišćenost), ali
+  ne ulaze u ADR.
+- Uvek se računa po danima najma, bez obzira na izabrani prikaz prihoda;
+  „Ugovoreno / Realizovano“ važi i ovde. Klik na vozilo prikazuje samo njega.
+- Za ovo je potrebno ponovo pokrenuti [supabase/schema.sql](supabase/schema.sql)
+  (nova funkcija `admin_fleet_usage`), pa test — očekivano **68 od 68**.
+
+### Stare rezervacije
+
+Uz svaku rezervaciju sa sajta sačuvan je tekst obračuna (npr. „2 dana × 38€ =
+76€ · Ukupno 76€“). Iz njega se cena popunjava **samo ako se sve slaže** (broj
+dana sa datumima, cena × dani = najam). Ostale ostaju „bez cene“ — analitika
+ih ne sabira i prikazuje koliko ih ima; cenu im upišeš preko „Izmeni“.
+
+### Šta treba da uradiš (jednokratno)
+
+1. Supabase → **SQL Editor** → New query → zalepi ceo
+   [supabase/schema.sql](supabase/schema.sql) → **Run** („Success“).
+2. Novi query → zalepi ceo
+   [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql)
+   → **Run**. Očekivano (crvena poruka je namerna):
+   `REZULTAT TESTA: 68 od 68 provera uspešno. Sve je u redu.`
+
+Mejl funkcije ne treba ponovo objavljivati za ovu fazu.
+
 ## Kad sajt bude hostovan
 
 Admin panel će biti dostupan na `<tvoj-domen>/admin.html`. Kad budemo radili
@@ -63,13 +221,9 @@ konfiguraciji.
 
 ## Poznata ograničenja
 
-- Samo jedan admin nalog je predviđen u ovoj fazi (SQL politika proverava
-  tačno JEDAN email). Ako kasnije zatrebaju dva naloga (npr. zaposleni),
-  to je mala izmena — javi.
-- Nema izmene drugih podataka rezervacije (ime, datumi...) iz admin panela,
-  samo otkazivanje — nije traženo u ovoj fazi.
-- Nema paginacije — ako broj rezervacija jednog dana postane veliki (stotine),
-  vredi dodati, ali za sada nije potrebno.
+- Admin nalozi su u tabeli `admin_users` (vidi gore kako se dodaje drugi).
+- Format datuma u poljima za datum (npr. dd.mm.gggg ili mm/dd/gggg) zavisi
+  od jezika browsera/računara, ne od sajta.
 - `/admin.html` je tehnički dostupan svakome ko zna URL, ali bez prijave ne
   vidi nijedan podatak (zaštita je na nivou baze — RLS — ne na tajnosti URL-a),
   što je standardan i bezbedan pristup za ovakve admin stranice.
