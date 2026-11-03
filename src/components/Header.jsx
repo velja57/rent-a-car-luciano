@@ -64,10 +64,17 @@ export default function Header() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [menuOpen]);
 
+  // Klik na "Početna" dok smo već na toj stranici ne menja URL, pa ScrollManager
+  // ne bi inače pomerio skrol — zato ovde eksplicitno vraćamo na vrh.
+  const goHome = () => {
+    setMenuOpen(false);
+    if (location.pathname === paths.home) window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // "Zašto mi" je na početnoj; "Kontakt" je footer, koji postoji na svakoj stranici.
   const links = (
     <>
-      <NavLink to={paths.home} end>
+      <NavLink to={paths.home} end onClick={goHome}>
         {t.nav.home}
       </NavLink>
       <NavLink to={paths.fleet}>{t.nav.fleet}</NavLink>
