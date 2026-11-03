@@ -119,8 +119,8 @@ export default {
     title: 'Zašto Luciano Rent a Car',
     items: [
       {
-        title: 'Novija, potpuno opremljena vozila',
-        text: 'Golf 8 (2024) i Audi A5 Sportback (2022) — redovno servisirana, bogata oprema u oba vozila.',
+        title: 'Širok izbor vozila',
+        text: (count) => `${count} vozila u floti, od gradskih do porodičnih — sva novije generacije i redovno servisirana.`,
       },
       {
         title: 'Bez skrivenih troškova',
@@ -131,6 +131,8 @@ export default {
         text: 'Planovi se menjaju — otkaži rezervaciju besplatno do 48h pre preuzimanja vozila.',
       },
     ],
+    testimonialsTitle: 'Recenzije sa Google-a',
+    testimonialsNote: 'Google profil Tehničkog pregleda Luciano — ista firma, ista adresa.',
   },
 
   footer: {

@@ -119,8 +119,8 @@ export default {
     title: 'Why Luciano Rent a Car',
     items: [
       {
-        title: 'Newer, fully equipped cars',
-        text: 'Golf 8 (2024) and Audi A5 Sportback (2022) — regularly serviced and richly equipped.',
+        title: 'A wide choice of cars',
+        text: (count) => `${count} cars in the fleet, from city cars to family cars — all newer-generation and regularly serviced.`,
       },
       {
         title: 'No hidden costs',
@@ -131,6 +131,8 @@ export default {
         text: 'Plans change — cancel your booking free of charge up to 48 hours before pick-up.',
       },
     ],
+    testimonialsTitle: 'Reviews from Google',
+    testimonialsNote: 'Google profile of Luciano Vehicle Inspection — same company, same address.',
   },
 
   footer: {
