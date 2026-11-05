@@ -32,7 +32,9 @@ export default function Payments({ reservation: r, payments, onChange }) {
     }
     setSaving(true);
     try {
-      await adminApi.addPayment({ reservationId: r.id, ...form, amount });
+      // Uplata uvek nosi datum preuzimanja vozila (isto pravilo važi i u bazi).
+      const paidAt = form.kind === 'payment' ? r.pickup_date : form.paidAt;
+      await adminApi.addPayment({ reservationId: r.id, ...form, paidAt, amount });
       toast.success(`Zabeleženo: ${PAYMENT_KINDS[form.kind]} ${formatMoney(amount)}.`);
       setForm({ ...EMPTY, paidAt: todayBelgrade() });
       onChange();
@@ -166,10 +168,19 @@ export default function Payments({ reservation: r, payments, onChange }) {
             ))}
           </select>
         </label>
-        <label className="admin-field">
-          <span>Datum</span>
-          <input type="date" value={form.paidAt} onChange={set('paidAt')} />
-        </label>
+        {form.kind === 'payment' ? (
+          <div className="admin-field">
+            <span>Datum</span>
+            <p className="admin-payment-form__date">
+              {formatDate(r.pickup_date)} <small className="admin-muted">preuzimanje</small>
+            </p>
+          </div>
+        ) : (
+          <label className="admin-field">
+            <span>Datum</span>
+            <input type="date" value={form.paidAt} onChange={set('paidAt')} />
+          </label>
+        )}
         <label className="admin-field admin-payment-form__note">
           <span>Napomena (opciono)</span>
           <input type="text" value={form.note} onChange={set('note')} />

@@ -107,6 +107,7 @@ export const FIELD_LABELS = {
   phone: 'Telefon',
   date_of_birth: 'Datum rođenja',
   pickup_date: 'Datum preuzimanja',
+  paid_at: 'Datum uplate',
   return_date: 'Datum vraćanja',
   pickup_time: 'Vreme preuzimanja',
   return_time: 'Vreme vraćanja',
@@ -136,6 +137,7 @@ export const EVENT_LABELS = {
   status_changed: 'Promenjen status',
   payment_added: 'Zabeležena uplata',
   payment_voided: 'Poništena uplata',
+  payment_date_aligned: 'Datum uplate usklađen sa datumom preuzimanja',
 };
 
 export function actorLabel(actor) {

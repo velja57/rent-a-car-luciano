@@ -373,7 +373,7 @@ export default function Analytics() {
             <div>
               <h2 className="admin-panel__title">Naplaćeno u periodu</h2>
               <p className="admin-muted admin-hint">
-                Stvarno zabeležene uplate po datumu uplate (ručni unos u rezervaciji) — nije isto što i vrednost
+                Zabeležene uplate kupaca; datum uplate je datum preuzimanja vozila — nije isto što i vrednost
                 rezervacija iznad.
               </p>
             </div>

@@ -605,6 +605,69 @@ create trigger reservations_log_change
   after insert or update on reservations
   for each row execute function log_reservation_change();
 
+-- Datum uplate = datum preuzimanja vozila. Kupac plaća ceo iznos pri
+-- preuzimanju, pa svaka uplata (kind 'payment') nosi datum preuzimanja iz
+-- rezervacije — i kad se upiše kasnije, i kad se datum preuzimanja izmeni.
+-- Povraćaj i kaucija zadržavaju svoj datum.
+create or replace function payment_paid_on_pickup()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.kind = 'payment' then
+    select r.pickup_date into new.paid_at from reservations r where r.id = new.reservation_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists payments_paid_on_pickup on payments;
+create trigger payments_paid_on_pickup
+  before insert or update on payments
+  for each row execute function payment_paid_on_pickup();
+
+create or replace function sync_payment_dates()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update payments set paid_at = new.pickup_date
+  where reservation_id = new.id and kind = 'payment' and paid_at is distinct from new.pickup_date;
+  return null;
+end;
+$$;
+
+drop trigger if exists reservations_sync_payment_dates on reservations;
+create trigger reservations_sync_payment_dates
+  after update of pickup_date on reservations
+  for each row
+  when (old.pickup_date is distinct from new.pickup_date)
+  execute function sync_payment_dates();
+
+-- Uplate upisane pre ovog pravila dobijaju datum preuzimanja (jednom; posle
+-- toga nema razlika). Stari datum ostaje zapisan u istoriji rezervacije.
+with old as (
+  select p.id, p.reservation_id, p.paid_at as old_date, r.pickup_date as new_date
+  from payments p
+  join reservations r on r.id = p.reservation_id
+  where p.kind = 'payment' and p.paid_at is distinct from r.pickup_date
+),
+moved as (
+  update payments p set paid_at = o.new_date
+  from old o
+  where p.id = o.id
+  returning p.id
+)
+insert into reservation_events (reservation_id, action, changes, actor)
+select o.reservation_id, 'payment_date_aligned',
+  jsonb_build_object('paid_at', jsonb_build_object('from', o.old_date, 'to', o.new_date)), 'sistem'
+from old o
+join moved m on m.id = o.id;
+
 -- Zbir uplata jedne rezervacije (bez poništenih stavki). Jedino mesto gde se
 -- to računa — koriste ga lista, detalj i finansije.
 create or replace function payment_totals(p_reservation_id uuid)
@@ -1158,7 +1221,7 @@ $$;
 
 -- Preuzimanje vozila = naplata. Kupac plaća ceo iznos rezervacije pri
 -- preuzimanju, pa admin jednim potvrđivanjem menja status u "preuzeta" i
--- upisuje uplatu (gotovina ili kartica, današnji datum). Ako je deo već ranije
+-- upisuje uplatu (gotovina ili kartica, sa datumom preuzimanja). Ako je deo već ranije
 -- upisan, upisuje se samo ostatak do punog iznosa; ako je sve već plaćeno,
 -- menja se samo status. Bez poznate cene preuzimanje se ne beleži — prvo se
 -- upiše cena (reason no_price).
@@ -1198,8 +1261,7 @@ begin
     end if;
 
     insert into payments (reservation_id, kind, amount, method, paid_at, note, created_by)
-    values (r.id, 'payment', due, p_method, (now() at time zone 'Europe/Belgrade')::date,
-      'Naplata pri preuzimanju vozila', current_actor())
+    values (r.id, 'payment', due, p_method, r.pickup_date, 'Naplata pri preuzimanju vozila', current_actor())
     returning id into new_id;
 
     insert into reservation_events (reservation_id, action, changes, actor)
@@ -1216,7 +1278,9 @@ begin
 end;
 $$;
 
--- Ručno beleženje uplate / avansa / povraćaja / kaucije.
+-- Ručno beleženje uplate / avansa / povraćaja / kaucije. Uplata uvek dobija
+-- datum preuzimanja vozila (okidač payments_paid_on_pickup); p_paid_at važi za
+-- povraćaj i kauciju.
 create or replace function admin_add_payment(
   p_reservation_id uuid,
   p_kind text,

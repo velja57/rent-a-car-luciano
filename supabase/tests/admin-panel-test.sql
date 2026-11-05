@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 85 od 85 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 87 od 87 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -624,23 +624,26 @@ begin
   perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
   set local role authenticated;
 
-  -- Jun, A: uplate 50 (10.6.) i 30 (12.6.); poništen povraćaj i kaucija se ne prikazuju.
+  -- Jun, A: uplate 50 i 30 (obe sa datumom preuzimanja 10.6.); poništen povraćaj i
+  -- kaucija se ne prikazuju.
   res := admin_list_payments('2099-06-01', '2099-06-30', car);
   ok := jsonb_array_length(res -> 'rows') = 2
-    and (res -> 'rows' -> 0 ->> 'amount')::numeric = 30
-    and (res -> 'rows' -> 1 ->> 'amount')::numeric = 50
+    and (select array_agg((r ->> 'amount')::numeric order by (r ->> 'amount')::numeric) from jsonb_array_elements(res -> 'rows') r) = array[30, 50]::numeric[]
+    and (select bool_and((r ->> 'paid_at')::date = '2099-06-10') from jsonb_array_elements(res -> 'rows') r)
     and (res -> 'rows' -> 0 -> 'reservation' ->> 'id')::uuid = id_a
     and (res -> 'rows' -> 0 -> 'reservation' ->> 'balance')::numeric = 6;
-  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('spisak uplata jun: 30 i 50 €, najnovija prva, bez poništenih i kaucije; A preostalo 6 € [%s]', left(res::text, 300))); end if;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('spisak uplata jun: 30 i 50 € sa datumom preuzimanja, bez poništenih i kaucije; A preostalo 6 € [%s]', left(res::text, 300))); end if;
 
   -- Uplata na otkazanoj B i preplata A: obe su u spisku, zbir = "Naplaćeno neto".
+  -- Datum uplate je datum preuzimanja: B 13.6. (najnovija), A 10.6.
   res := admin_add_payment(id_b, 'payment', 20, 'cash', '2099-06-20');
   res := admin_add_payment(id_a, 'payment', 100, 'bank', '2099-06-25');
   res := admin_list_payments('2099-06-01', '2099-06-30', car);
   ok := jsonb_array_length(res -> 'rows') = 4
-    and (res -> 'rows' -> 0 -> 'reservation' ->> 'balance')::numeric = -94
-    and (res -> 'rows' -> 1 -> 'reservation' ->> 'status') = 'cancelled'
-    and (res -> 'rows' -> 1 -> 'reservation' -> 'balance') = 'null'::jsonb
+    and (res -> 'rows' -> 0 ->> 'paid_at')::date = '2099-06-13'
+    and (res -> 'rows' -> 0 -> 'reservation' ->> 'status') = 'cancelled'
+    and (res -> 'rows' -> 0 -> 'reservation' -> 'balance') = 'null'::jsonb
+    and (res -> 'rows' -> 1 -> 'reservation' ->> 'balance')::numeric = -94
     and (select sum(case when r ->> 'kind' = 'refund' then -1 else 1 end * (r ->> 'amount')::numeric)
          from jsonb_array_elements(res -> 'rows') r)
       = (admin_revenue('2099-06-01', '2099-06-30', 'rental', 'booked', car) -> 'cash' ->> 'collected')::numeric;
@@ -715,10 +718,10 @@ begin
     and (res -> 'reservation' ->> 'balance')::numeric = 0
     and jsonb_array_length(res -> 'payments') = 1
     and res -> 'payments' -> 0 ->> 'method' = 'cash'
-    and (res -> 'payments' -> 0 ->> 'paid_at')::date = today_bg
+    and (res -> 'payments' -> 0 ->> 'paid_at')::date = '2099-03-01'
     and exists (select 1 from jsonb_array_elements(res -> 'events') e where e ->> 'action' = 'payment_added')
     and exists (select 1 from jsonb_array_elements(res -> 'events') e where e ->> 'action' = 'status_changed');
-  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: status "preuzeta" i uplata celog iznosa 100 € (gotovina, danas) [%s]', left(res::text, 400))); end if;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: status "preuzeta" i uplata celog iznosa 100 € (gotovina, datum preuzimanja) [%s]', left(res::text, 400))); end if;
 
   res := admin_pickup(id_g, 'cash');
   ok := res ->> 'reason' = 'invalid_transition';
@@ -756,6 +759,33 @@ begin
   res := admin_get_reservation(id_g2);
   ok := ok and res -> 'reservation' ->> 'status' = 'picked_up' and jsonb_array_length(res -> 'payments') = 1;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: upisuje se samo ostatak (110 €), a već plaćena se samo preuzima [%s]', left(res::text, 300))); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 10. Datum uplate = datum preuzimanja vozila
+  -- =========================================================================
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+
+  -- P3 (preuzimanje 20.3.2099): uplata upisana "1.3." i uplata pri preuzimanju -> obe 20.3.;
+  -- povraćaj zadržava svoj datum.
+  res := admin_add_payment(id_n, 'refund', 5, 'cash', '2099-04-02');
+  res := admin_get_reservation(id_n);
+  ok := (select bool_and((p ->> 'paid_at')::date = '2099-03-20') from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'payment')
+    and (select count(*) from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'payment') = 2
+    and exists (select 1 from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'refund' and (p ->> 'paid_at')::date = '2099-04-02');
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('datum uplate je uvek datum preuzimanja (povraćaj zadržava svoj) [%s]', left(res -> 'payments' ->> 0, 300))); end if;
+
+  -- Izmena datuma preuzimanja P3 na 19.3. pomera i datum uplata.
+  res := admin_update_reservation(p_id => id_n, p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Preuzimanje 3',
+    p_phone => '060 111 222', p_pickup => '2099-03-19', p_return => '2099-03-23', p_location => 'TEST lokacija',
+    p_daily_rate => 50);
+  ok := (res ->> 'success')::boolean;
+  res := admin_get_reservation(id_n);
+  ok := ok
+    and (select bool_and((p ->> 'paid_at')::date = '2099-03-19') from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'payment')
+    and exists (select 1 from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'refund' and (p ->> 'paid_at')::date = '2099-04-02');
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('promena datuma preuzimanja pomera datum uplata [%s]', left(res -> 'payments' ->> 0, 300))); end if;
   reset role;
 
   raise exception using

@@ -50,7 +50,7 @@ function pickupDialog(r, method, setMethod, editHref) {
     };
   }
   return {
-    text: 'Kupac pri preuzimanju plaća ceo iznos rezervacije. Potvrdom se vozilo označava kao preuzeto i upisuje se uplata sa današnjim datumom.',
+    text: `Kupac pri preuzimanju plaća ceo iznos rezervacije. Potvrdom se vozilo označava kao preuzeto i upisuje se uplata sa datumom preuzimanja (${formatDate(r.pickup_date)}).`,
     confirmLabel: 'Preuzeto i plaćeno',
     confirmDisabled: !method,
     body: (
@@ -108,6 +108,7 @@ function formatValue(field, value) {
     case 'pickup_date':
     case 'return_date':
     case 'date_of_birth':
+    case 'paid_at':
       return formatDate(value);
     case 'pickup_time':
     case 'return_time':
