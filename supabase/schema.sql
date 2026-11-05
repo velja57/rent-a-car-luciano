@@ -1535,8 +1535,15 @@ begin
 end;
 $$;
 
--- Početna strana admin panela: današnja preuzimanja i vraćanja (po
--- beogradskom vremenu), vozila kod kupaca i broj rezervacija po statusu.
+-- Kontrolna tabla admin panela (po beogradskom vremenu):
+--   pickups_today / returns_today  današnja preuzimanja i vraćanja — i ona koja
+--                                  čekaju i ona koja su već obavljena
+--   rented_cars                    vozila koja su sada kod kupaca (aktivna rezervacija)
+--   confirmed                      broj potvrđenih rezervacija (čekaju preuzimanje)
+--   late_returns                   vozila koja kasne sa vraćanjem: planirani dan i
+--                                  vreme vraćanja (uz 59 min tolerancije) su prošli;
+--                                  bez upisanog vremena — kad prođe dan vraćanja
+--   status_counts                  broj rezervacija po statusu
 create or replace function admin_overview()
 returns jsonb
 language plpgsql
@@ -1545,6 +1552,7 @@ security definer
 set search_path = public
 as $$
 declare
+  now_bg timestamp := now() at time zone 'Europe/Belgrade';
   today date := (now() at time zone 'Europe/Belgrade')::date;
 begin
   if not is_admin() then
@@ -1557,18 +1565,31 @@ begin
     'pickups_today', coalesce((
       select jsonb_agg(reservation_json(r) order by r.pickup_time nulls last, r.created_at)
       from reservations r
-      where r.pickup_date = today and r.status = 'confirmed'
+      where r.pickup_date = today and r.status in ('confirmed', 'picked_up', 'completed')
     ), '[]'::jsonb),
     'returns_today', coalesce((
       select jsonb_agg(reservation_json(r) order by r.return_time nulls last, r.created_at)
       from reservations r
-      where r.return_date = today and r.status in ('confirmed', 'picked_up')
+      where r.return_date = today and r.status in ('confirmed', 'picked_up', 'completed')
+    ), '[]'::jsonb),
+    'rented_cars', coalesce((
+      select jsonb_agg(distinct r.car_id) from reservations r where r.status = 'picked_up'
     ), '[]'::jsonb),
     'on_rent', (select count(*) from reservations where status = 'picked_up'),
+    'confirmed', (select count(*) from reservations where status = 'confirmed'),
     'upcoming_7_days', (
       select count(*) from reservations
       where status = 'confirmed' and pickup_date > today and pickup_date <= today + 7
     ),
+    'late_returns', coalesce((
+      select jsonb_agg(reservation_json(r) order by r.return_date, r.return_time nulls last)
+      from reservations r
+      where r.status = 'picked_up'
+        and case
+          when r.return_time is null then r.return_date < today
+          else r.return_date + r.return_time + interval '59 minutes' < now_bg
+        end
+    ), '[]'::jsonb),
     'status_counts', coalesce((
       select jsonb_object_agg(status, n)
       from (select status, count(*) as n from reservations group by status) s

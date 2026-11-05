@@ -444,6 +444,64 @@
   border-radius: var(--radius-md);
 }
 
+.admin-stats--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-stat--link {
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.admin-stat--link:hover {
+  border-color: var(--color-accent);
+}
+
+/* Naslov iznad grupe panela (npr. "Današnje aktivnosti" na kontrolnoj tabli). */
+.admin-section-title {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 6px 0 -4px;
+}
+
+/* Stanje današnjeg preuzimanja / vraćanja: čeka (zlatno) ili obavljeno (zeleno). */
+.admin-daystate {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.admin-daystate--done {
+  background: var(--admin-success-soft);
+  color: var(--admin-success);
+}
+
+/* Upozorenje "Kasni sa vraćanjem" (ime je link na rezervaciju). */
+.admin-late {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-late ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-late a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .admin-stat__value {
   font-size: 30px;
   font-weight: 800;

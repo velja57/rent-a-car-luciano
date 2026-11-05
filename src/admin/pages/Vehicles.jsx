@@ -145,7 +145,7 @@ export default function Vehicles() {
     <div className="admin-page">
       <div className="admin-page__header">
         <div>
-          <h1>Vozila i cenovnik</h1>
+          <h1>Vozni park</h1>
           <p className="admin-muted">
             Promena cene važi odmah na sajtu i za nove rezervacije. Postojeće rezervacije zadržavaju cenu iz trenutka
             rezervacije. Registarske oznake i beleške vide se samo u admin panelu.

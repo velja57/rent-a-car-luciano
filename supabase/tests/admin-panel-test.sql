@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 90 od 90 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 92 od 92 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -837,6 +837,36 @@ begin
   res := admin_return(id_h);
   ok := ok and res ->> 'reason' = 'invalid_transition';
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('poništavanje i vraćanje samo za preuzetu rezervaciju [%s]', res)); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 12. Kontrolna tabla: izdata vozila, današnja preuzimanja, kašnjenje
+  -- =========================================================================
+  -- K1: kod kupca, trebalo je da bude vraćeno juče -> kasni.
+  -- K2: preuzeto danas, vraćanje za 2 dana -> u današnjim preuzimanjima, ne kasni.
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location, status, picked_up_at)
+  values (car, 'TEST vozilo', 'TEST Kasni', 'test@example.com', '060 111 222', '1990-01-01', today_bg - 3, today_bg - 1,
+    'TEST', 'picked_up', now() - interval '3 days')
+  returning id into id_a;
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location, status, picked_up_at)
+  values (car, 'TEST vozilo', 'TEST Danas', 'test@example.com', '060 111 222', '1990-01-01', today_bg, today_bg + 2,
+    'TEST', 'picked_up', now())
+  returning id into id_b;
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+  res := admin_overview();
+  ok := exists (select 1 from jsonb_array_elements(res -> 'late_returns') x where (x ->> 'id')::uuid = id_a)
+    and not exists (select 1 from jsonb_array_elements(res -> 'late_returns') x where (x ->> 'id')::uuid = id_b)
+    and (res -> 'rented_cars') ? car;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('kontrolna tabla: kasni sa vraćanjem (juče), izdato vozilo [%s]', left(res::text, 300))); end if;
+
+  ok := exists (select 1 from jsonb_array_elements(res -> 'pickups_today') x
+                where (x ->> 'id')::uuid = id_b and x ->> 'status' = 'picked_up' and x ->> 'picked_up_at' is not null)
+    and (res ->> 'confirmed')::int >= 0;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('kontrolna tabla: današnje preuzimanje ostaje na spisku i posle preuzimanja [%s]', left(res -> 'pickups_today' ->> 0, 300))); end if;
   reset role;
 
   raise exception using

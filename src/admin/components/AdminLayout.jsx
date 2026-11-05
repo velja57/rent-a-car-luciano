@@ -29,10 +29,10 @@ export function Icon({ name }) {
 }
 
 const NAV = [
-  { to: '/', label: 'Pregled', icon: 'overview', end: true },
+  { to: '/', label: 'Kontrolna tabla', icon: 'overview', end: true },
   { to: '/rezervacije', label: 'Rezervacije', icon: 'reservations' },
   { to: '/kalendar', label: 'Kalendar', icon: 'calendar' },
-  { to: '/vozila', label: 'Vozila i cenovnik', icon: 'vehicles' },
+  { to: '/vozila', label: 'Vozni park', icon: 'vehicles' },
   { to: '/analitika', label: 'Analitika prihoda', icon: 'analytics' },
 ];
 
