@@ -1,7 +1,18 @@
 import { useEffect, useRef } from 'react';
 
-// Prozor za potvrdu pre važne akcije (otkazivanje, promena statusa).
-export default function ConfirmDialog({ title, text, confirmLabel, danger = false, busy = false, onConfirm, onCancel }) {
+// Prozor za potvrdu pre važne akcije (otkazivanje, promena statusa). children: dodatna
+// polja (npr. način plaćanja pri preuzimanju); confirmDisabled dok nisu popunjena.
+export default function ConfirmDialog({
+  title,
+  text,
+  confirmLabel,
+  danger = false,
+  busy = false,
+  confirmDisabled = false,
+  onConfirm,
+  onCancel,
+  children,
+}) {
   const confirmRef = useRef(null);
 
   useEffect(() => {
@@ -21,6 +32,7 @@ export default function ConfirmDialog({ title, text, confirmLabel, danger = fals
       <div className="admin-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-dialog-title">
         <h2 id="admin-dialog-title">{title}</h2>
         {text && <p>{text}</p>}
+        {children}
         <div className="admin-dialog__actions">
           <button type="button" className="admin-btn" onClick={onCancel} disabled={busy}>
             Odustani
@@ -30,7 +42,7 @@ export default function ConfirmDialog({ title, text, confirmLabel, danger = fals
             ref={confirmRef}
             className={`admin-btn ${danger ? 'admin-btn--danger-solid' : 'admin-btn--accent'}`}
             onClick={onConfirm}
-            disabled={busy}
+            disabled={busy || confirmDisabled}
           >
             {busy ? 'Sačekaj…' : confirmLabel}
           </button>

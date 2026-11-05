@@ -20,7 +20,7 @@ export const TRANSITIONS = {
     {
       to: 'picked_up',
       label: 'Vozilo preuzeto',
-      confirm: 'Označiti da je kupac preuzeo vozilo?',
+      confirm: 'Kupac pri preuzimanju plaća ceo iznos rezervacije.',
     },
     {
       to: 'no_show',

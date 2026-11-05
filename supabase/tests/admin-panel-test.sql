@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 79 od 79 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 85 od 85 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -680,6 +680,82 @@ begin
     and (res -> 'unpriced_reservations' -> 1 ->> 'total_price')::numeric = 54
     and (res -> 'totals' ->> 'total')::numeric = 0;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('analitika navodi rezervacije bez cene po imenu (bez iznosa / 54 € bez podele) [%s]', left(res::text, 400))); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 9. Preuzimanje vozila = naplata celog iznosa (admin_pickup)
+  -- =========================================================================
+  perform set_config('request.jwt.claims', '{"role":"authenticated","email":"neko-drugi@example.com"}', true);
+  set local role authenticated;
+  res := admin_pickup(id_f, 'cash');
+  ok := res ->> 'reason' = 'forbidden';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('ne-admin: preuzimanje mora biti zabranjeno [%s]', res)); end if;
+  reset role;
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+
+  -- P1: 1.-3.3.2099, 2 × 50 = 100 €. Bez načina plaćanja -> odbijeno, ništa se ne menja.
+  res := admin_create_reservation(p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Preuzimanje 1',
+    p_phone => '060 111 222', p_pickup => '2099-03-01', p_return => '2099-03-03', p_location => 'TEST lokacija',
+    p_daily_rate => 50);
+  id_g := (res ->> 'id')::uuid;
+  res := admin_pickup(id_g, 'bank');
+  ok := res ->> 'reason' = 'invalid_method';
+  res := admin_get_reservation(id_g);
+  ok := ok and res -> 'reservation' ->> 'status' = 'confirmed' and jsonb_array_length(res -> 'payments') = 0;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: način plaćanja mora biti gotovina ili kartica, ništa se ne upisuje [%s]', left(res::text, 300))); end if;
+
+  -- Gotovina: status "preuzeta" + uplata 100 € sa današnjim datumom, u istoriji oba događaja.
+  res := admin_pickup(id_g, 'cash');
+  ok := (res ->> 'success')::boolean and (res ->> 'paid')::numeric = 100;
+  res := admin_get_reservation(id_g);
+  ok := ok and res -> 'reservation' ->> 'status' = 'picked_up'
+    and (res -> 'reservation' ->> 'net_paid')::numeric = 100
+    and (res -> 'reservation' ->> 'balance')::numeric = 0
+    and jsonb_array_length(res -> 'payments') = 1
+    and res -> 'payments' -> 0 ->> 'method' = 'cash'
+    and (res -> 'payments' -> 0 ->> 'paid_at')::date = today_bg
+    and exists (select 1 from jsonb_array_elements(res -> 'events') e where e ->> 'action' = 'payment_added')
+    and exists (select 1 from jsonb_array_elements(res -> 'events') e where e ->> 'action' = 'status_changed');
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: status "preuzeta" i uplata celog iznosa 100 € (gotovina, danas) [%s]', left(res::text, 400))); end if;
+
+  res := admin_pickup(id_g, 'cash');
+  ok := res ->> 'reason' = 'invalid_transition';
+  res := admin_get_reservation(id_g);
+  ok := ok and jsonb_array_length(res -> 'payments') = 1;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje se ne beleži dvaput (nema duple uplate) [%s]', left(res::text, 200))); end if;
+
+  -- P2: bez cene -> ne može da se preuzme dok se ne upiše cena.
+  res := admin_create_reservation(p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Preuzimanje 2',
+    p_phone => '060 111 222', p_pickup => '2099-03-10', p_return => '2099-03-12', p_location => 'TEST lokacija');
+  id_h := (res ->> 'id')::uuid;
+  res := admin_pickup(id_h, 'card');
+  ok := res ->> 'reason' = 'no_price';
+  res := admin_get_reservation(id_h);
+  ok := ok and res -> 'reservation' ->> 'status' = 'confirmed' and jsonb_array_length(res -> 'payments') = 0;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje bez cene je odbijeno [%s]', left(res::text, 200))); end if;
+
+  -- P3: 3 × 50 = 150 €, ranije upisano 40 € -> kartica 110 €. P4: već plaćeno 100 € -> samo status.
+  res := admin_create_reservation(p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Preuzimanje 3',
+    p_phone => '060 111 222', p_pickup => '2099-03-20', p_return => '2099-03-23', p_location => 'TEST lokacija',
+    p_daily_rate => 50);
+  id_n := (res ->> 'id')::uuid;
+  res := admin_add_payment(id_n, 'payment', 40, 'cash', '2099-03-01');
+  res := admin_pickup(id_n, 'card');
+  ok := (res ->> 'paid')::numeric = 110;
+  res := admin_get_reservation(id_n);
+  ok := ok and (res -> 'reservation' ->> 'net_paid')::numeric = 150 and (res -> 'reservation' ->> 'balance')::numeric = 0;
+  res := admin_create_reservation(p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Preuzimanje 4',
+    p_phone => '060 111 222', p_pickup => '2099-04-01', p_return => '2099-04-03', p_location => 'TEST lokacija',
+    p_daily_rate => 50);
+  id_g2 := (res ->> 'id')::uuid;
+  res := admin_add_payment(id_g2, 'payment', 100, 'card', '2099-03-25');
+  res := admin_pickup(id_g2);
+  ok := ok and (res ->> 'success')::boolean and (res ->> 'paid')::numeric = 0;
+  res := admin_get_reservation(id_g2);
+  ok := ok and res -> 'reservation' ->> 'status' = 'picked_up' and jsonb_array_length(res -> 'payments') = 1;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: upisuje se samo ostatak (110 €), a već plaćena se samo preuzima [%s]', left(res::text, 300))); end if;
   reset role;
 
   raise exception using

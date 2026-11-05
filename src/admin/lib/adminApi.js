@@ -22,6 +22,7 @@ const REASONS = {
   invalid_kind: 'Izaberi vrstu uplate.',
   invalid_amount: 'Iznos mora biti veći od 0 (najviše 100.000 €).',
   invalid_method: 'Izaberi način plaćanja.',
+  no_price: 'Rezervacija nema cenu — upiši je preko „Izmeni“, pa označi preuzimanje.',
 };
 
 const NETWORK_ERROR = 'Veza sa bazom nije uspela. Proveri internet i pokušaj ponovo.';
@@ -94,6 +95,8 @@ export const adminApi = {
   createReservation: (fields) => call('admin_create_reservation', reservationParams(fields)),
   updateReservation: (id, fields) => call('admin_update_reservation', { p_id: id, ...reservationParams(fields) }),
   setStatus: (id, status) => call('admin_set_status', { p_id: id, p_status: status }),
+  // Vozilo preuzeto = kupac je platio ceo iznos: status + uplata u jednom koraku.
+  pickup: (id, method) => call('admin_pickup', { p_id: id, p_method: method ?? null }),
   calendar: (from, to) => call('admin_calendar', { p_from: from, p_to: to }),
   // Registarske oznake i beleške (tabela vehicle_registry — čita je samo admin, RLS).
   async listVehicles() {

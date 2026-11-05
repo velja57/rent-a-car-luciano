@@ -1156,6 +1156,66 @@ begin
 end;
 $$;
 
+-- Preuzimanje vozila = naplata. Kupac plaća ceo iznos rezervacije pri
+-- preuzimanju, pa admin jednim potvrđivanjem menja status u "preuzeta" i
+-- upisuje uplatu (gotovina ili kartica, današnji datum). Ako je deo već ranije
+-- upisan, upisuje se samo ostatak do punog iznosa; ako je sve već plaćeno,
+-- menja se samo status. Bez poznate cene preuzimanje se ne beleži — prvo se
+-- upiše cena (reason no_price).
+create or replace function admin_pickup(p_id uuid, p_method text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r reservations;
+  t record;
+  due numeric;
+  new_id uuid;
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+
+  select * into r from reservations where id = p_id for update;
+  if not found then
+    return jsonb_build_object('success', false, 'reason', 'not_found');
+  end if;
+  if r.status <> 'confirmed' then
+    return jsonb_build_object('success', false, 'reason', 'invalid_transition', 'from', r.status, 'to', 'picked_up');
+  end if;
+  if r.total_price is null then
+    return jsonb_build_object('success', false, 'reason', 'no_price');
+  end if;
+
+  select * into t from payment_totals(r.id);
+  due := greatest(r.total_price - (t.paid - t.refunded), 0);
+
+  if due > 0 then
+    if p_method is null or p_method not in ('cash', 'card') then
+      return jsonb_build_object('success', false, 'reason', 'invalid_method');
+    end if;
+
+    insert into payments (reservation_id, kind, amount, method, paid_at, note, created_by)
+    values (r.id, 'payment', due, p_method, (now() at time zone 'Europe/Belgrade')::date,
+      'Naplata pri preuzimanju vozila', current_actor())
+    returning id into new_id;
+
+    insert into reservation_events (reservation_id, action, changes, actor)
+    values (
+      r.id, 'payment_added',
+      jsonb_build_object('payment_id', new_id, 'kind', 'payment', 'amount', due, 'method', p_method),
+      current_actor()
+    );
+  end if;
+
+  update reservations set status = 'picked_up', updated_at = now() where id = r.id;
+
+  return jsonb_build_object('success', true, 'status', 'picked_up', 'paid', due, 'method', case when due > 0 then p_method end);
+end;
+$$;
+
 -- Ručno beleženje uplate / avansa / povraćaja / kaucije.
 create or replace function admin_add_payment(
   p_reservation_id uuid,

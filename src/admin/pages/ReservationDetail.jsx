@@ -15,11 +15,75 @@ import {
   LANGUAGES,
   MONEY_FIELDS,
   PAYMENT_KINDS,
+  PAYMENT_METHODS,
   PRICE_SOURCES,
   SOURCES,
   STATUSES,
   TRANSITIONS,
 } from '../lib/labels';
+
+// Načini plaćanja pri preuzimanju vozila.
+const PICKUP_METHODS = ['cash', 'card'];
+
+// Sadržaj prozora "Vozilo preuzeto": kupac pri preuzimanju plaća ceo iznos.
+function pickupDialog(r, method, setMethod, editHref) {
+  if (r.total_price === null) {
+    return {
+      text: 'Kupac pri preuzimanju plaća ceo iznos rezervacije, a ova rezervacija nema cenu. Prvo upiši cenu, pa označi preuzimanje.',
+      confirmLabel: 'Preuzeto i plaćeno',
+      confirmDisabled: true,
+      body: (
+        <Link to={editHref} className="admin-link">
+          Upiši cenu (Izmeni)
+        </Link>
+      ),
+    };
+  }
+  const total = Number(r.total_price);
+  const due = Math.max(total - Number(r.net_paid), 0);
+  if (due === 0) {
+    return {
+      text: `Rezervacija je već plaćena u celosti (${formatMoney(total)}). Potvrdom se samo označava da je kupac preuzeo vozilo.`,
+      confirmLabel: 'Vozilo preuzeto',
+      confirmDisabled: false,
+      body: null,
+    };
+  }
+  return {
+    text: 'Kupac pri preuzimanju plaća ceo iznos rezervacije. Potvrdom se vozilo označava kao preuzeto i upisuje se uplata sa današnjim datumom.',
+    confirmLabel: 'Preuzeto i plaćeno',
+    confirmDisabled: !method,
+    body: (
+      <div className="admin-pickup">
+        <div className="admin-pickup__amount">
+          <span className="admin-muted">Naplaćuje se</span>
+          <strong>{formatMoney(due)}</strong>
+          {due < total && (
+            <span className="admin-muted">
+              ostatak do {formatMoney(total)} — ranije uplaćeno {formatMoney(Number(r.net_paid))}
+            </span>
+          )}
+        </div>
+        <div className="admin-pickup__methods" role="group" aria-label="Način plaćanja">
+          <span className="admin-muted">Način plaćanja</span>
+          <div>
+            {PICKUP_METHODS.map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={`admin-chip${method === m ? ' admin-chip--on' : ''}`}
+                aria-pressed={method === m}
+                onClick={() => setMethod(m)}
+              >
+                {PAYMENT_METHODS[m]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    ),
+  };
+}
 
 function Row({ label, children }) {
   return (
@@ -92,6 +156,7 @@ export default function ReservationDetail() {
   const { data, error, loading, reload } = useAdminData(() => adminApi.getReservation(id), [id]);
   const [pending, setPending] = useState(null); // prelaz statusa koji čeka potvrdu
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState(null); // gotovina ili kartica pri preuzimanju
 
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/rezervacije'));
 
@@ -113,8 +178,17 @@ export default function ReservationDetail() {
   const changeStatus = async () => {
     setBusy(true);
     try {
-      await adminApi.setStatus(r.id, pending.to);
-      toast.success(`Status je promenjen: ${STATUSES[pending.to]}.`);
+      if (pending.to === 'picked_up') {
+        const res = await adminApi.pickup(r.id, method);
+        toast.success(
+          Number(res.paid) > 0
+            ? `Vozilo preuzeto · naplaćeno ${formatMoney(res.paid)} (${PAYMENT_METHODS[res.method].toLowerCase()}).`
+            : 'Vozilo preuzeto.',
+        );
+      } else {
+        await adminApi.setStatus(r.id, pending.to);
+        toast.success(`Status je promenjen: ${STATUSES[pending.to]}.`);
+      }
       setPending(null);
       reload();
     } catch (err) {
@@ -147,7 +221,10 @@ export default function ReservationDetail() {
               key={t.to}
               type="button"
               className={`admin-btn${t.danger ? ' admin-btn--danger' : ''}`}
-              onClick={() => setPending(t)}
+              onClick={() => {
+                setMethod(null);
+                setPending(t);
+              }}
             >
               {t.label}
             </button>
@@ -265,7 +342,7 @@ export default function ReservationDetail() {
         )}
       </section>
 
-      {pending && (
+      {pending && pending.to !== 'picked_up' && (
         <ConfirmDialog
           title={pending.label}
           text={pending.confirm}
@@ -276,6 +353,23 @@ export default function ReservationDetail() {
           onCancel={() => setPending(null)}
         />
       )}
+      {pending?.to === 'picked_up' &&
+        (() => {
+          const d = pickupDialog(r, method, setMethod, `/rezervacije/${r.id}/izmena`);
+          return (
+            <ConfirmDialog
+              title={pending.label}
+              text={d.text}
+              confirmLabel={d.confirmLabel}
+              confirmDisabled={d.confirmDisabled}
+              busy={busy}
+              onConfirm={changeStatus}
+              onCancel={() => setPending(null)}
+            >
+              {d.body}
+            </ConfirmDialog>
+          );
+        })()}
     </div>
   );
 }
