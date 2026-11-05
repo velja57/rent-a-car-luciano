@@ -6,7 +6,7 @@ import { ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
 import { adminApi, useAdminData } from '../lib/adminApi';
 import Payments from '../components/Payments';
-import { ageFrom, formatDate, formatDateTime, formatMoney, formatTime, shortId } from '../lib/format';
+import { ageFrom, formatDate, formatDateTime, formatMoney, formatTime, shortId, todayBelgrade } from '../lib/format';
 import {
   actorLabel,
   EVENT_LABELS,
@@ -50,7 +50,7 @@ function pickupDialog(r, method, setMethod, editHref) {
     };
   }
   return {
-    text: `Kupac pri preuzimanju plaća ceo iznos rezervacije. Potvrdom se vozilo označava kao preuzeto i upisuje se uplata sa datumom preuzimanja (${formatDate(r.pickup_date)}).`,
+    text: 'Kupac pri preuzimanju plaća ceo iznos rezervacije. Potvrdom se vozilo označava kao preuzeto (današnji datum i vreme), a iznos se upisuje kao prihod.',
     confirmLabel: 'Preuzeto i plaćeno',
     confirmDisabled: !method,
     body: (
@@ -113,6 +113,9 @@ function formatValue(field, value) {
     case 'pickup_time':
     case 'return_time':
       return formatTime(value);
+    case 'picked_up_at':
+    case 'returned_at':
+      return value ? formatDateTime(value) : '—';
     case 'extras':
       return Array.isArray(value) && value.length ? value.map(extraName).join(', ') : '—';
     case 'language':
@@ -186,6 +189,20 @@ export default function ReservationDetail() {
             ? `Vozilo preuzeto · naplaćeno ${formatMoney(res.paid)} (${PAYMENT_METHODS[res.method].toLowerCase()}).`
             : 'Vozilo preuzeto.',
         );
+      } else if (pending.action === 'return') {
+        const res = await adminApi.returnCar(r.id);
+        toast.success(
+          res.shortened
+            ? `Vozilo vraćeno · rezervacija je završena, termin je skraćen do ${formatDate(res.return_date)} (ostali dani su slobodni).`
+            : 'Vozilo vraćeno · rezervacija je završena.',
+        );
+      } else if (pending.action === 'undo_pickup') {
+        const res = await adminApi.undoPickup(r.id);
+        toast.success(
+          Number(res.voided) > 0
+            ? `Preuzimanje je poništeno · naplata od ${formatMoney(res.voided)} je poništena.`
+            : 'Preuzimanje je poništeno.',
+        );
       } else {
         await adminApi.setStatus(r.id, pending.to);
         toast.success(`Status je promenjen: ${STATUSES[pending.to]}.`);
@@ -257,6 +274,8 @@ export default function ReservationDetail() {
             <Row label="Trajanje">
               {r.days} {r.days === 1 ? 'dan' : 'dana'}
             </Row>
+            {r.picked_up_at && <Row label="Preuzeto">{formatDateTime(r.picked_up_at)}</Row>}
+            {r.returned_at && <Row label="Vraćeno">{formatDateTime(r.returned_at)}</Row>}
           </dl>
         </section>
 
@@ -315,7 +334,7 @@ export default function ReservationDetail() {
         </section>
       </div>
 
-      <Payments reservation={r} payments={data.payments} onChange={reload} />
+      <Payments reservation={r} payments={data.payments} />
 
       <section className="admin-panel">
         <h2 className="admin-panel__title">Istorija promena</h2>
@@ -346,7 +365,11 @@ export default function ReservationDetail() {
       {pending && pending.to !== 'picked_up' && (
         <ConfirmDialog
           title={pending.label}
-          text={pending.confirm}
+          text={
+            pending.action === 'return' && todayBelgrade() < r.return_date
+              ? `${pending.confirm} Vraća se pre planiranog dana (${formatDate(r.return_date)}): preostali dani se oslobađaju za druge rezervacije, a cena i naplata ostaju iste.`
+              : pending.confirm
+          }
           confirmLabel={pending.label}
           danger={pending.danger}
           busy={busy}

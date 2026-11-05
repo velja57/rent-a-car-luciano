@@ -97,6 +97,10 @@ export const adminApi = {
   setStatus: (id, status) => call('admin_set_status', { p_id: id, p_status: status }),
   // Vozilo preuzeto = kupac je platio ceo iznos: status + uplata u jednom koraku.
   pickup: (id, method) => call('admin_pickup', { p_id: id, p_method: method ?? null }),
+  // Greškom kliknuto "Vozilo preuzeto": nazad u potvrđenu, naplata se poništava.
+  undoPickup: (id) => call('admin_undo_pickup', { p_id: id }),
+  // Vozilo vraćeno: završena rezervacija; raniji povraćaj oslobađa preostale dane.
+  returnCar: (id) => call('admin_return', { p_id: id }),
   calendar: (from, to) => call('admin_calendar', { p_from: from, p_to: to }),
   // Registarske oznake i beleške (tabela vehicle_registry — čita je samo admin, RLS).
   async listVehicles() {

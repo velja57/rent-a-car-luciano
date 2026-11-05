@@ -985,6 +985,19 @@
   line-height: 1.5;
 }
 
+/* Naplata u detalju rezervacije (samo prikaz). */
+.admin-collected {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+}
+
+.admin-collected strong {
+  font-size: 22px;
+  color: var(--color-accent);
+}
+
 /* Prozor "Vozilo preuzeto": iznos koji se naplaćuje i način plaćanja. */
 .admin-pickup {
   display: flex;

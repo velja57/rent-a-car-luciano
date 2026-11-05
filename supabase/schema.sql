@@ -102,6 +102,10 @@ alter table reservations add column if not exists rental_total numeric(10, 2);
 alter table reservations add column if not exists extras_total numeric(10, 2);
 alter table reservations add column if not exists price_source text;
 
+-- Tačan trenutak kada je radnik u adminu označio preuzimanje / vraćanje vozila.
+alter table reservations add column if not exists picked_up_at timestamptz;
+alter table reservations add column if not exists returned_at timestamptz;
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'reservations_price_source_check') then
@@ -605,10 +609,10 @@ create trigger reservations_log_change
   after insert or update on reservations
   for each row execute function log_reservation_change();
 
--- Datum uplate = datum preuzimanja vozila. Kupac plaća ceo iznos pri
--- preuzimanju, pa svaka uplata (kind 'payment') nosi datum preuzimanja iz
--- rezervacije — i kad se upiše kasnije, i kad se datum preuzimanja izmeni.
--- Povraćaj i kaucija zadržavaju svoj datum.
+-- Datum uplate = dan preuzimanja vozila. Kupac plaća ceo iznos pri
+-- preuzimanju, pa svaka uplata (kind 'payment') nosi dan stvarnog preuzimanja
+-- (picked_up_at, po beogradskom vremenu), a dok vozilo nije preuzeto — datum
+-- preuzimanja iz rezervacije. Povraćaj i kaucija zadržavaju svoj datum.
 create or replace function payment_paid_on_pickup()
 returns trigger
 language plpgsql
@@ -617,7 +621,8 @@ set search_path = public
 as $$
 begin
   if new.kind = 'payment' then
-    select r.pickup_date into new.paid_at from reservations r where r.id = new.reservation_id;
+    select coalesce((r.picked_up_at at time zone 'Europe/Belgrade')::date, r.pickup_date) into new.paid_at
+    from reservations r where r.id = new.reservation_id;
   end if;
   return new;
 end;
@@ -635,26 +640,31 @@ security definer
 set search_path = public
 as $$
 begin
-  update payments set paid_at = new.pickup_date
-  where reservation_id = new.id and kind = 'payment' and paid_at is distinct from new.pickup_date;
+  update payments
+  set paid_at = coalesce((new.picked_up_at at time zone 'Europe/Belgrade')::date, new.pickup_date)
+  where reservation_id = new.id
+    and kind = 'payment'
+    and paid_at is distinct from coalesce((new.picked_up_at at time zone 'Europe/Belgrade')::date, new.pickup_date);
   return null;
 end;
 $$;
 
 drop trigger if exists reservations_sync_payment_dates on reservations;
 create trigger reservations_sync_payment_dates
-  after update of pickup_date on reservations
+  after update of pickup_date, picked_up_at on reservations
   for each row
-  when (old.pickup_date is distinct from new.pickup_date)
+  when (old.pickup_date is distinct from new.pickup_date or old.picked_up_at is distinct from new.picked_up_at)
   execute function sync_payment_dates();
 
 -- Uplate upisane pre ovog pravila dobijaju datum preuzimanja (jednom; posle
 -- toga nema razlika). Stari datum ostaje zapisan u istoriji rezervacije.
 with old as (
-  select p.id, p.reservation_id, p.paid_at as old_date, r.pickup_date as new_date
+  select p.id, p.reservation_id, p.paid_at as old_date,
+    coalesce((r.picked_up_at at time zone 'Europe/Belgrade')::date, r.pickup_date) as new_date
   from payments p
   join reservations r on r.id = p.reservation_id
-  where p.kind = 'payment' and p.paid_at is distinct from r.pickup_date
+  where p.kind = 'payment'
+    and p.paid_at is distinct from coalesce((r.picked_up_at at time zone 'Europe/Belgrade')::date, r.pickup_date)
 ),
 moved as (
   update payments p set paid_at = o.new_date
@@ -1221,7 +1231,8 @@ $$;
 
 -- Preuzimanje vozila = naplata. Kupac plaća ceo iznos rezervacije pri
 -- preuzimanju, pa admin jednim potvrđivanjem menja status u "preuzeta" i
--- upisuje uplatu (gotovina ili kartica, sa datumom preuzimanja). Ako je deo već ranije
+-- upisuje uplatu (gotovina ili kartica) sa danom preuzimanja; čuva se i tačno
+-- vreme preuzimanja (picked_up_at). Ako je deo već ranije
 -- upisan, upisuje se samo ostatak do punog iznosa; ako je sve već plaćeno,
 -- menja se samo status. Bez poznate cene preuzimanje se ne beleži — prvo se
 -- upiše cena (reason no_price).
@@ -1255,13 +1266,16 @@ begin
   select * into t from payment_totals(r.id);
   due := greatest(r.total_price - (t.paid - t.refunded), 0);
 
-  if due > 0 then
-    if p_method is null or p_method not in ('cash', 'card') then
-      return jsonb_build_object('success', false, 'reason', 'invalid_method');
-    end if;
+  if due > 0 and (p_method is null or p_method not in ('cash', 'card')) then
+    return jsonb_build_object('success', false, 'reason', 'invalid_method');
+  end if;
 
-    insert into payments (reservation_id, kind, amount, method, paid_at, note, created_by)
-    values (r.id, 'payment', due, p_method, r.pickup_date, 'Naplata pri preuzimanju vozila', current_actor())
+  update reservations set status = 'picked_up', picked_up_at = now(), updated_at = now() where id = r.id;
+
+  if due > 0 then
+    -- Datum uplate postavlja okidač payments_paid_on_pickup (dan preuzimanja).
+    insert into payments (reservation_id, kind, amount, method, note, created_by)
+    values (r.id, 'payment', due, p_method, 'Naplata pri preuzimanju vozila', current_actor())
     returning id into new_id;
 
     insert into reservation_events (reservation_id, action, changes, actor)
@@ -1272,9 +1286,95 @@ begin
     );
   end if;
 
-  update reservations set status = 'picked_up', updated_at = now() where id = r.id;
-
   return jsonb_build_object('success', true, 'status', 'picked_up', 'paid', due, 'method', case when due > 0 then p_method end);
+end;
+$$;
+
+-- Poništavanje pogrešno označenog preuzimanja: rezervacija se vraća u
+-- "potvrđena", a naplata se poništava (ostaje zabeležena kao poništena, uz
+-- zapis u istoriji). Vozilo ponovo nije izdato.
+create or replace function admin_undo_pickup(p_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r reservations;
+  voided numeric := 0;
+  p payments;
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+
+  select * into r from reservations where id = p_id for update;
+  if not found then
+    return jsonb_build_object('success', false, 'reason', 'not_found');
+  end if;
+  if r.status <> 'picked_up' then
+    return jsonb_build_object('success', false, 'reason', 'invalid_transition', 'from', r.status, 'to', 'confirmed');
+  end if;
+
+  for p in
+    update payments set voided_at = now(), voided_by = current_actor()
+    where reservation_id = r.id and kind = 'payment' and voided_at is null
+    returning *
+  loop
+    voided := voided + p.amount;
+    insert into reservation_events (reservation_id, action, changes, actor)
+    values (
+      r.id, 'payment_voided',
+      jsonb_build_object('payment_id', p.id, 'kind', p.kind, 'amount', p.amount, 'reason', 'Poništeno preuzimanje'),
+      current_actor()
+    );
+  end loop;
+
+  update reservations set status = 'confirmed', picked_up_at = null, updated_at = now() where id = r.id;
+
+  return jsonb_build_object('success', true, 'status', 'confirmed', 'voided', voided);
+end;
+$$;
+
+-- Vozilo vraćeno: rezervacija postaje "završena" (vozilo je ponovo dostupno) i
+-- čuva se tačno vreme vraćanja. Ako je vraćeno pre planiranog dana, datum
+-- vraćanja se skraćuje na danas — preostali dani se oslobađaju za druge
+-- rezervacije, a cena i naplata ostaju iste.
+create or replace function admin_return(p_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r reservations;
+  today date := (now() at time zone 'Europe/Belgrade')::date;
+  new_return date;
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+
+  select * into r from reservations where id = p_id for update;
+  if not found then
+    return jsonb_build_object('success', false, 'reason', 'not_found');
+  end if;
+  if r.status <> 'picked_up' then
+    return jsonb_build_object('success', false, 'reason', 'invalid_transition', 'from', r.status, 'to', 'completed');
+  end if;
+
+  new_return := case when today < r.return_date then greatest(today, r.pickup_date + 1) else r.return_date end;
+
+  update reservations
+  set status = 'completed', returned_at = now(), return_date = new_return, updated_at = now()
+  where id = r.id;
+
+  return jsonb_build_object(
+    'success', true,
+    'status', 'completed',
+    'return_date', new_return,
+    'shortened', new_return < r.return_date
+  );
 end;
 $$;
 

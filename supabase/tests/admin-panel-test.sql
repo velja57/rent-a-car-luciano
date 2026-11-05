@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 87 od 87 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 90 od 90 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -709,7 +709,8 @@ begin
   ok := ok and res -> 'reservation' ->> 'status' = 'confirmed' and jsonb_array_length(res -> 'payments') = 0;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: način plaćanja mora biti gotovina ili kartica, ništa se ne upisuje [%s]', left(res::text, 300))); end if;
 
-  -- Gotovina: status "preuzeta" + uplata 100 € sa današnjim datumom, u istoriji oba događaja.
+  -- Gotovina: status "preuzeta" + uplata 100 € sa danom stvarnog preuzimanja (danas), tačno
+  -- vreme preuzimanja je zabeleženo, u istoriji oba događaja.
   res := admin_pickup(id_g, 'cash');
   ok := (res ->> 'success')::boolean and (res ->> 'paid')::numeric = 100;
   res := admin_get_reservation(id_g);
@@ -718,10 +719,11 @@ begin
     and (res -> 'reservation' ->> 'balance')::numeric = 0
     and jsonb_array_length(res -> 'payments') = 1
     and res -> 'payments' -> 0 ->> 'method' = 'cash'
-    and (res -> 'payments' -> 0 ->> 'paid_at')::date = '2099-03-01'
+    and (res -> 'payments' -> 0 ->> 'paid_at')::date = today_bg
+    and res -> 'reservation' ->> 'picked_up_at' is not null
     and exists (select 1 from jsonb_array_elements(res -> 'events') e where e ->> 'action' = 'payment_added')
     and exists (select 1 from jsonb_array_elements(res -> 'events') e where e ->> 'action' = 'status_changed');
-  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: status "preuzeta" i uplata celog iznosa 100 € (gotovina, datum preuzimanja) [%s]', left(res::text, 400))); end if;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('preuzimanje: status "preuzeta", vreme preuzimanja i uplata celog iznosa 100 € (gotovina, dan preuzimanja) [%s]', left(res::text, 400))); end if;
 
   res := admin_pickup(id_g, 'cash');
   ok := res ->> 'reason' = 'invalid_transition';
@@ -767,25 +769,74 @@ begin
   perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
   set local role authenticated;
 
-  -- P3 (preuzimanje 20.3.2099): uplata upisana "1.3." i uplata pri preuzimanju -> obe 20.3.;
-  -- povraćaj zadržava svoj datum.
+  -- P3 je preuzeta danas: i ranije upisana uplata i uplata pri preuzimanju nose dan
+  -- stvarnog preuzimanja; povraćaj zadržava svoj datum.
   res := admin_add_payment(id_n, 'refund', 5, 'cash', '2099-04-02');
   res := admin_get_reservation(id_n);
-  ok := (select bool_and((p ->> 'paid_at')::date = '2099-03-20') from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'payment')
+  ok := (select bool_and((p ->> 'paid_at')::date = today_bg) from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'payment')
     and (select count(*) from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'payment') = 2
     and exists (select 1 from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'refund' and (p ->> 'paid_at')::date = '2099-04-02');
-  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('datum uplate je uvek datum preuzimanja (povraćaj zadržava svoj) [%s]', left(res -> 'payments' ->> 0, 300))); end if;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('datum uplate je dan preuzimanja vozila (povraćaj zadržava svoj) [%s]', left(res -> 'payments' ->> 0, 300))); end if;
 
-  -- Izmena datuma preuzimanja P3 na 19.3. pomera i datum uplata.
-  res := admin_update_reservation(p_id => id_n, p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Preuzimanje 3',
-    p_phone => '060 111 222', p_pickup => '2099-03-19', p_return => '2099-03-23', p_location => 'TEST lokacija',
-    p_daily_rate => 50);
+  -- P2 (10.3., još nije preuzeta): upisana uplata nosi datum preuzimanja iz rezervacije
+  -- i pomera se kad se taj datum izmeni (9.3.).
+  res := admin_add_payment(id_h, 'payment', 10, 'cash', '2099-01-01');
+  res := admin_update_reservation(p_id => id_h, p_car_id => car, p_car_name => 'TEST vozilo', p_customer_name => 'TEST Preuzimanje 2',
+    p_phone => '060 111 222', p_pickup => '2099-03-09', p_return => '2099-03-12', p_location => 'TEST lokacija');
   ok := (res ->> 'success')::boolean;
-  res := admin_get_reservation(id_n);
-  ok := ok
-    and (select bool_and((p ->> 'paid_at')::date = '2099-03-19') from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'payment')
-    and exists (select 1 from jsonb_array_elements(res -> 'payments') p where p ->> 'kind' = 'refund' and (p ->> 'paid_at')::date = '2099-04-02');
-  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('promena datuma preuzimanja pomera datum uplata [%s]', left(res -> 'payments' ->> 0, 300))); end if;
+  res := admin_get_reservation(id_h);
+  ok := ok and (res -> 'payments' -> 0 ->> 'paid_at')::date = '2099-03-09';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('pre preuzimanja: promena datuma preuzimanja pomera datum uplate [%s]', left(res -> 'payments' ->> 0, 300))); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 11. Poništeno preuzimanje i vraćanje vozila
+  -- =========================================================================
+  perform set_config('request.jwt.claims', '{"role":"authenticated","email":"neko-drugi@example.com"}', true);
+  set local role authenticated;
+  res := admin_undo_pickup(id_g);
+  ok := res ->> 'reason' = 'forbidden';
+  res := admin_return(id_g);
+  ok := ok and res ->> 'reason' = 'forbidden';
+  reset role;
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+
+  -- P1 (preuzeta, naplaćeno 100 €): poništavanje -> potvrđena, bez vremena preuzimanja,
+  -- naplata poništena (ostaje zapisana), u istoriji razlog.
+  res := admin_undo_pickup(id_g);
+  ok := ok and (res ->> 'success')::boolean and (res ->> 'voided')::numeric = 100;
+  res := admin_get_reservation(id_g);
+  ok := ok and res -> 'reservation' ->> 'status' = 'confirmed'
+    and res -> 'reservation' -> 'picked_up_at' = 'null'::jsonb
+    and (res -> 'reservation' ->> 'net_paid')::numeric = 0
+    and jsonb_array_length(res -> 'payments') = 1
+    and res -> 'payments' -> 0 ->> 'voided_at' is not null
+    and exists (select 1 from jsonb_array_elements(res -> 'events') e
+                where e ->> 'action' = 'payment_voided' and e -> 'changes' ->> 'reason' = 'Poništeno preuzimanje');
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('poništeno preuzimanje: potvrđena, naplata poništena i zapisana [%s]', left(res::text, 400))); end if;
+
+  -- Ponovno preuzimanje (kartica) -> nova naplata 100 €; vraćanje pre planiranog dana skraćuje
+  -- rezervaciju (1.-3.3. -> 1.-2.3.), cena i naplata ostaju iste.
+  res := admin_pickup(id_g, 'card');
+  ok := (res ->> 'paid')::numeric = 100;
+  res := admin_return(id_g);
+  ok := ok and (res ->> 'success')::boolean and (res ->> 'shortened')::boolean;
+  res := admin_get_reservation(id_g);
+  ok := ok and res -> 'reservation' ->> 'status' = 'completed'
+    and res -> 'reservation' ->> 'returned_at' is not null
+    and (res -> 'reservation' ->> 'return_date')::date = '2099-03-02'
+    and (res -> 'reservation' ->> 'total_price')::numeric = 100
+    and (res -> 'reservation' ->> 'net_paid')::numeric = 100;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('vozilo vraćeno ranije: završena, vreme vraćanja, skraćen termin, ista cena i naplata [%s]', left(res::text, 400))); end if;
+
+  -- Završena se ne vraća niti poništava; potvrđena se ne može "vratiti".
+  res := admin_undo_pickup(id_g);
+  ok := res ->> 'reason' = 'invalid_transition';
+  res := admin_return(id_h);
+  ok := ok and res ->> 'reason' = 'invalid_transition';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('poništavanje i vraćanje samo za preuzetu rezervaciju [%s]', res)); end if;
   reset role;
 
   raise exception using

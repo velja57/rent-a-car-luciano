@@ -5,7 +5,7 @@ import sr from '../../i18n/sr';
 // Statusi rezervacije (isti kao u supabase/schema.sql).
 export const STATUSES = {
   confirmed: 'Potvrđena',
-  picked_up: 'Preuzeta',
+  picked_up: 'Aktivna — vozilo preuzeto',
   completed: 'Završena',
   cancelled: 'Otkazana',
   no_show: 'Nije se pojavio',
@@ -38,8 +38,16 @@ export const TRANSITIONS = {
   picked_up: [
     {
       to: 'completed',
+      action: 'return',
       label: 'Vozilo vraćeno',
-      confirm: 'Označiti da je vozilo vraćeno? Ako je vraćeno ranije od dogovorenog, prvo izmeni datum vraćanja da se oslobode preostali dani.',
+      confirm: 'Označiti da je kupac vratio vozilo? Rezervacija postaje „Završena“, a vozilo je ponovo dostupno.',
+    },
+    {
+      to: 'confirmed',
+      action: 'undo_pickup',
+      label: 'Poništi preuzimanje',
+      confirm: 'Poništiti preuzimanje? Rezervacija se vraća u „Potvrđena“, a naplata se poništava (ostaje zapisana u istoriji). Koristi samo ako je „Vozilo preuzeto“ kliknuto greškom.',
+      danger: true,
     },
   ],
   cancelled: [
@@ -89,7 +97,7 @@ export const PRICE_SOURCES = {
 
 // Ručno beleženje novca (tabela payments). Kaucija nije prihod.
 export const PAYMENT_KINDS = {
-  payment: 'Uplata / avans',
+  payment: 'Uplata',
   refund: 'Povraćaj kupcu',
   deposit_received: 'Kaucija primljena',
   deposit_returned: 'Kaucija vraćena',
@@ -107,6 +115,8 @@ export const FIELD_LABELS = {
   phone: 'Telefon',
   date_of_birth: 'Datum rođenja',
   pickup_date: 'Datum preuzimanja',
+  picked_up_at: 'Preuzeto',
+  returned_at: 'Vraćeno',
   paid_at: 'Datum uplate',
   return_date: 'Datum vraćanja',
   pickup_time: 'Vreme preuzimanja',
