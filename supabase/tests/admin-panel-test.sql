@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 92 od 92 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 102 od 102 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -867,6 +867,94 @@ begin
                 where (x ->> 'id')::uuid = id_b and x ->> 'status' = 'picked_up' and x ->> 'picked_up_at' is not null)
     and (res ->> 'confirmed')::int >= 0;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('kontrolna tabla: današnje preuzimanje ostaje na spisku i posle preuzimanja [%s]', left(res -> 'pickups_today' ->> 0, 300))); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 13. Vreme preuzimanja i vraćanja (dan = 24 h + 59 min, 2 h pripreme,
+  --     preko sajta radnim danima 08–20). 7.3.2095 je ponedeljak.
+  -- =========================================================================
+  insert into price_list (car_id, price_per_day) values ('test-vozilo-vreme', 40)
+  on conflict (car_id) do update set price_per_day = 40;
+  -- Limit od 30 rezervacija sa sajta na sat je u sekciji 6 namerno popunjen.
+  update reservations set created_at = created_at - interval '2 hours' where car_id = car;
+
+  ok := rental_days_between('2095-03-07', '10:00', '2095-03-08', '10:59') = 1
+    and rental_days_between('2095-03-07', '10:00', '2095-03-08', '11:00') = 2
+    and rental_days_between('2095-03-07', null, '2095-03-09', null) = 2;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'dan najma = 24 h od preuzimanja, tolerancija 59 min'); end if;
+
+  res := price_quote('test-vozilo-vreme', '2095-03-07', '2095-03-08', null, '10:00', '11:00');
+  ok := (res ->> 'days')::int = 2 and (res ->> 'total')::numeric = 80;
+  res := price_quote('test-vozilo-vreme', '2095-03-07', '2095-03-08', null, '10:00', '10:30');
+  ok := ok and (res ->> 'days')::int = 1 and (res ->> 'total')::numeric = 40;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('cena po pravilu 24 h (10:00 -> 11:00 = 2 dana, 10:30 = 1 dan) [%s]', res)); end if;
+
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  set local role anon;
+
+  -- V1 sa sajta: pon 7.3. 10:00 -> sre 9.3. 10:00 = 2 dana, 80 €.
+  res := create_reservation('test-vozilo-vreme', 'TEST vreme', 'TEST Vreme 1', 'vreme1@example.com', '066 100 0001', '1990-01-01',
+    '2095-03-07', '2095-03-09', 'TEST', null, 'sr', null, 80, null, '10:00', '10:00');
+  id_c := (res ->> 'id')::uuid;
+  ok := (res ->> 'success')::boolean;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: rezervacija sa vremenom preuzimanja i vraćanja [%s]', res)); end if;
+
+  -- Isti auto istog dana: 1 h posle vraćanja -> zauzeto (priprema 2 h), 2 h posle -> slobodno.
+  res := create_reservation('test-vozilo-vreme', 'TEST vreme', 'TEST Vreme 2', 'vreme2@example.com', '066 100 0002', '1990-01-01',
+    '2095-03-09', '2095-03-10', 'TEST', null, 'sr', null, null, null, '11:00', '11:00');
+  ok := res ->> 'reason' = 'unavailable';
+  res := create_reservation('test-vozilo-vreme', 'TEST vreme', 'TEST Vreme 2', 'vreme2@example.com', '066 100 0002', '1990-01-01',
+    '2095-03-09', '2095-03-10', 'TEST', null, 'sr', null, null, null, '12:00', '12:00');
+  ok := ok and (res ->> 'success')::boolean;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('isti auto ponovo istog dana: najranije 2 h posle vraćanja [%s]', res)); end if;
+
+  -- Preko sajta samo radnim danima 08–20 i ne u prošlosti.
+  res := create_reservation('test-vozilo-vreme', 'TEST vreme', 'TEST Vikend', 'vikend@example.com', '066 100 0003', '1990-01-01',
+    '2095-03-12', '2095-03-14', 'TEST', null, 'sr', null, null, null, '10:00', '10:00');
+  ok := res ->> 'reason' = 'invalid_time';
+  res := create_reservation('test-vozilo-vreme', 'TEST vreme', 'TEST Kasno', 'kasno@example.com', '066 100 0004', '1990-01-01',
+    '2095-03-15', '2095-03-16', 'TEST', null, 'sr', null, null, null, '20:30', '10:00');
+  ok := ok and res ->> 'reason' = 'invalid_time';
+  res := create_reservation('test-vozilo-vreme', 'TEST vreme', 'TEST Prošlost', 'proslost@example.com', '066 100 0005', '1990-01-01',
+    '2020-03-02', '2020-03-04', 'TEST', null, 'sr', null, null, null, '10:00', '10:00');
+  ok := ok and res ->> 'reason' = 'invalid_time';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: vreme samo radnim danima 08–20 i ne u prošlosti [%s]', res)); end if;
+
+  -- Dostupnost: tačna po vremenu (V2 vraćanje 10.3. u 12:00 + 2 h) i samo po datumima.
+  ok := not is_car_available('test-vozilo-vreme', '2095-03-10', '13:00', '2095-03-11', '10:00')
+    and is_car_available('test-vozilo-vreme', '2095-03-10', '14:00', '2095-03-11', '10:00')
+    and is_car_available('test-vozilo-vreme', '2095-03-10', '2095-03-11')
+    and not is_car_available('test-vozilo-vreme', '2095-03-08', '2095-03-11');
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'dostupnost po vremenu i po datumima'); end if;
+
+  select count(*) into n from get_booked_dates('test-vozilo-vreme') g where g.pickup_time in ('10:00', '12:00') and g.return_time is not null;
+  ok := n = 2;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('kalendar sajta dobija i vreme zauzetih termina (%s)', n)); end if;
+  reset role;
+
+  ok := exists (select 1 from reservations where id = id_c and pickup_time = '10:00' and return_time = '10:00'
+                and total_price = 80 and rental_days = 2);
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'sajt: vreme i iznos (2 dana, 80 €) su upisani'); end if;
+
+  -- Admin: bez vremena zauzima cele dane; sa vremenom tačno; cena po 24 h.
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+  res := admin_create_reservation(p_car_id => 'test-vozilo-vreme', p_car_name => 'TEST vreme', p_customer_name => 'TEST Vreme ceo dan',
+    p_phone => '066 100 0006', p_pickup => '2095-03-14', p_return => '2095-03-15', p_location => 'TEST');
+  ok := (res ->> 'success')::boolean;
+  res := admin_check_availability('test-vozilo-vreme', '2095-03-15', '2095-03-16', null, '15:00', '10:00');
+  ok := ok and not (res ->> 'available')::boolean;
+  res := admin_check_availability('test-vozilo-vreme', '2095-03-16', '2095-03-17', null, '08:00', '10:00');
+  ok := ok and (res ->> 'available')::boolean;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('admin: rezervacija bez vremena zauzima cele dane [%s]', res)); end if;
+
+  res := admin_create_reservation(p_car_id => 'test-vozilo-vreme', p_car_name => 'TEST vreme', p_customer_name => 'TEST Vreme admin',
+    p_phone => '066 100 0007', p_pickup => '2095-03-21', p_return => '2095-03-22', p_location => 'TEST',
+    p_pickup_time => '09:00', p_return_time => '12:00', p_daily_rate => 30);
+  res := admin_get_reservation((res ->> 'id')::uuid);
+  ok := (res -> 'reservation' ->> 'rental_days')::int = 2 and (res -> 'reservation' ->> 'total_price')::numeric = 60
+    and (res -> 'reservation' ->> 'days')::int = 2;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('admin: 9:00 -> 12:00 sledećeg dana = 2 dana × 30 € = 60 € [%s]', left(res::text, 300))); end if;
   reset role;
 
   raise exception using

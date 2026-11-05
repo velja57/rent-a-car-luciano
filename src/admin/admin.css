@@ -1183,8 +1183,12 @@
   min-width: calc(var(--car-w) + var(--days) * var(--day-w));
 }
 
-.admin-cal--2ned {
-  --min-day: 52px;
+.admin-cal--dan {
+  --min-day: 44px;
+}
+
+.admin-cal--nedelja {
+  --min-day: 84px;
 }
 
 .admin-cal__row {
@@ -1305,7 +1309,7 @@
   position: absolute;
   z-index: 1;
   left: calc(var(--start) * var(--day-w) + 2px);
-  width: calc(var(--len) * var(--day-w) - 4px);
+  width: max(8px, calc(var(--len) * var(--day-w) - 4px));
   top: calc(var(--lane) * var(--lane-h) + 6px);
   height: calc(var(--lane-h) - 4px);
   padding: 0 8px;
@@ -1362,6 +1366,29 @@
   outline-offset: 1px;
 }
 
+/* 2 h pripreme posle vraćanja (vozilo se tada ne izdaje) */
+.admin-cal__prep {
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--start) * var(--day-w));
+  width: calc(var(--len) * var(--day-w));
+  top: calc(var(--lane) * var(--lane-h) + 6px);
+  height: calc(var(--lane-h) - 4px);
+  border-radius: 0 6px 6px 0;
+  background: repeating-linear-gradient(135deg, rgba(212, 162, 78, 0.3) 0 4px, transparent 4px 8px);
+  pointer-events: none;
+}
+
+.admin-cal__free {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--admin-success);
+  pointer-events: none;
+}
+
 .admin-cal__bar--clip-start {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
@@ -1388,6 +1415,11 @@
   border: 1px solid;
   border-radius: 3px;
   vertical-align: -1px;
+}
+
+.admin-cal__swatch--prep {
+  border-color: rgba(212, 162, 78, 0.4);
+  background: repeating-linear-gradient(135deg, rgba(212, 162, 78, 0.3) 0 4px, transparent 4px 8px);
 }
 
 /* ---------- Vozila ---------- */
@@ -1992,8 +2024,12 @@
     --min-day: 32px;
   }
 
-  .admin-cal--2ned {
-    --min-day: 44px;
+  .admin-cal--dan {
+    --min-day: 40px;
+  }
+
+  .admin-cal--nedelja {
+    --min-day: 64px;
   }
 
   .admin-cal__car {

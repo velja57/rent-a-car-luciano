@@ -73,6 +73,14 @@ function reservationParams(f) {
   };
 }
 
+// Vreme preuzimanja/vraćanja za proveru zauzetosti i cenu (dan = 24 h od preuzimanja).
+function timeParams(pickupTime, returnTime) {
+  return {
+    ...(pickupTime ? { p_pickup_time: pickupTime } : {}),
+    ...(returnTime ? { p_return_time: returnTime } : {}),
+  };
+}
+
 export const adminApi = {
   async isAdmin() {
     const { data, error } = await supabase.rpc('is_admin');
@@ -85,12 +93,14 @@ export const adminApi = {
   overview: () => call('admin_overview'),
   listReservations: (params) => call('admin_list_reservations', params),
   getReservation: (id) => call('admin_get_reservation', { p_id: id }),
-  checkAvailability: (carId, pickup, ret, excludeId) =>
+  // Vreme se šalje samo kad je upisano (bez vremena rezervacija zauzima cele dane).
+  checkAvailability: (carId, pickup, ret, excludeId, pickupTime, returnTime) =>
     call('admin_check_availability', {
       p_car_id: carId,
       p_pickup: pickup,
       p_return: ret,
       p_exclude_id: excludeId ?? null,
+      ...timeParams(pickupTime, returnTime),
     }),
   createReservation: (fields) => call('admin_create_reservation', reservationParams(fields)),
   updateReservation: (id, fields) => call('admin_update_reservation', { p_id: id, ...reservationParams(fields) }),
@@ -114,9 +124,16 @@ export const adminApi = {
   saveVehicle: (carId, registration, notes) =>
     call('admin_upsert_vehicle', { p_car_id: carId, p_registration: registration || null, p_notes: notes || null }),
   // Predlog cene po trenutnom cenovniku (null ako vozilo nije u cenovniku).
-  quote: async (carId, pickup, ret, extras) =>
-    (await call('admin_quote', { p_car_id: carId, p_pickup: pickup, p_return: ret, p_extras: extras.length ? extras : null }))
-      .quote,
+  quote: async (carId, pickup, ret, extras, pickupTime, returnTime) =>
+    (
+      await call('admin_quote', {
+        p_car_id: carId,
+        p_pickup: pickup,
+        p_return: ret,
+        p_extras: extras.length ? extras : null,
+        ...timeParams(pickupTime, returnTime),
+      })
+    ).quote,
   async priceList() {
     const { data, error } = await supabase.rpc('get_price_list');
     if (error) {

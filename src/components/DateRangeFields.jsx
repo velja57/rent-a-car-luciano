@@ -1,15 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useI18n } from '../i18n';
 import { formatDate, todayISO } from '../lib/pricing';
+import { blockedDays, isWorkday } from '../lib/rentalTimes';
 import './DateRangeFields.css';
 
 // Datumi su ISO stringovi (YYYY-MM-DD) — računamo u UTC da vremenska zona ne pomera dan.
-function addDays(iso, n) {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
 function addMonths(month, n) {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(Date.UTC(y, m - 1 + n, 1));
@@ -27,33 +22,30 @@ function monthGrid(month) {
   ];
 }
 
-// Zauzeti termini -> skup zauzetih dana (preuzimanje i vraćanje uključeni, kao u bazi).
-function bookedDaySet(ranges) {
-  const days = new Set();
-  ranges.forEach(({ pickup_date: from, return_date: to }) => {
-    for (let day = from; day <= to; day = addDays(day, 1)) days.add(day);
-  });
-  return days;
-}
-
-// Kalendar za izbor perioda najma. booked: zauzeti termini vozila — ti dani su
-// precrtani i ne mogu se izabrati, a period ne sme da "preskoči" zauzet dan.
+// Kalendar za izbor perioda najma. booked: zauzeti termini vozila (datumi i
+// vreme). Precrtani su dani kada se zbog tuđih termina ne može preuzeti (pri
+// izboru preuzimanja), odnosno vratiti vozilo (pri izboru vraćanja); period ne
+// sme da "preskoči" tuđu rezervaciju. Vikendom se preko sajta ne preuzima i ne
+// vraća (samo uz dogovor telefonom).
 export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) {
   const { lang, t } = useI18n();
   const c = t.calendar;
   const today = todayISO();
-  const bookedDays = useMemo(() => bookedDaySet(booked), [booked]);
+  const { noPickup, noReturn } = useMemo(() => blockedDays(booked), [booked]);
   const [open, setOpen] = useState(false);
   const [selecting, setSelecting] = useState('start');
   const [month, setMonth] = useState((pickup || today).slice(0, 7));
   const [hover, setHover] = useState(null);
   const [message, setMessage] = useState('');
 
-  // Prvi zauzet dan posle izabranog preuzimanja — vraćanje mora biti pre njega.
+  // Početak prve tuđe rezervacije posle izabranog preuzimanja — vraćanje
+  // najkasnije tog dana (i samo ako ostaje vremena pre njenog preuzimanja).
   const returnLimit = useMemo(() => {
     if (!pickup || selecting !== 'end') return null;
-    return [...bookedDays].filter((day) => day > pickup).sort()[0] ?? null;
-  }, [bookedDays, pickup, selecting]);
+    return booked.map((r) => r.pickup_date).filter((day) => day > pickup).sort()[0] ?? null;
+  }, [booked, pickup, selecting]);
+  const choosingReturn = selecting === 'end' && Boolean(pickup);
+  const bookedDays = choosingReturn ? noReturn : noPickup;
 
   const openFor = (which) => {
     const target = which === 'end' && pickup ? 'end' : 'start';
@@ -64,18 +56,26 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
   };
 
   const choose = (day) => {
-    if (bookedDays.has(day)) {
-      setMessage(c.bookedDay(formatDate(day, lang)));
+    if (!isWorkday(day)) {
+      setMessage(c.offDay(formatDate(day, lang)));
       return;
     }
     if (selecting === 'start' || !pickup || day <= pickup) {
+      if (noPickup.has(day)) {
+        setMessage(c.bookedDay(formatDate(day, lang)));
+        return;
+      }
       onChange({ pickup: day, ret: '' });
       setSelecting('end');
       setMessage(c.pickReturn);
       return;
     }
-    if (returnLimit && day >= returnLimit) {
+    if (returnLimit && (day > returnLimit || noReturn.has(day))) {
       setMessage(c.bookedInRange(formatDate(returnLimit, lang)));
+      return;
+    }
+    if (noReturn.has(day)) {
+      setMessage(c.bookedDay(formatDate(day, lang)));
       return;
     }
     onChange({ pickup, ret: day });
@@ -148,8 +148,9 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
             {monthGrid(month).map((day, i) => {
               if (!day) return <span key={`blank-${i}`} />;
               const past = day < today;
-              const isBooked = bookedDays.has(day);
-              const blocked = !isBooked && Boolean(returnLimit) && day >= returnLimit;
+              const offDay = !isWorkday(day);
+              const isBooked = !offDay && bookedDays.has(day);
+              const blocked = !isBooked && !offDay && Boolean(returnLimit) && day > returnLimit;
               const isStart = day === pickup;
               const isEnd = day === ret;
               const inRange = pickup && rangeEnd && day > pickup && day < rangeEnd;
@@ -157,6 +158,7 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
                 'date-calendar__day',
                 isBooked && 'date-calendar__day--booked',
                 blocked && 'date-calendar__day--blocked',
+                offDay && 'date-calendar__day--offday',
                 (isStart || isEnd) && 'date-calendar__day--selected',
                 inRange && 'date-calendar__day--in-range',
                 day === today && 'date-calendar__day--today',
@@ -169,9 +171,9 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
                   type="button"
                   className={classes}
                   disabled={past}
-                  aria-disabled={isBooked || blocked || undefined}
+                  aria-disabled={isBooked || blocked || offDay || undefined}
                   aria-pressed={isStart || isEnd}
-                  aria-label={`${formatDate(day, lang)}${isBooked ? ` — ${c.bookedLabel}` : ''}`}
+                  aria-label={`${formatDate(day, lang)}${isBooked ? ` — ${c.bookedLabel}` : offDay ? ` — ${c.offDayLabel}` : ''}`}
                   onClick={() => choose(day)}
                   onMouseEnter={() => setHover(day)}
                 >
@@ -192,6 +194,10 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
                 {c.legendBooked}
               </span>
             )}
+            <span>
+              <i className="date-calendar__swatch date-calendar__swatch--offday" />
+              {c.legendOffDay}
+            </span>
           </div>
         </div>
       )}

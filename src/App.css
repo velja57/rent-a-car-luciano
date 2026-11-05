@@ -1254,6 +1254,40 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Vreme preuzimanja i vraćanja */
+.reservation-form__field select {
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-surface-solid);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.reservation-form__field select:hover,
+.reservation-form__field select:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.reservation-form__field select:focus {
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.reservation-form__note {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
 .reservation-form__field textarea {
   resize: vertical;
   min-height: 70px;
@@ -1871,6 +1905,11 @@ a.call-notice__item:hover {
 @media (max-width: 640px) {
   .reservation-form__row {
     grid-template-columns: 1fr;
+  }
+
+  .reservation-form__row.reservation-form__row--times {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
 
   .reservation-success__actions {

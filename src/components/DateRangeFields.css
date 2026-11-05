@@ -206,6 +206,13 @@
   border-color: var(--color-danger);
 }
 
+/* Vikend: preuzimanje i vraćanje samo uz dogovor telefonom */
+.date-calendar__day--offday {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Posle prvog zauzetog dana ne može da se izabere vraćanje */
 .date-calendar__day--blocked {
   color: var(--color-text-muted);
@@ -250,6 +257,10 @@
 
 .date-calendar__swatch--selected {
   background: var(--color-accent);
+}
+
+.date-calendar__swatch--offday {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .date-calendar__swatch--booked {

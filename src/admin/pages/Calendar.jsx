@@ -1,18 +1,27 @@
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { ErrorState, LoadingState } from '../components/States';
 import { adminApi, useAdminData } from '../lib/adminApi';
 import { addDays, daysBetween, formatDate, formatTime, todayBelgrade } from '../lib/format';
 import { ACTIVE_STATUSES, FLEET_ORDER, MONTHS, STATUS_ORDER, STATUSES, WEEKDAYS } from '../lib/labels';
+import { RENTAL_HOURS } from '../../data/rental';
+import { minutesAt, reservationSpan, spansOverlap } from '../../lib/rentalTimes';
 
-const VIEWS = { mesec: 'Mesec', '2ned': '2 nedelje' };
+const VIEWS = { dan: 'Dan', nedelja: 'Nedelja', mesec: 'Mesec' };
 
-// Prikazani period: ceo mesec ili 14 dana od ponedeljka.
+// Prikaz "Dan": sati od 06 do 22 (preuzimanje od 08, vraćanje do 20 + 2 h pripreme).
+const DAY_FROM_HOUR = 6;
+const DAY_TO_HOUR = 22;
+
+const weekdayOf = (day) => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
+const hourLabel = (hour) => `${String(hour).padStart(2, '0')}:00`;
+
+// Prikazani period: jedan dan, nedelja od ponedeljka ili ceo mesec.
 function rangeFor(view, anchor) {
-  if (view === '2ned') {
-    const weekday = (new Date(`${anchor}T00:00:00Z`).getUTCDay() + 6) % 7;
-    const from = addDays(anchor, -weekday);
-    return { from, to: addDays(from, 13) };
+  if (view === 'dan') return { from: anchor, to: anchor };
+  if (view === 'nedelja') {
+    const from = addDays(anchor, -weekdayOf(anchor));
+    return { from, to: addDays(from, 6) };
   }
   const [y, m] = anchor.split('-').map(Number);
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -20,55 +29,92 @@ function rangeFor(view, anchor) {
 }
 
 function shiftAnchor(view, anchor, direction) {
-  if (view === '2ned') return addDays(anchor, 14 * direction);
+  if (view === 'dan') return addDays(anchor, direction);
+  if (view === 'nedelja') return addDays(anchor, 7 * direction);
   const [y, m] = anchor.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1 + direction, 1)).toISOString().slice(0, 10);
 }
 
 function periodTitle(view, from, to) {
   if (view === 'mesec') return `${MONTHS[Number(from.slice(5, 7)) - 1]} ${from.slice(0, 4)}`;
+  if (view === 'dan') return `${WEEKDAYS[weekdayOf(from)]} ${formatDate(from)}`;
   return `${formatDate(from)} – ${formatDate(to)}`;
 }
 
-// Trake jednog vozila: odsečene na prikazani period, raspoređene u "trake"
-// (lanes) tako da se preklopljene ne crtaju jedna preko druge. Dan vraćanja
-// je uključen, isto kao u bazi.
-function layoutBars(rows, from, to) {
-  const sorted = [...rows].sort((a, b) => a.pickup_date.localeCompare(b.pickup_date));
+// Kolone prikaza: sati jednog dana ili dani perioda. start/unit su u minutima
+// (kao reservationSpan), pa se trake crtaju tačno po vremenu.
+function columnsFor(view, from, to) {
+  if (view === 'dan') {
+    return {
+      start: minutesAt(from, hourLabel(DAY_FROM_HOUR)),
+      unit: 60,
+      items: Array.from({ length: DAY_TO_HOUR - DAY_FROM_HOUR }, (_, i) => ({ key: i, hour: DAY_FROM_HOUR + i, day: from })),
+    };
+  }
+  return {
+    start: minutesAt(from),
+    unit: 1440,
+    items: Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => ({ key: i, day: addDays(from, i) })),
+  };
+}
+
+// Trake jednog vozila: od vremena preuzimanja do vremena vraćanja (bez vremena
+// — cele dane), odsečene na prikazani period. Posle vraćanja aktivne
+// rezervacije ide 2 h pripreme. Preklopljene trake idu u posebne redove (lanes).
+function layoutBars(rows, columns) {
+  const viewStart = columns.start;
+  const viewEnd = columns.start + columns.items.length * columns.unit;
+  const pos = (minute) => (Math.min(Math.max(minute, viewStart), viewEnd) - viewStart) / columns.unit;
+  const sorted = rows
+    .map((r) => {
+      const span = reservationSpan(r);
+      const active = ACTIVE_STATUSES.includes(r.status);
+      const prep = r.return_time && active ? RENTAL_HOURS.bufferMinutes : 0;
+      return { ...r, start: span.start, end: r.return_time ? span.end - RENTAL_HOURS.bufferMinutes : span.end, prep };
+    })
+    .filter((r) => r.start < viewEnd && r.end + r.prep > viewStart)
+    .sort((a, b) => a.start - b.start);
   const laneEnds = [];
   const bars = sorted.map((r) => {
-    const start = r.pickup_date < from ? from : r.pickup_date;
-    const end = r.return_date > to ? to : r.return_date;
-    let lane = laneEnds.findIndex((laneEnd) => laneEnd < start);
+    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= r.start);
     if (lane === -1) lane = laneEnds.length;
-    laneEnds[lane] = end;
+    laneEnds[lane] = r.end + r.prep;
     return {
       ...r,
-      offset: daysBetween(from, start),
-      length: daysBetween(start, end) + 1,
+      offset: pos(r.start),
+      length: pos(r.end) - pos(r.start),
+      prepOffset: pos(r.end),
+      prepLength: pos(r.end + r.prep) - pos(r.end),
       lane,
-      clippedStart: r.pickup_date < from,
-      clippedEnd: r.return_date > to,
+      clippedStart: r.start < viewStart,
+      clippedEnd: r.end > viewEnd,
     };
   });
   return { bars, lanes: Math.max(1, laneEnds.length) };
 }
 
-// Dve aktivne rezervacije istog vozila sa preklopljenim danima. Baza to ne
-// dozvoljava, pa bi ovo trebalo da bude uvek prazno — ali ako se ikad desi,
-// mora odmah da se vidi.
+// Dve aktivne rezervacije istog vozila čiji se termini preklapaju (vreme + 2 h
+// pripreme, isto pravilo kao u bazi). Baza to ne dozvoljava, pa bi ovo trebalo
+// da bude uvek prazno — ali ako se ikad desi, mora odmah da se vidi.
 function findConflicts(rows) {
-  const active = rows.filter((r) => ACTIVE_STATUSES.includes(r.status));
+  const active = rows.filter((r) => ACTIVE_STATUSES.includes(r.status)).map((r) => ({ ...r, span: reservationSpan(r) }));
   const ids = new Set();
   active.forEach((a, i) =>
     active.slice(i + 1).forEach((b) => {
-      if (a.car_id === b.car_id && a.pickup_date <= b.return_date && b.pickup_date <= a.return_date) {
+      if (a.car_id === b.car_id && spansOverlap(a.span, b.span)) {
         ids.add(a.id);
         ids.add(b.id);
       }
     }),
   );
   return ids;
+}
+
+function barLabel(view, bar) {
+  if (view === 'mesec') return bar.customer_name;
+  const from = bar.clippedStart ? '…' : formatTime(bar.pickup_time) || 'ceo dan';
+  const to = bar.clippedEnd ? '…' : formatTime(bar.return_time) || 'ceo dan';
+  return `${bar.customer_name} · ${from} – ${to}`;
 }
 
 export default function Calendar() {
@@ -89,7 +135,7 @@ export default function Calendar() {
   const { data, error, loading, reload } = useAdminData(() => adminApi.calendar(from, to), [from, to]);
   const registry = useAdminData(() => adminApi.listVehicles(), []);
 
-  const days = useMemo(() => Array.from({ length: daysBetween(from, to) + 1 }, (_, i) => addDays(from, i)), [from, to]);
+  const columns = useMemo(() => columnsFor(view, from, to), [view, from, to]);
 
   const allRows = data?.rows ?? [];
   const conflicts = useMemo(() => findConflicts(allRows), [allRows]);
@@ -105,6 +151,11 @@ export default function Calendar() {
   ];
 
   const activeCount = allRows.filter((r) => ACTIVE_STATUSES.includes(r.status)).length;
+  const columnClass = (base, column) => {
+    const weekend = view !== 'dan' && weekdayOf(column.day) >= 5;
+    const isToday = view !== 'dan' && column.day === today;
+    return `${base}${weekend ? ` ${base}--weekend` : ''}${isToday ? ` ${base}--today` : ''}`;
+  };
 
   return (
     <div className="admin-page">
@@ -163,31 +214,29 @@ export default function Calendar() {
 
       {data && (
         <div className={`admin-cal-wrap${loading ? ' admin-table-wrap--loading' : ''}`}>
-          <div className={`admin-cal admin-cal--${view}`} style={{ '--days': days.length }}>
+          <div className={`admin-cal admin-cal--${view}`} style={{ '--days': columns.items.length }}>
             <div className="admin-cal__row admin-cal__row--head">
               <div className="admin-cal__car">Vozilo</div>
               <div className="admin-cal__track admin-cal__track--head">
-                {days.map((day, i) => {
-                  const weekday = (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
-                  return (
-                    <div
-                      key={day}
-                      className={`admin-cal__day${weekday >= 5 ? ' admin-cal__day--weekend' : ''}${day === today ? ' admin-cal__day--today' : ''}`}
-                      style={{ '--i': i }}
-                    >
-                      <span>{WEEKDAYS[weekday]}</span>
-                      <strong>{Number(day.slice(8))}</strong>
-                    </div>
-                  );
-                })}
+                {columns.items.map((column, i) => (
+                  <div key={column.key} className={columnClass('admin-cal__day', column)} style={{ '--i': i }}>
+                    {view === 'dan' ? (
+                      <strong>{hourLabel(column.hour)}</strong>
+                    ) : (
+                      <>
+                        <span>{WEEKDAYS[weekdayOf(column.day)]}</span>
+                        <strong>{Number(column.day.slice(8))}</strong>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
             {vehicles.map((car) => {
               const { bars, lanes } = layoutBars(
                 visibleRows.filter((r) => r.car_id === car.id),
-                from,
-                to,
+                columns,
               );
               return (
                 <div key={car.id} className="admin-cal__row">
@@ -197,39 +246,50 @@ export default function Calendar() {
                     {car.unknown && <span className="admin-muted">nije u ponudi</span>}
                   </div>
                   <div className="admin-cal__track" style={{ '--lanes': lanes }}>
-                    {days.map((day, i) => {
-                      const weekday = (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
-                      return (
-                        <button
-                          key={day}
-                          type="button"
-                          tabIndex={-1}
-                          className={`admin-cal__cell${weekday >= 5 ? ' admin-cal__cell--weekend' : ''}${day === today ? ' admin-cal__cell--today' : ''}`}
-                          style={{ '--i': i }}
-                          title={car.unknown ? undefined : `Nova rezervacija: ${car.name}, ${formatDate(day)}`}
-                          disabled={car.unknown}
-                          onClick={() => navigate(`/rezervacije/nova?vozilo=${encodeURIComponent(car.id)}&od=${day}`)}
-                        />
-                      );
-                    })}
+                    {columns.items.map((column, i) => (
+                      <button
+                        key={column.key}
+                        type="button"
+                        tabIndex={-1}
+                        className={columnClass('admin-cal__cell', column)}
+                        style={{ '--i': i }}
+                        title={car.unknown ? undefined : `Nova rezervacija: ${car.name}, ${formatDate(column.day)}`}
+                        disabled={car.unknown}
+                        onClick={() => navigate(`/rezervacije/nova?vozilo=${encodeURIComponent(car.id)}&od=${column.day}`)}
+                      />
+                    ))}
+                    {view === 'dan' && bars.length === 0 && !car.unknown && (
+                      <span className="admin-cal__free">Slobodno ceo dan</span>
+                    )}
                     {bars.map((bar) => (
-                      <Link
-                        key={bar.id}
-                        to={`/rezervacije/${bar.id}`}
-                        className={[
-                          'admin-cal__bar',
-                          `admin-cal__bar--${bar.status}`,
-                          conflicts.has(bar.id) && 'admin-cal__bar--conflict',
-                          bar.clippedStart && 'admin-cal__bar--clip-start',
-                          bar.clippedEnd && 'admin-cal__bar--clip-end',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                        style={{ '--start': bar.offset, '--len': bar.length, '--lane': bar.lane }}
-                        title={`${bar.customer_name} · ${formatDate(bar.pickup_date)}${bar.pickup_time ? ` ${formatTime(bar.pickup_time)}` : ''} – ${formatDate(bar.return_date)}${bar.return_time ? ` ${formatTime(bar.return_time)}` : ''} · ${STATUSES[bar.status]}`}
-                      >
-                        {bar.customer_name}
-                      </Link>
+                      <Fragment key={bar.id}>
+                        {bar.prepLength > 0 && (
+                          <span
+                            className="admin-cal__prep"
+                            style={{ '--start': bar.prepOffset, '--len': bar.prepLength, '--lane': bar.lane }}
+                            title="2 h pripreme posle vraćanja"
+                            aria-hidden="true"
+                          />
+                        )}
+                        {bar.length > 0 && (
+                          <Link
+                            to={`/rezervacije/${bar.id}`}
+                            className={[
+                              'admin-cal__bar',
+                              `admin-cal__bar--${bar.status}`,
+                              conflicts.has(bar.id) && 'admin-cal__bar--conflict',
+                              bar.clippedStart && 'admin-cal__bar--clip-start',
+                              bar.clippedEnd && 'admin-cal__bar--clip-end',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                            style={{ '--start': bar.offset, '--len': bar.length, '--lane': bar.lane }}
+                            title={`${bar.customer_name} · ${formatDate(bar.pickup_date)}${bar.pickup_time ? ` ${formatTime(bar.pickup_time)}` : ''} – ${formatDate(bar.return_date)}${bar.return_time ? ` ${formatTime(bar.return_time)}` : ''} · ${STATUSES[bar.status]}`}
+                          >
+                            {barLabel(view, bar)}
+                          </Link>
+                        )}
+                      </Fragment>
                     ))}
                   </div>
                 </div>
@@ -246,8 +306,13 @@ export default function Calendar() {
             {STATUSES[status]}
           </span>
         ))}
+        <span>
+          <i className="admin-cal__swatch admin-cal__swatch--prep" />
+          Priprema 2 h
+        </span>
         <span className="admin-muted">
-          Traka obuhvata i dan vraćanja (tog dana se vozilo ne izdaje drugom kupcu). Klik na prazan dan = nova rezervacija.
+          Traka ide od vremena preuzimanja do vremena vraćanja; posle vraćanja vozilo je 2 h u pripremi. Rezervacija bez
+          upisanog vremena zauzima cele dane. Klik na prazno polje = nova rezervacija.
         </span>
       </div>
     </div>

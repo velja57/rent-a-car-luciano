@@ -4,6 +4,7 @@ import { EXTRAS, MAX_ONLINE_DAYS, PHONE_DISPLAY, PHONE_HREF } from '../data/rent
 import { dictionaries, useI18n } from '../i18n';
 import { bookingMessage, isWorkingNow, priceLine, questionMessage, whatsappUrl } from '../lib/contact';
 import { discountPercent, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
+import { billableDays, graceUntil, isWorkday, pickupSlots, returnSlots } from '../lib/rentalTimes';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { useBookedDates } from '../lib/useBookedDates';
 import { useCallNotice } from '../lib/useCallNotice';
@@ -32,6 +33,18 @@ function calculateAge(dobString) {
 function formatExtraPrice(extra, t, lang) {
   if (!extra.price) return t.reservation.free;
   return extra.per === 'day' ? `${formatEur(extra.price, lang)} ${t.common.perDay}` : formatEur(extra.price, lang);
+}
+
+// Podrazumevano vreme preuzimanja: 10:00 ako je slobodno, inače prvo slobodno.
+function defaultPickupTime(options) {
+  return options.includes('10:00') ? '10:00' : (options[0] ?? '');
+}
+
+// Podrazumevano vreme vraćanja: isto kao preuzimanje (pun broj dana), inače
+// najkasnije pre njega (bez dodatnog dana), inače prvo slobodno.
+function defaultReturnTime(options, pickupTime) {
+  if (options.includes(pickupTime)) return pickupTime;
+  return options.filter((time) => time < pickupTime).pop() ?? options[0] ?? '';
 }
 
 function openInNewTab(url) {
@@ -73,7 +86,11 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
   const firstFieldRef = useRef(null);
   const alternativesRef = useRef(null);
   const bookedRanges = useBookedDates(car.id);
-  const startDatesValid = initialPickup >= todayISO() && rentalDays(initialPickup, initialReturn) > 0;
+  const startDatesValid =
+    initialPickup >= todayISO() &&
+    rentalDays(initialPickup, initialReturn) > 0 &&
+    isWorkday(initialPickup) &&
+    isWorkday(initialReturn);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -81,6 +98,8 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     dob: '',
     pickupDate: startDatesValid ? initialPickup : '',
     returnDate: startDatesValid ? initialReturn : '',
+    pickupTime: '',
+    returnTime: '',
     location: r.defaultLocation,
     note: '',
   });
@@ -114,6 +133,17 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     if (sent) closeButtonRef.current?.focus();
   }, [sent]);
 
+  // Vreme: nude se samo slobodni termini (radnim danima 08–20, ne u prošlosti,
+  // ne u tuđem terminu + 2 h pripreme). Ako izabrano vreme prestane da važi
+  // (promena datuma), forma uzima podrazumevano.
+  const pickupOptions = pickupSlots(form.pickupDate, bookedRanges);
+  const pickupTime = pickupOptions.includes(form.pickupTime) ? form.pickupTime : defaultPickupTime(pickupOptions);
+  const returnOptions = returnSlots(form.pickupDate, pickupTime, form.returnDate, bookedRanges);
+  const returnTime = returnOptions.includes(form.returnTime)
+    ? form.returnTime
+    : defaultReturnTime(returnOptions, pickupTime);
+  const datesChosen = Boolean(form.pickupDate && form.returnDate);
+
   // Provera dostupnosti vozila za izabrani period — radi samo kad je
   // Supabase podešen i kad su oba datuma popunjena i u ispravnom redosledu.
   useEffect(() => {
@@ -127,11 +157,13 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     let cancelled = false;
     setAvailability('checking');
     const timer = setTimeout(async () => {
-      const { data, error } = await supabase.rpc('is_car_available', {
-        p_car_id: car.id,
-        p_pickup: pickupDate,
-        p_return: returnDate,
-      });
+      const dates = { p_car_id: car.id, p_pickup: pickupDate, p_return: returnDate };
+      let { data, error } =
+        pickupTime && returnTime
+          ? await supabase.rpc('is_car_available', { ...dates, p_pickup_time: pickupTime, p_return_time: returnTime })
+          : await supabase.rpc('is_car_available', dates);
+      // Baza još bez provere po vremenu (schema.sql nije pokrenut) — samo datumi.
+      if (error?.code === 'PGRST202') ({ data, error } = await supabase.rpc('is_car_available', dates));
       if (cancelled) return;
       if (error) {
         setAvailability('error');
@@ -144,19 +176,27 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [form.pickupDate, form.returnDate, car.id]);
+  }, [form.pickupDate, form.returnDate, pickupTime, returnTime, car.id]);
 
   const setField = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   const setDates = ({ pickup, ret }) => {
     setForm((f) => ({ ...f, pickupDate: pickup, returnDate: ret }));
-    setErrors((prev) => ({ ...prev, pickupDate: undefined, returnDate: undefined }));
+    setErrors((prev) => ({ ...prev, pickupDate: undefined, returnDate: undefined, time: undefined }));
+  };
+
+  const setTime = (field) => (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((prev) => ({ ...prev, time: undefined }));
   };
 
   const toggleExtra = (id) =>
     setExtraIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
 
-  const days = rentalDays(form.pickupDate, form.returnDate);
+  // Dan najma = 24 h od preuzimanja; vraćanje do 59 min kasnije se ne računa.
+  const days = billableDays(form.pickupDate, pickupTime, form.returnDate, returnTime);
+  const extraDay = days > rentalDays(form.pickupDate, form.returnDate);
   const priceQuote = days > 0 ? quote(car, days, extraIds) : null;
 
   const validate = () => {
@@ -182,6 +222,10 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
       next.returnDate = e.returnOrder;
     } else if (days > MAX_ONLINE_DAYS) {
       next.returnDate = e.tooLong(MAX_ONLINE_DAYS);
+    }
+
+    if (datesChosen && !next.pickupDate && !next.returnDate && (!pickupTime || !returnTime)) {
+      next.time = e.time;
     }
 
     if (!form.location.trim()) {
@@ -213,8 +257,8 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
       `${w.email}: ${form.email.trim()}`,
       `${w.phone}: ${form.phone.trim()}`,
       `${w.dob}: ${form.dob}`,
-      `${w.pickup}: ${form.pickupDate}`,
-      `${w.return}: ${form.returnDate}`,
+      `${w.pickup}: ${[form.pickupDate, pickupTime].filter(Boolean).join(' ')}`,
+      `${w.return}: ${[form.returnDate, returnTime].filter(Boolean).join(' ')}`,
       `${w.location}: ${form.location.trim()}`,
     ];
     if (priceQuote) lines.push(`${w.price}: ${priceLine(t, lang, priceQuote)}`);
@@ -267,15 +311,23 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     // Jezik i opis cene idu u mejl potvrde kupcu (na njegovom jeziku). Iznos koji
     // je kupac video u formi i izabrani dodaci se upisuju i kao podaci — admin
     // panel ih prikazuje i sabira u finansijama (admin ih može izmeniti).
-    let { data, error } = await supabase.rpc('create_reservation', {
+    const withPrice = {
       ...params,
       p_language: lang,
       p_price_summary: priceQuote ? priceLine(t, lang, priceQuote) : null,
       p_total_price: priceQuote ? priceQuote.total : null,
       p_extras: extraIds.length > 0 ? extraIds : null,
+    };
+    let { data, error } = await supabase.rpc('create_reservation', {
+      ...withPrice,
+      p_pickup_time: pickupTime,
+      p_return_time: returnTime,
     });
     // Ako SQL izmena iz supabase/schema.sql još nije pokrenuta, funkcija ne zna
     // za nova polja (PGRST202) — rezervacija ide po starom, bez njih.
+    if (error?.code === 'PGRST202') {
+      ({ data, error } = await supabase.rpc('create_reservation', withPrice));
+    }
     if (error?.code === 'PGRST202') {
       ({ data, error } = await supabase.rpc('create_reservation', params));
     }
@@ -293,6 +345,8 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
         setErrors((prev) => ({ ...prev, returnDate: r.errors.unavailable }));
       } else if (data?.reason === 'too_long') {
         setErrors((prev) => ({ ...prev, returnDate: r.errors.tooLong(MAX_ONLINE_DAYS) }));
+      } else if (data?.reason === 'invalid_time') {
+        setErrors((prev) => ({ ...prev, time: r.errors.invalidTime }));
       } else if (data?.reason === 'too_many') {
         setSubmitError(r.errors.tooMany);
       } else if (data?.reason === 'rate_limited') {
@@ -377,6 +431,44 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
                   <em className="reservation-form__error">{errors.pickupDate ?? errors.returnDate}</em>
                 )}
               </div>
+
+              {datesChosen && (
+                <div className="reservation-form__field">
+                  <div className="reservation-form__row reservation-form__row--times">
+                    <label className="reservation-form__field">
+                      <span>{r.pickupTime}</span>
+                      {pickupOptions.length > 0 ? (
+                        <select value={pickupTime} onChange={setTime('pickupTime')}>
+                          {pickupOptions.map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <em className="reservation-form__error">{r.noPickupTimes}</em>
+                      )}
+                    </label>
+                    <label className="reservation-form__field">
+                      <span>{r.returnTime}</span>
+                      {returnOptions.length > 0 ? (
+                        <select value={returnTime} onChange={setTime('returnTime')}>
+                          {returnOptions.map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        pickupTime && <em className="reservation-form__error">{r.noReturnTimes}</em>
+                      )}
+                    </label>
+                  </div>
+                  {extraDay && <p className="reservation-form__note">{r.extraDay(graceUntil(pickupTime))}</p>}
+                  <p className="reservation-form__note">{r.hoursNote(PHONE_DISPLAY)}</p>
+                  {errors.time && <em className="reservation-form__error">{errors.time}</em>}
+                </div>
+              )}
 
               {isSupabaseConfigured && availability !== 'idle' && (
                 <p

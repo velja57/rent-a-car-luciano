@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
-import { rentalDays } from '../../lib/pricing';
+import { billableDays, graceUntil } from '../../lib/rentalTimes';
 import { adminApi, useAdminData } from '../lib/adminApi';
 import { formatDate, formatMoney, shortId, todayBelgrade } from '../lib/format';
 import { ACTIVE_STATUSES, DEFAULT_LOCATION, extraOptions, LANGUAGES, VEHICLES, vehicleById } from '../lib/labels';
@@ -135,7 +135,9 @@ export default function ReservationForm() {
   }, [editing, original, loaded]);
 
   const vehicle = vehicleById(form.carId);
-  const days = rentalDays(form.pickupDate, form.returnDate);
+  // Dan najma = 24 h od preuzimanja (vraćanje do 59 min kasnije se ne računa);
+  // bez upisanog vremena — razlika datuma, kao i ranije.
+  const days = billableDays(form.pickupDate, form.pickupTime, form.returnDate, form.returnTime);
   const extrasKey = form.extras.join(',');
 
   // Predlog cene po trenutnom cenovniku (računa baza, isto kao za sajt).
@@ -149,7 +151,14 @@ export default function ReservationForm() {
     setQuoteState('loading');
     const timer = setTimeout(() => {
       adminApi
-        .quote(form.carId, form.pickupDate, form.returnDate, extrasKey ? extrasKey.split(',') : [])
+        .quote(
+          form.carId,
+          form.pickupDate,
+          form.returnDate,
+          extrasKey ? extrasKey.split(',') : [],
+          form.pickupTime,
+          form.returnTime,
+        )
         .then((q) => {
           if (cancelled) return;
           setSuggestion(q);
@@ -165,7 +174,7 @@ export default function ReservationForm() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [loaded, form.carId, form.pickupDate, form.returnDate, days, extrasKey]);
+  }, [loaded, form.carId, form.pickupDate, form.returnDate, form.pickupTime, form.returnTime, days, extrasKey]);
 
   useEffect(() => {
     if (priceTouched) return;
@@ -186,7 +195,7 @@ export default function ReservationForm() {
     setAvailability({ state: 'checking', conflicts: [] });
     const timer = setTimeout(() => {
       adminApi
-        .checkAvailability(form.carId, form.pickupDate, form.returnDate, id)
+        .checkAvailability(form.carId, form.pickupDate, form.returnDate, id, form.pickupTime, form.returnTime)
         .then((res) => !cancelled && setAvailability({ state: res.available ? 'free' : 'busy', conflicts: res.conflicts }))
         .catch(() => !cancelled && setAvailability({ state: 'error', conflicts: [] }));
     }, AVAILABILITY_DEBOUNCE_MS);
@@ -194,7 +203,7 @@ export default function ReservationForm() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [loaded, form.carId, form.pickupDate, form.returnDate, days, id]);
+  }, [loaded, form.carId, form.pickupDate, form.returnDate, form.pickupTime, form.returnTime, days, id]);
 
   if (editing && !original && existing.loading) return <LoadingState />;
   if (editing && !original && existing.error) return <ErrorState error={existing.error} onRetry={existing.reload} />;
@@ -306,7 +315,14 @@ export default function ReservationForm() {
             <Field label="Datum vraćanja" error={errors.returnDate}>
               <input type="date" value={form.returnDate} min={form.pickupDate || undefined} onChange={set('returnDate')} />
             </Field>
-            <Field label="Vreme vraćanja (opciono)">
+            <Field
+              label="Vreme vraćanja (opciono)"
+              hint={
+                form.pickupTime && form.returnTime
+                  ? `Do ${graceUntil(form.pickupTime)} bez dodatnog dana (dan najma = 24 h).`
+                  : undefined
+              }
+            >
               <input type="time" value={form.returnTime} onChange={set('returnTime')} />
             </Field>
             <Field label="Lokacija preuzimanja" error={errors.pickupLocation} wide>
@@ -325,7 +341,7 @@ export default function ReservationForm() {
               {availability.state === 'busy' && (
                 <>
                   {occupiesDates
-                    ? 'Vozilo je zauzeto u ovom periodu (dan vraćanja se računa kao zauzet):'
+                    ? 'Vozilo je zauzeto u ovom terminu (posle vraćanja 2 h za pripremu; rezervacija bez vremena zauzima cele dane):'
                     : 'Termin je u međuvremenu zauzet. Ova rezervacija nije aktivna, pa izmenu možeš sačuvati, ali je ne možeš ponovo aktivirati dok je termin zauzet:'}
                   <ul>
                     {availability.conflicts.map((c) => (
@@ -333,7 +349,9 @@ export default function ReservationForm() {
                         <Link to={`/rezervacije/${c.id}`} target="_blank" rel="noopener noreferrer">
                           {c.customer_name}
                         </Link>{' '}
-                        — {formatDate(c.pickup_date)} do {formatDate(c.return_date)}
+                        — {formatDate(c.pickup_date)}
+                        {c.pickup_time ? ` ${c.pickup_time.slice(0, 5)}` : ''} do {formatDate(c.return_date)}
+                        {c.return_time ? ` ${c.return_time.slice(0, 5)}` : ''}
                       </li>
                     ))}
                   </ul>

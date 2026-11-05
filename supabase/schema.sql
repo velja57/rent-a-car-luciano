@@ -121,16 +121,79 @@ begin
   end if;
 end $$;
 
+-- Vreme rezervacije (pravila agencije):
+--   * zauzetost: od vremena preuzimanja do vremena vraćanja + 2 h za pripremu
+--     vozila — isti auto može ponovo da se izda istog dana kad je vraćen.
+--     Rezervacija bez upisanog vremena (starije, ili iz admina bez vremena)
+--     zauzima cele dane: od početka dana preuzimanja do kraja dana vraćanja.
+--   * dan najma = 24 h od vremena preuzimanja; vraćanje do 59 min kasnije se ne
+--     računa (tolerancija), a svaka započeta 24 h posle toga je novi dan.
+create or replace function reservation_span(p_pickup date, p_pickup_time time, p_return date, p_return_time time)
+returns tsrange
+language sql
+immutable
+as $$
+  select tsrange(
+    p_pickup + coalesce(p_pickup_time, time '00:00'),
+    case
+      when p_return_time is null then (p_return + 1)::timestamp
+      else p_return + p_return_time + interval '2 hours'
+    end,
+    '[)'
+  );
+$$;
+
+create or replace function rental_days_between(p_pickup date, p_pickup_time time, p_return date, p_return_time time)
+returns integer
+language sql
+immutable
+as $$
+  select (p_return - p_pickup)
+    + case
+        when p_pickup_time is not null and p_return_time is not null
+          and p_return_time - p_pickup_time > interval '59 minutes' then 1
+        else 0
+      end;
+$$;
+
 -- Sprečava da dve AKTIVNE rezervacije (confirmed/picked_up/completed) za ISTO
--- vozilo imaju preklapajuće datume — provera se radi na nivou baze, pa je
--- sigurna i kad dva korisnika rezervišu u istom trenutku (race condition).
--- Dan preuzimanja i dan vraćanja su oba zauzeti ('[]'): vozilo vraćeno 12. se
--- ponovo izdaje najranije 13. Otkazane i "nije se pojavio" se ne računaju.
-alter table reservations drop constraint if exists no_overlapping_reservations;
-alter table reservations
-  add constraint no_overlapping_reservations
-  exclude using gist (car_id with =, date_range with &&)
-  where (status in ('confirmed', 'picked_up', 'completed'));
+-- vozilo budu u isto vreme (reservation_span) — provera je u bazi, pa je
+-- sigurna i kad dva korisnika rezervišu u istom trenutku. Otkazane i "nije se
+-- pojavio" se ne računaju. Pre prelaska sa starog pravila (ceo dan vraćanja
+-- zauzet) baza proverava da se postojeće rezervacije ne preklapaju po novom
+-- pravilu; ako se preklapaju, ništa se ne menja i poruka navodi koje su.
+do $$
+declare
+  conflicts text;
+begin
+  if exists (
+    select 1 from pg_constraint
+    where conname = 'no_overlapping_reservations' and pg_get_constraintdef(oid) not like '%reservation_span%'
+  ) then
+    select string_agg(format('%s i %s (%s)', a.customer_name, b.customer_name, a.car_id), '; ')
+    into conflicts
+    from reservations a
+    join reservations b on b.car_id = a.car_id and b.id > a.id
+    where a.status in ('confirmed', 'picked_up', 'completed')
+      and b.status in ('confirmed', 'picked_up', 'completed')
+      and reservation_span(a.pickup_date, a.pickup_time, a.return_date, a.return_time)
+        && reservation_span(b.pickup_date, b.pickup_time, b.return_date, b.return_time);
+    if conflicts is not null then
+      raise exception 'Postojeće rezervacije se preklapaju po novom pravilu (vreme + 2 h pripreme): %. Izmeni im vreme ili datum u adminu, pa ponovo pokreni schema.sql.', conflicts;
+    end if;
+    alter table reservations drop constraint no_overlapping_reservations;
+  end if;
+
+  if not exists (select 1 from pg_constraint where conname = 'no_overlapping_reservations') then
+    alter table reservations
+      add constraint no_overlapping_reservations
+      exclude using gist (
+        car_id with =,
+        reservation_span(pickup_date, pickup_time, return_date, return_time) with &&
+      )
+      where (status in ('confirmed', 'picked_up', 'completed'));
+  end if;
+end $$;
 
 -- RLS uključen, BEZ ikakvih policy-ja za anon role.
 -- Posledica: niko sa anon ključem (frontend) ne može direktno da čita ili
@@ -142,6 +205,9 @@ alter table reservations
 -- - create_reservation: upisuje rezervaciju, vraća samo id/status
 alter table reservations enable row level security;
 
+-- Samo datumi (lista vozila na sajtu): da li postoji termin u kome je vozilo
+-- slobodno — preuzimanje najkasnije u 20 h prvog dana, vraćanje najranije u 8 h
+-- poslednjeg dana (+ 2 h pripreme). Tačno vreme bira se u formi za rezervaciju.
 create or replace function is_car_available(
   p_car_id text,
   p_pickup date,
@@ -155,22 +221,49 @@ as $$
     select 1 from reservations
     where car_id = p_car_id
       and status in ('confirmed', 'picked_up', 'completed')
-      and date_range && daterange(p_pickup, p_return, '[]')
+      and reservation_span(pickup_date, pickup_time, return_date, return_time)
+        && tsrange(p_pickup + time '20:00', p_return + time '08:00' + interval '2 hours', '[)')
   );
 $$;
 
 grant execute on function is_car_available(text, date, date) to anon;
 
--- Zauzeti termini jednog vozila (samo datumi, bez ličnih podataka) — sajt
--- ih precrtava u kalendaru. Vraća samo aktivne rezervacije koje nisu prošle.
-create or replace function get_booked_dates(p_car_id text)
-returns table (pickup_date date, return_date date)
+-- Datumi i vreme (forma za rezervaciju): tačna provera po istom pravilu kao u bazi.
+create or replace function is_car_available(
+  p_car_id text,
+  p_pickup date,
+  p_pickup_time time,
+  p_return date,
+  p_return_time time
+) returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select not exists (
+    select 1 from reservations
+    where car_id = p_car_id
+      and status in ('confirmed', 'picked_up', 'completed')
+      and reservation_span(pickup_date, pickup_time, return_date, return_time)
+        && reservation_span(p_pickup, p_pickup_time, p_return, p_return_time)
+  );
+$$;
+
+grant execute on function is_car_available(text, date, time, date, time) to anon;
+
+-- Zauzeti termini jednog vozila (datumi i vreme, bez ličnih podataka) — sajt
+-- ih precrtava u kalendaru i nudi samo slobodna vremena. Vraća samo aktivne
+-- rezervacije koje nisu prošle. (Ranije je vraćala samo datume, zato se
+-- funkcija prvo briše.)
+drop function if exists get_booked_dates(text);
+create function get_booked_dates(p_car_id text)
+returns table (pickup_date date, pickup_time time, return_date date, return_time time)
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select r.pickup_date, r.return_date
+  select r.pickup_date, r.pickup_time, r.return_date, r.return_time
   from reservations r
   where r.car_id = p_car_id
     and r.status in ('confirmed', 'picked_up', 'completed')
@@ -253,17 +346,26 @@ $$;
 grant execute on function get_price_list() to anon, authenticated;
 
 -- Iznos najma po cenovniku — ista pravila kao quote() na sajtu (src/lib/pricing.js):
--- broj dana = vraćanje − preuzimanje; popust po dužini najma; cena po danu se
--- zaokružuje na ceo evro; dodatak "po danu" × broj dana, "po najmu" jednom.
+-- broj dana po pravilu 24 h (rental_days_between; bez vremena = vraćanje −
+-- preuzimanje); popust po dužini najma; cena po danu se zaokružuje na ceo evro;
+-- dodatak "po danu" × broj dana, "po najmu" jednom.
 -- Vraća null ako vozilo nije u cenovniku ili datumi nisu ispravni.
-create or replace function price_quote(p_car_id text, p_pickup date, p_return date, p_extras text[] default null)
+drop function if exists price_quote(text, date, date, text[]);
+create or replace function price_quote(
+  p_car_id text,
+  p_pickup date,
+  p_return date,
+  p_extras text[] default null,
+  p_pickup_time time default null,
+  p_return_time time default null
+)
 returns jsonb
 language plpgsql
 stable
 set search_path = public
 as $$
 declare
-  n_days integer := p_return - p_pickup;
+  n_days integer := case when p_return > p_pickup then rental_days_between(p_pickup, p_pickup_time, p_return, p_return_time) end;
   base_price integer;
   pct integer;
   rate numeric;
@@ -302,6 +404,7 @@ $$;
 -- iznos i dodatke (opciono — sajt koji ih ne šalje radi kao i pre).
 drop function if exists create_reservation(text, text, text, text, text, date, date, date, text, text);
 drop function if exists create_reservation(text, text, text, text, text, date, date, date, text, text, text, text);
+drop function if exists create_reservation(text, text, text, text, text, date, date, date, text, text, text, text, numeric, text[]);
 
 create or replace function create_reservation(
   p_car_id text,
@@ -317,7 +420,9 @@ create or replace function create_reservation(
   p_language text default 'sr',
   p_price_summary text default null,
   p_total_price numeric default null,
-  p_extras text[] default null
+  p_extras text[] default null,
+  p_pickup_time time default null,
+  p_return_time time default null
 ) returns jsonb
 language plpgsql
 security definer
@@ -333,10 +438,24 @@ begin
     return jsonb_build_object('success', false, 'reason', 'invalid_dates');
   end if;
 
+  -- Vreme preko sajta: radnim danima (pon–pet) od 08 do 20 h i ne u prošlosti.
+  -- Drugi termini se dogovaraju telefonom i unose u adminu. (Starija verzija
+  -- sajta ne šalje vreme — tada rezervacija zauzima cele dane, kao ranije.)
+  if p_pickup_time is not null or p_return_time is not null then
+    if p_pickup_time is null or p_return_time is null
+      or extract(isodow from p_pickup) > 5 or extract(isodow from p_return) > 5
+      or p_pickup_time < time '08:00' or p_pickup_time > time '20:00'
+      or p_return_time < time '08:00' or p_return_time > time '20:00'
+      or p_pickup + p_pickup_time < now() at time zone 'Europe/Belgrade'
+    then
+      return jsonb_build_object('success', false, 'reason', 'invalid_time');
+    end if;
+  end if;
+
   -- Iznos računa baza po cenovniku. Iznos koji šalje sajt služi samo za proveru:
   -- ako se razlikuje (npr. stranica otvorena pre promene cene), rezervacija važi
   -- po cenovniku, a admin u napomeni vidi upozorenje.
-  q := price_quote(p_car_id, p_pickup, p_return, p_extras);
+  q := price_quote(p_car_id, p_pickup, p_return, p_extras, p_pickup_time, p_return_time);
   if q is null then
     warning := 'Iznos nije izračunat: vozilo nije u cenovniku'
       || case when p_total_price is not null then format(' (sajt je prikazao %s€)', trim_scale(round(p_total_price, 2))) else '' end || '.';
@@ -367,7 +486,7 @@ begin
   --   too_long      najam preko sajta najviše 30 dana (duži se dogovara telefonom)
   --   too_many      najviše 3 buduće aktivne rezervacije sa istim telefonom ili emailom
   --   rate_limited  najviše 30 rezervacija sa sajta na sat, za ceo sajt
-  if p_return - p_pickup > 30 then
+  if rental_days_between(p_pickup, p_pickup_time, p_return, p_return_time) > 30 then
     return jsonb_build_object('success', false, 'reason', 'too_long');
   end if;
 
@@ -402,12 +521,12 @@ begin
   begin
     insert into reservations (
       car_id, car_name, customer_name, email, phone, date_of_birth,
-      pickup_date, return_date, pickup_location, note, language, price_summary,
+      pickup_date, return_date, pickup_time, return_time, pickup_location, note, language, price_summary,
       extras, total_price, list_price, discount_percent, daily_rate, rental_days,
       rental_total, extras_total, price_source
     ) values (
       p_car_id, p_car_name, p_customer_name, trim(p_email), p_phone, p_dob,
-      p_pickup, p_return, p_location,
+      p_pickup, p_return, p_pickup_time, p_return_time, p_location,
       nullif(concat_ws(' | ', nullif(trim(p_note), ''), warning), ''),
       case when p_language = 'en' then 'en' else 'sr' end,
       left(nullif(trim(p_price_summary), ''), 600),
@@ -433,7 +552,7 @@ begin
 end;
 $$;
 
-grant execute on function create_reservation(text, text, text, text, text, date, date, date, text, text, text, text, numeric, text[]) to anon;
+grant execute on function create_reservation(text, text, text, text, text, date, date, date, text, text, text, text, numeric, text[], time, time) to anon;
 
 -- ============================================================================
 -- ADMIN PANEL — pristup za prijavljenog vlasnika (Supabase Auth)
@@ -708,7 +827,7 @@ stable
 set search_path = public
 as $$
   select (to_jsonb(r) - 'date_range') || jsonb_build_object(
-    'days', r.return_date - r.pickup_date,
+    'days', rental_days_between(r.pickup_date, r.pickup_time, r.return_date, r.return_time),
     'registration', (select v.registration from vehicle_registry v where v.car_id = r.car_id),
     'paid', t.paid,
     'refunded', t.refunded,
@@ -892,11 +1011,14 @@ $$;
 
 -- Dostupnost vozila za admin formu. p_exclude_id: rezervacija koja se menja
 -- (ne sudara se sama sa sobom). Vraća i rezervacije sa kojima se sudara.
+drop function if exists admin_check_availability(text, date, date, uuid);
 create or replace function admin_check_availability(
   p_car_id text,
   p_pickup date,
   p_return date,
-  p_exclude_id uuid default null
+  p_exclude_id uuid default null,
+  p_pickup_time time default null,
+  p_return_time time default null
 ) returns jsonb
 language plpgsql
 stable
@@ -917,14 +1039,17 @@ begin
       'id', r.id,
       'customer_name', r.customer_name,
       'pickup_date', r.pickup_date,
+      'pickup_time', r.pickup_time,
       'return_date', r.return_date,
+      'return_time', r.return_time,
       'status', r.status
     ) order by r.pickup_date), '[]'::jsonb)
   into conflicts
   from reservations r
   where r.car_id = p_car_id
     and r.status in ('confirmed', 'picked_up', 'completed')
-    and r.date_range && daterange(p_pickup, p_return, '[]')
+    and reservation_span(r.pickup_date, r.pickup_time, r.return_date, r.return_time)
+      && reservation_span(p_pickup, p_pickup_time, p_return, p_return_time)
     and (p_exclude_id is null or r.id <> p_exclude_id);
 
   return jsonb_build_object('success', true, 'available', conflicts = '[]'::jsonb, 'conflicts', conflicts);
@@ -935,21 +1060,24 @@ $$;
 -- (forma ih predlaže po cenovniku), a najam i ukupno računa baza:
 -- najam = cena po danu × broj dana, ukupno = najam + dodaci.
 -- Vraća { priced: false } kad cena nije zadata, { error } kad je neispravna.
+drop function if exists reservation_price(text, date, date, text[], numeric, numeric);
 create or replace function reservation_price(
   p_car_id text,
   p_pickup date,
   p_return date,
   p_extras text[],
   p_daily_rate numeric,
-  p_extras_total numeric
+  p_extras_total numeric,
+  p_pickup_time time default null,
+  p_return_time time default null
 ) returns jsonb
 language plpgsql
 stable
 set search_path = public
 as $$
 declare
-  q jsonb := price_quote(p_car_id, p_pickup, p_return, p_extras);
-  n_days integer := p_return - p_pickup;
+  q jsonb := price_quote(p_car_id, p_pickup, p_return, p_extras, p_pickup_time, p_return_time);
+  n_days integer := case when p_return > p_pickup then rental_days_between(p_pickup, p_pickup_time, p_return, p_return_time) end;
   rate numeric;
   extras_sum numeric;
   rental numeric;
@@ -984,7 +1112,15 @@ $$;
 
 -- Predlog cene za admin formu (po trenutnom cenovniku); quote je null ako
 -- vozilo nije u cenovniku.
-create or replace function admin_quote(p_car_id text, p_pickup date, p_return date, p_extras text[] default null)
+drop function if exists admin_quote(text, date, date, text[]);
+create or replace function admin_quote(
+  p_car_id text,
+  p_pickup date,
+  p_return date,
+  p_extras text[] default null,
+  p_pickup_time time default null,
+  p_return_time time default null
+)
 returns jsonb
 language plpgsql
 stable
@@ -995,7 +1131,7 @@ begin
   if not is_admin() then
     return jsonb_build_object('success', false, 'reason', 'forbidden');
   end if;
-  return jsonb_build_object('success', true, 'quote', price_quote(p_car_id, p_pickup, p_return, p_extras));
+  return jsonb_build_object('success', true, 'quote', price_quote(p_car_id, p_pickup, p_return, p_extras, p_pickup_time, p_return_time));
 end;
 $$;
 
@@ -1038,7 +1174,7 @@ begin
     return jsonb_build_object('success', false, 'reason', 'forbidden');
   end if;
 
-  price := reservation_price(p_car_id, p_pickup, p_return, p_extras, p_daily_rate, p_extras_total);
+  price := reservation_price(p_car_id, p_pickup, p_return, p_extras, p_daily_rate, p_extras_total, p_pickup_time, p_return_time);
   priced := coalesce((price ->> 'priced')::boolean, false);
   input_error := coalesce(
     reservation_input_error(p_car_id, p_car_name, p_customer_name, p_phone, p_email, p_pickup, p_return, p_location, null),
@@ -1123,7 +1259,7 @@ begin
     return jsonb_build_object('success', false, 'reason', 'forbidden');
   end if;
 
-  price := reservation_price(p_car_id, p_pickup, p_return, p_extras, p_daily_rate, p_extras_total);
+  price := reservation_price(p_car_id, p_pickup, p_return, p_extras, p_daily_rate, p_extras_total, p_pickup_time, p_return_time);
   priced := coalesce((price ->> 'priced')::boolean, false);
   input_error := coalesce(
     reservation_input_error(p_car_id, p_car_name, p_customer_name, p_phone, p_email, p_pickup, p_return, p_location, null),
@@ -1337,9 +1473,9 @@ end;
 $$;
 
 -- Vozilo vraćeno: rezervacija postaje "završena" (vozilo je ponovo dostupno) i
--- čuva se tačno vreme vraćanja. Ako je vraćeno pre planiranog dana, datum
--- vraćanja se skraćuje na danas — preostali dani se oslobađaju za druge
--- rezervacije, a cena i naplata ostaju iste.
+-- čuva se tačno vreme vraćanja. Ako je vraćeno pre planiranog termina, termin
+-- se skraćuje na sada (datum i vreme vraćanja) — ostatak se oslobađa za druge
+-- rezervacije (posle 2 h pripreme), a cena i naplata ostaju iste.
 create or replace function admin_return(p_id uuid)
 returns jsonb
 language plpgsql
@@ -1348,8 +1484,10 @@ set search_path = public
 as $$
 declare
   r reservations;
+  now_bg timestamp := now() at time zone 'Europe/Belgrade';
   today date := (now() at time zone 'Europe/Belgrade')::date;
   new_return date;
+  new_time time;
 begin
   if not is_admin() then
     return jsonb_build_object('success', false, 'reason', 'forbidden');
@@ -1363,17 +1501,25 @@ begin
     return jsonb_build_object('success', false, 'reason', 'invalid_transition', 'from', r.status, 'to', 'completed');
   end if;
 
-  new_return := case when today < r.return_date then greatest(today, r.pickup_date + 1) else r.return_date end;
+  new_return := r.return_date;
+  new_time := r.return_time;
+  if now_bg < r.return_date + coalesce(r.return_time, time '23:59') then
+    new_return := greatest(today, r.pickup_date + 1);
+    if new_return = today then
+      new_time := date_trunc('minute', now_bg)::time;
+    end if;
+  end if;
 
   update reservations
-  set status = 'completed', returned_at = now(), return_date = new_return, updated_at = now()
+  set status = 'completed', returned_at = now(), return_date = new_return, return_time = new_time, updated_at = now()
   where id = r.id;
 
   return jsonb_build_object(
     'success', true,
     'status', 'completed',
     'return_date', new_return,
-    'shortened', new_return < r.return_date
+    'return_time', new_time,
+    'shortened', (new_return, new_time) is distinct from (r.return_date, r.return_time)
   );
 end;
 $$;

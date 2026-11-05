@@ -26,6 +26,19 @@ export const DISCOUNT_TIERS = [
 // telefonom). Isto ograničenje proverava i baza (create_reservation).
 export const MAX_ONLINE_DAYS = 30;
 
+// Preuzimanje i vraćanje preko sajta: radnim danima (pon–pet) od 8 do 20 h, na
+// pola sata; drugi termini se dogovaraju telefonom. Ista pravila primenjuje baza
+// (supabase/schema.sql): dan najma je 24 h od preuzimanja, vraćanje do 59 min
+// kasnije se ne računa, a između dva najma istog vozila su 2 h za pripremu.
+export const RENTAL_HOURS = {
+  weekdays: [1, 2, 3, 4, 5],
+  from: '08:00',
+  to: '20:00',
+  stepMinutes: 30,
+  graceMinutes: 59,
+  bufferMinutes: 120,
+};
+
 // Okvirni srednji kurs NBS — ažuriraj povremeno. Cene u dinarima su informativne,
 // osnovna valuta je evro.
 export const EUR_TO_RSD = 117.2;
