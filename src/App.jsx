@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -10,7 +11,16 @@ import VehiclePage from './pages/VehiclePage';
 import NotFoundPage from './pages/NotFoundPage';
 import './App.css';
 
-// Iste stranice na srpskom (/, /vozila) i engleskom (/en, /en/vehicles) — vidi src/i18n/routes.js.
+// Pravne stranice (dug tekst) se učitavaju tek kad se otvore.
+const LegalPage = lazy(() => import('./pages/LegalPage'));
+const legal = (doc) => (
+  <Suspense fallback={null}>
+    <LegalPage doc={doc} />
+  </Suspense>
+);
+
+// Iste stranice na srpskom (/, /vozila, /uslovi-najma, /politika-privatnosti) i engleskom
+// (/en, /en/vehicles, /en/rental-terms, /en/privacy-policy) — vidi src/i18n/routes.js.
 export default function App() {
   // Cene iz baze (cenovnik iz admin panela) — kad stignu, sajt se ponovo iscrta.
   usePriceList();
@@ -25,9 +35,13 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/vozila" element={<FleetPage />} />
             <Route path="/vozila/:id" element={<VehiclePage />} />
+            <Route path="/uslovi-najma" element={legal('terms')} />
+            <Route path="/politika-privatnosti" element={legal('privacy')} />
             <Route path="/en" element={<HomePage />} />
             <Route path="/en/vehicles" element={<FleetPage />} />
             <Route path="/en/vehicles/:id" element={<VehiclePage />} />
+            <Route path="/en/rental-terms" element={legal('terms')} />
+            <Route path="/en/privacy-policy" element={legal('privacy')} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

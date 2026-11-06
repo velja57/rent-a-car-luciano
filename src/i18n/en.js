@@ -16,6 +16,18 @@ export default {
     vehicleDescription: (car, lowest) =>
       `Rent a ${car.name} (${car.year}) in Belgrade — ${car.transmission.toLowerCase()}, ${car.fuel.toLowerCase()}, ${car.seats} seats. From ${lowest} per day, unlimited mileage.`,
     notFoundTitle: 'Page not found — Luciano Rent a Car',
+    termsTitle: 'Rental terms — Luciano Rent a Car',
+    termsDescription:
+      'Luciano Rent a Car rental terms: age and documents, payment at pick-up, fuel, insurance, cancellation and travel outside Serbia.',
+    privacyTitle: 'Privacy policy — Luciano Rent a Car',
+    privacyDescription: 'How Luciano Rent a Car collects, uses and stores personal data, and what your rights are.',
+  },
+
+  legal: {
+    updated: 'Last updated',
+    toc: 'Contents',
+    seeTerms: 'Rental terms',
+    seePrivacy: 'Privacy policy',
   },
 
   nav: {
@@ -142,6 +154,9 @@ export default {
     address: 'Kralja Mihaila Zetskog 43, Batajnica, Belgrade',
     hours: 'Working hours: 08:00 - 16:00 (weekdays)',
     rights: 'All rights reserved.',
+    legalLabel: 'Legal information',
+    terms: 'Rental terms',
+    privacy: 'Privacy policy',
     openNow: "We're available now",
     closedNow: 'Outside working hours',
     directions: 'Get directions',
@@ -236,6 +251,10 @@ export default {
     submit: 'Send booking',
     submitWithTotal: (total) => `Send booking · ${total}`,
     trust: ['Nothing to pay now', 'Free cancellation up to 48h', 'Instant email confirmation'],
+    // [before the terms link, between the links, after the privacy link]
+    legalNotice: ['By sending the booking you accept the ', ' and confirm you have read the ', '.'],
+    legalTerms: 'Rental terms',
+    legalPrivacy: 'Privacy policy',
     fallbackWhatsapp: 'Send the booking via WhatsApp instead',
     whatsappBook: 'Book via WhatsApp',
     whatsappBookHint: 'A ready-made message with the car and dates — just send it.',
@@ -380,6 +399,7 @@ export default {
     pricingLead: 'The discount is applied automatically when you choose your dates.',
     equipment: 'Equipment',
     terms: 'Rental terms',
+    allTerms: 'Full rental terms',
     similar: 'Similar cars',
   },
 

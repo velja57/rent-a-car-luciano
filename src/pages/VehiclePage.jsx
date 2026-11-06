@@ -247,6 +247,9 @@ function VehicleDetails({ rawCar }) {
                 </div>
               ))}
             </dl>
+            <Link className="vehicle-terms__more" to={paths.terms}>
+              {v.allTerms} →
+            </Link>
           </section>
         </div>
 

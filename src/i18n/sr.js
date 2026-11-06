@@ -16,6 +16,18 @@ export default {
     vehicleDescription: (car, lowest) =>
       `Iznajmi ${car.name} (${car.year}.) u Beogradu — ${car.transmission.toLowerCase()}, ${car.fuel.toLowerCase()}, ${car.seats} sedišta. Već od ${lowest} po danu, neograničena kilometraža.`,
     notFoundTitle: 'Stranica nije pronađena — Luciano Rent a Car',
+    termsTitle: 'Uslovi najma — Luciano Rent a Car',
+    termsDescription:
+      'Uslovi najma vozila Luciano Rent a Car: uzrast i dokumenta, plaćanje pri preuzimanju, gorivo, osiguranje, otkazivanje i izlazak iz Srbije.',
+    privacyTitle: 'Politika privatnosti — Luciano Rent a Car',
+    privacyDescription: 'Kako Luciano Rent a Car prikuplja, koristi i čuva lične podatke i koja su tvoja prava.',
+  },
+
+  legal: {
+    updated: 'Poslednja izmena',
+    toc: 'Sadržaj',
+    seeTerms: 'Uslovi najma vozila',
+    seePrivacy: 'Politika privatnosti',
   },
 
   nav: {
@@ -142,6 +154,9 @@ export default {
     address: 'Kralja Mihaila Zetskog 43, Batajnica, Beograd',
     hours: 'Radno vreme: 08:00 - 16:00 (radnim danima)',
     rights: 'Sva prava zadržana.',
+    legalLabel: 'Pravne informacije',
+    terms: 'Uslovi najma',
+    privacy: 'Politika privatnosti',
     openNow: 'Sada smo dostupni',
     closedNow: 'Van radnog vremena',
     directions: 'Pokaži mi pravac',
@@ -236,6 +251,10 @@ export default {
     submit: 'Pošalji rezervaciju',
     submitWithTotal: (total) => `Pošalji rezervaciju · ${total}`,
     trust: ['Ne plaćaš ništa sada', 'Besplatno otkazivanje do 48h', 'Potvrda odmah na email'],
+    // [pre linka na uslove, između linkova, posle linka na privatnost]
+    legalNotice: ['Slanjem rezervacije prihvataš ', ' i potvrđuješ da si upoznat sa ', '.'],
+    legalTerms: 'Uslove najma',
+    legalPrivacy: 'Politikom privatnosti',
     fallbackWhatsapp: 'Pošalji rezervaciju preko WhatsApp-a',
     whatsappBook: 'Rezerviši preko WhatsApp-a',
     whatsappBookHint: 'Gotova poruka sa vozilom i datumima — samo je pošalji.',
@@ -383,6 +402,7 @@ export default {
     pricingLead: 'Popust se automatski uračunava kad izabereš datume.',
     equipment: 'Oprema',
     terms: 'Uslovi najma',
+    allTerms: 'Svi uslovi najma',
     similar: 'Slična vozila',
   },
 

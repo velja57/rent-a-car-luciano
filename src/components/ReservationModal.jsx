@@ -80,7 +80,7 @@ function Icon({ name }) {
 // i potvrda kupcu, (2) gotova WhatsApp poruka, (3) poziv. initialPickup /
 // initialReturn: datumi već izabrani na stranici vozila/flote.
 export default function ReservationModal({ car, onClose, triggerRef, initialPickup = '', initialReturn = '' }) {
-  const { lang, t } = useI18n();
+  const { lang, t, paths } = useI18n();
   const r = t.reservation;
   const closeButtonRef = useRef(null);
   const firstFieldRef = useRef(null);
@@ -599,6 +599,19 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
               >
                 {submitLabel}
               </button>
+
+              {/* Uslovi i privatnost se otvaraju u novom tabu, da forma ostane popunjena. */}
+              <p className="reservation-form__legal">
+                {r.legalNotice[0]}
+                <a href={paths.terms} target="_blank" rel="noopener noreferrer">
+                  {r.legalTerms}
+                </a>
+                {r.legalNotice[1]}
+                <a href={paths.privacy} target="_blank" rel="noopener noreferrer">
+                  {r.legalPrivacy}
+                </a>
+                {r.legalNotice[2]}
+              </p>
 
               <ul className="booking-trust">
                 {r.trust.map((item) => (

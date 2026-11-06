@@ -4,7 +4,8 @@
 // Rezervacije koje unosi admin (kolona `source` = 'admin') se preskaču.
 //
 // Kupac dobija mejl na jeziku sajta na kom je rezervisao (kolona `language`,
-// 'sr' ili 'en'), sa iznosom i dodacima (kolona `price_summary`).
+// 'sr' ili 'en'), sa vremenom preuzimanja i vraćanja (kolone `pickup_time`,
+// `return_time`), iznosom i dodacima (kolona `price_summary`).
 // Vlasnik uvek dobija mejl na srpskom; iznos i jezik kupca su mu u
 // napomeni (isto se vidi i u admin panelu).
 //
@@ -30,6 +31,14 @@ function formatDate(iso: string, lang: 'sr' | 'en' = 'sr') {
   const [y, m, d] = iso.split('-');
   if (!y || !m || !d) return iso;
   return lang === 'en' ? `${Number(d)} ${MONTHS_EN[Number(m) - 1]} ${y}` : `${d}.${m}.${y}.`;
+}
+
+// Datum i vreme ("10:00:00" iz baze): "09.11.2026. u 10:00" / "9 Nov 2026 at 10:00".
+// Starije rezervacije i one iz admin panela mogu biti bez vremena — tada samo datum.
+function formatDateTime(iso: string, time: unknown, lang: 'sr' | 'en' = 'sr') {
+  const clock = typeof time === 'string' && /^\d{2}:\d{2}/.test(time) ? time.slice(0, 5) : '';
+  if (!clock) return formatDate(iso, lang);
+  return `${formatDate(iso, lang)} ${lang === 'en' ? 'at' : 'u'} ${clock}`;
 }
 
 // Sve vrednosti dolaze iz javne forme na sajtu — pre ubacivanja u HTML mejla
@@ -130,6 +139,8 @@ Deno.serve(async (req: Request) => {
   const carName = escapeHtml(record.car_name);
   const pickupDate = String(record.pickup_date ?? '');
   const returnDate = String(record.return_date ?? '');
+  const pickupTime = record.pickup_time;
+  const returnTime = record.return_time;
   const location = escapeHtml(record.pickup_location);
   const note = record.note ? escapeHtml(record.note) : '';
   const priceSummary = record.price_summary ? escapeHtml(record.price_summary) : '';
@@ -140,8 +151,8 @@ Deno.serve(async (req: Request) => {
       <p>${c.greeting(customerName)}</p>
       <p>${c.intro(carName)}</p>
       <ul>
-        <li><strong>${c.pickup}:</strong> ${formatDate(pickupDate, lang)}</li>
-        <li><strong>${c.return}:</strong> ${formatDate(returnDate, lang)}</li>
+        <li><strong>${c.pickup}:</strong> ${formatDateTime(pickupDate, pickupTime, lang)}</li>
+        <li><strong>${c.return}:</strong> ${formatDateTime(returnDate, returnTime, lang)}</li>
         <li><strong>${c.location}:</strong> ${location}</li>
         ${priceSummary ? `<li><strong>${c.price}:</strong> ${priceSummary}</li>` : ''}
       </ul>
@@ -158,8 +169,8 @@ Deno.serve(async (req: Request) => {
         <li><strong>Telefon:</strong> ${customerPhone}</li>
         <li><strong>Email:</strong> ${escapeHtml(customerEmail)}</li>
         <li><strong>Datum rođenja:</strong> ${dob ? formatDate(dob) : '-'}</li>
-        <li><strong>Preuzimanje:</strong> ${formatDate(pickupDate)}</li>
-        <li><strong>Vraćanje:</strong> ${formatDate(returnDate)}</li>
+        <li><strong>Preuzimanje:</strong> ${formatDateTime(pickupDate, pickupTime)}</li>
+        <li><strong>Vraćanje:</strong> ${formatDateTime(returnDate, returnTime)}</li>
         <li><strong>Lokacija preuzimanja:</strong> ${location}</li>
         ${note ? `<li><strong>Napomena:</strong> ${note}</li>` : ''}
       </ul>

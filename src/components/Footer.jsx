@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { useI18n } from '../i18n';
 import { isWorkingNow } from '../lib/contact';
 
@@ -35,7 +36,7 @@ function ContactIcon({ name }) {
 }
 
 export default function Footer() {
-  const { t } = useI18n();
+  const { t, paths } = useI18n();
   const workingNow = isWorkingNow();
   const mapQuery = encodeURIComponent(t.footer.address);
   const crossPromoImages = [
@@ -119,6 +120,11 @@ export default function Footer() {
         </a>
         <span className="site-footer__crosspromo-handle">{t.footer.crossPromoHandle}</span>
       </div>
+
+      <nav className="site-footer__legal" aria-label={t.footer.legalLabel}>
+        <Link to={paths.terms}>{t.footer.terms}</Link>
+        <Link to={paths.privacy}>{t.footer.privacy}</Link>
+      </nav>
 
       <p className="site-footer__copy">
         © {new Date().getFullYear()} Luciano Rent a Car. {t.footer.rights}

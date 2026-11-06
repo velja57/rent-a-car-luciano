@@ -190,3 +190,22 @@ adresu u ime firme.
 
 Redosled 1 → 2 → 3 je važan: ako se funkcija objavi pre nego što tajna postoji
 na oba mesta, mejlovi o rezervacijama ne stižu dok se to ne podesi.
+
+## Vreme preuzimanja i vraćanja u mejlovima (novembar 2026)
+
+Potvrda rezervacije (kupcu i vlasniku) i podsetnik dan pre preuzimanja sada
+navode i vreme, npr. „Preuzimanje: 09.11.2026. u 10:00“ (na engleskom
+„9 Nov 2026 at 10:00“). Rezervacije bez upisanog vremena (starije, ili unete u
+adminu bez vremena) i dalje prikazuju samo datum. Baza se ne menja.
+
+### Šta treba da uradiš (jednokratno)
+
+1. Edge Functions → `send-reservation-email` → zameni ceo kod sadržajem
+   [supabase/functions/send-reservation-email/index.ts](supabase/functions/send-reservation-email/index.ts)
+   → Deploy.
+2. Edge Functions → `send-pickup-reminders` → zameni ceo kod sadržajem
+   [supabase/functions/send-pickup-reminders/index.ts](supabase/functions/send-pickup-reminders/index.ts)
+   → Deploy.
+
+Tajne (`RESEND_API_KEY`, `WEBHOOK_SECRET`, `CRON_SECRET`), webhook i cron ostaju
+kakvi jesu.

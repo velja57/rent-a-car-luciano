@@ -540,6 +540,20 @@
   text-align: right;
 }
 
+.vehicle-terms__more {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.vehicle-terms__more:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .vehicle-similar {
   margin-top: 22px;
 }

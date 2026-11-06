@@ -26,6 +26,7 @@ type Reservation = {
   customer_name: string;
   car_name: string;
   pickup_date: string;
+  pickup_time: string | null;
   pickup_location: string;
   language: string | null;
 };
@@ -33,6 +34,13 @@ type Reservation = {
 function formatDate(iso: string, lang: 'sr' | 'en') {
   const [y, m, d] = iso.split('-');
   return lang === 'en' ? `${Number(d)} ${MONTHS_EN[Number(m) - 1]} ${y}` : `${d}.${m}.${y}.`;
+}
+
+// Datum i vreme preuzimanja ("10:00:00" iz baze): "09.11.2026. u 10:00" / "9 Nov 2026 at 10:00".
+// Rezervacija bez upisanog vremena (npr. uneta u adminu) — samo datum.
+function formatDateTime(iso: string, time: string | null, lang: 'sr' | 'en') {
+  const clock = time && /^\d{2}:\d{2}/.test(time) ? time.slice(0, 5) : '';
+  return clock ? `${formatDate(iso, lang)} ${lang === 'en' ? 'at' : 'u'} ${clock}` : formatDate(iso, lang);
 }
 
 // Sutrašnji datum (YYYY-MM-DD) po beogradskom vremenu.
@@ -79,7 +87,7 @@ function reminderHtml(r: Reservation, lang: 'sr' | 'en') {
   return `
     <div style="font-family: Arial, sans-serif; color: #15171c; line-height: 1.6;">
       <p>${t.greeting(escapeHtml(r.customer_name))}</p>
-      <p>${t.intro(formatDate(r.pickup_date, lang), escapeHtml(r.car_name))}</p>
+      <p>${t.intro(formatDateTime(r.pickup_date, r.pickup_time, lang), escapeHtml(r.car_name))}</p>
       <ul>
         <li><strong>${t.location}:</strong> ${escapeHtml(r.pickup_location)}</li>
       </ul>
@@ -130,7 +138,7 @@ Deno.serve(async (req: Request) => {
 
   const date = tomorrowInBelgrade();
   const query = new URLSearchParams({
-    select: 'id,email,customer_name,car_name,pickup_date,pickup_location,language',
+    select: 'id,email,customer_name,car_name,pickup_date,pickup_time,pickup_location,language',
     status: 'eq.confirmed',
     pickup_date: `eq.${date}`,
     reminder_sent_at: 'is.null',
