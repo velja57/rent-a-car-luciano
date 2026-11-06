@@ -1599,25 +1599,6 @@
   color: var(--color-accent);
 }
 
-.admin-money {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.admin-money > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.admin-money strong {
-  font-size: 18px;
-}
-
 .admin-payment-form__date {
   min-height: 42px;
   display: flex;
@@ -1656,8 +1637,7 @@
   gap: 8px;
 }
 
-.admin-analytics-filters__period input,
-.admin-analytics-filters__car select {
+.admin-analytics-filters__period input {
   font-family: inherit;
   font-size: 14px;
   color: var(--color-text);
@@ -1667,13 +1647,20 @@
   padding: 8px 12px;
 }
 
-.admin-analytics-filters__period input[type='number'] {
-  width: 96px;
+/* Kartice perioda u analitici su dugmad: klik bira taj period. */
+.admin-stat--button {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.admin-analytics-filters__car {
-  margin-left: auto;
-  min-width: 200px;
+.admin-stat--active {
+  border-color: var(--color-accent);
+}
+
+.admin-stats--period {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .admin-stats--5 {
@@ -1685,31 +1672,9 @@
   color: var(--color-text-muted);
 }
 
-.admin-cash {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px 24px;
-}
-
-.admin-cash > div:first-child {
-  max-width: 420px;
-}
-
-.admin-cash .admin-money {
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
-  flex: 1;
-  max-width: 560px;
-}
-
-/* Spisak uplata ispod zbira (cela širina panela). */
+/* Spisak uplata u periodu. */
 .admin-period-payments {
-  flex-basis: 100%;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .admin-period-payments__status {
@@ -1739,14 +1704,14 @@
   color: var(--color-accent);
 }
 
-/* Spisak rezervacija bez cene u analitici (ime je link na rezervaciju). */
-.admin-unpriced {
+/* Preuzeti najmovi bez evidentirane naplate u analitici (ime je link na rezervaciju). */
+.admin-unpaid {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.admin-unpriced ul {
+.admin-unpaid ul {
   margin: 0;
   padding-left: 18px;
   display: flex;
@@ -1754,7 +1719,7 @@
   gap: 4px;
 }
 
-.admin-unpriced a {
+.admin-unpaid a {
   color: inherit;
   font-weight: 600;
   text-decoration: underline;
@@ -1787,118 +1752,9 @@
   border-bottom: none;
 }
 
-/* Grafikon: najam i dodaci (paleta proverena za tamnu pozadinu, i za daltonizam). */
-.admin-chart {
-  --chart-rental: #b8893a;
-  --chart-extras: #5f8fdc;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.admin-analytics,
+/* Traka uz prihod po vozilu. */
 .admin-total-bar {
   --chart-rental: #b8893a;
-}
-
-.admin-chart__legend {
-  display: flex;
-  gap: 18px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.admin-chart__swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 6px;
-  border-radius: 2px;
-  vertical-align: -1px;
-}
-
-.admin-chart__swatch--rental {
-  background: var(--chart-rental, #b8893a);
-}
-
-.admin-chart__swatch--extras {
-  background: var(--chart-extras, #5f8fdc);
-}
-
-.admin-chart__plot {
-  position: relative;
-  min-height: 240px;
-}
-
-.admin-chart__plot svg {
-  display: block;
-  overflow: visible;
-}
-
-.admin-chart__grid {
-  stroke: rgba(255, 255, 255, 0.06);
-}
-
-.admin-chart__baseline {
-  stroke: rgba(255, 255, 255, 0.18);
-}
-
-.admin-chart__axis {
-  fill: var(--color-text-muted);
-  font-size: 11px;
-}
-
-.admin-chart__rental {
-  fill: var(--chart-rental);
-}
-
-.admin-chart__extras {
-  fill: var(--chart-extras);
-}
-
-.admin-chart__bar--active .admin-chart__rental,
-.admin-chart__bar--active .admin-chart__extras {
-  filter: brightness(1.25);
-}
-
-.admin-chart__hit {
-  fill: transparent;
-  cursor: default;
-  outline: none;
-}
-
-.admin-chart__hit:focus-visible {
-  stroke: var(--color-accent);
-  stroke-width: 1.5;
-}
-
-.admin-chart__tooltip {
-  position: absolute;
-  z-index: 5;
-  transform: translate(-50%, -100%);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 150px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-solid);
-  box-shadow: var(--shadow-md);
-  font-size: 13px;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.admin-chart-table summary {
-  cursor: pointer;
-  font-size: 13.5px;
-  color: var(--color-text-muted);
-}
-
-.admin-chart-table .admin-table-wrap {
-  margin-top: 10px;
 }
 
 /* ---------- Tablet i telefon ---------- */
@@ -1909,8 +1765,9 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .admin-money {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Analitika: "Ukupan prihod" preko cele širine, ostale kartice dve po dve. */
+  .admin-stats--5 > :first-child {
+    grid-column: 1 / -1;
   }
 
   .admin-payment-form {
@@ -1921,9 +1778,6 @@
     grid-column: 1 / -1;
   }
 
-  .admin-analytics-filters__car {
-    margin-left: 0;
-  }
 }
 
 @media (max-width: 900px) {
@@ -2079,10 +1933,6 @@
   .admin-form__grid,
   .admin-extras,
   .admin-payment-form {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-cash .admin-money {
     grid-template-columns: minmax(0, 1fr);
   }
 

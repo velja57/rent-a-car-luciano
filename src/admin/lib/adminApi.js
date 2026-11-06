@@ -157,10 +157,8 @@ export const adminApi = {
       p_note: note || null,
     }),
   voidPayment: (id, reason) => call('admin_void_payment', { p_payment_id: id, p_reason: reason || null }),
-  revenue: ({ from, to, mode, scope, carId }) =>
-    call('admin_revenue', { p_from: from, p_to: to, p_mode: mode, p_scope: scope, p_car_id: carId || null }),
-  fleetUsage: ({ from, to, scope, carId }) =>
-    call('admin_fleet_usage', { p_from: from, p_to: to, p_scope: scope, p_car_id: carId || null }),
+  // Analitika prihoda: naplaćeno pri preuzimanju (danas, nedelja, mesec, godina, ukupno i izabrani period).
+  income: ({ from, to }) => call('admin_income', { p_from: from, p_to: to }),
   // Uplate i povraćaji u periodu — stavke iza zbira "Naplaćeno u periodu".
   listPayments: ({ from, to, carId }) => call('admin_list_payments', { p_from: from, p_to: to, p_car_id: carId || null }),
 };

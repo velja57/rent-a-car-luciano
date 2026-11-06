@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 105 od 105 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 110 od 110 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -1002,6 +1002,83 @@ begin
     and (res ->> 'rental_days')::int = 2
     and (res ->> 'revenue')::numeric = 250;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('vozni park: posle vraćanja vozilo je dostupno, prihod ostaje 250 € [%s]', res)); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 15. Analitika prihoda: samo naplaćeno za preuzeta vozila; stari najmovi
+  -- =========================================================================
+  -- Stari najmovi (preuzeti pre beleženja naplate, bez vremena preuzimanja):
+  -- S1 sa iznosom 90 € -> naplata se upisuje naknadno; S2 bez iznosa -> ostaje
+  -- na spisku "bez evidentirane naplate"; S3 otkazana sa uplatom -> ne računa se.
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location, status, total_price)
+  values ('test-vozilo-prihod', 'TEST prihod', 'TEST Stari 1', 'test@example.com', '060 111 222', '1990-01-01',
+    '2093-05-10', '2093-05-12', 'TEST', 'completed', 90)
+  returning id into id_a;
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location, status)
+  values ('test-vozilo-prihod', 'TEST prihod', 'TEST Stari 2', 'test@example.com', '060 111 222', '1990-01-01',
+    '2093-05-20', '2093-05-22', 'TEST', 'completed')
+  returning id into id_b;
+  insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
+    pickup_location, status, total_price)
+  values ('test-vozilo-prihod', 'TEST prihod', 'TEST Otkazana', 'test@example.com', '060 111 222', '1990-01-01',
+    '2093-05-25', '2093-05-27', 'TEST', 'cancelled', 70)
+  returning id into id_c;
+  insert into payments (reservation_id, kind, amount, method) values (id_c, 'payment', 70, 'cash');
+
+  n := record_legacy_pickup_payments();
+  ok := n >= 1
+    and exists (select 1 from payments where reservation_id = id_a and kind = 'payment' and amount = 90
+                and paid_at = '2093-05-10' and method = 'other' and note like '%upisano naknadno%')
+    and exists (select 1 from reservation_events where reservation_id = id_a and action = 'payment_added' and actor = 'sistem')
+    and not exists (select 1 from payments where reservation_id = id_b);
+  n := record_legacy_pickup_payments();
+  ok := ok and n = 0 and (select count(*) from payments where reservation_id = id_a) = 1;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'stari najam sa iznosom: naplata upisana naknadno (datum preuzimanja, istorija), samo jednom'); end if;
+
+  perform set_config('request.jwt.claims', '{"role":"authenticated","email":"neko-drugi@example.com"}', true);
+  set local role authenticated;
+  res := admin_income('2093-05-01', '2093-05-31');
+  ok := res ->> 'reason' = 'forbidden';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('ne-admin: analitika mora biti zabranjena [%s]', left(res::text, 200))); end if;
+  reset role;
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+  res := admin_income('2093-05-01', '2093-05-31') -> 'period';
+  ok := (res ->> 'amount')::numeric = 90
+    and (res ->> 'rentals')::int = 2
+    and jsonb_array_length(res -> 'by_car') = 1
+    and res -> 'by_car' -> 0 ->> 'car_id' = 'test-vozilo-prihod'
+    and (res -> 'by_car' -> 0 ->> 'amount')::numeric = 90
+    and (res -> 'by_car' -> 0 ->> 'rentals')::int = 2
+    and jsonb_array_length(res -> 'unpaid') = 1
+    and res -> 'unpaid' -> 0 ->> 'customer_name' = 'TEST Stari 2';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('analitika maj 2093: 90 € (otkazana sa uplatom se ne računa), 2 najma, 1 bez naplate [%s]', res)); end if;
+
+  -- Danas: preuzimanje (gotovina 100 €) dodaje 100 € i 1 najam; povraćaj 10 € umanjuje prihod.
+  res := admin_income(today_bg, today_bg);
+  num := (res -> 'summary' -> 'today' ->> 'amount')::numeric;
+  n := (res -> 'summary' -> 'today' ->> 'rentals')::int;
+  res := admin_create_reservation(p_car_id => 'test-vozilo-prihod', p_car_name => 'TEST prihod', p_customer_name => 'TEST Prihod danas',
+    p_phone => '066 300 0001', p_pickup => '2093-06-01', p_return => '2093-06-03', p_location => 'TEST', p_daily_rate => 50);
+  id_d := (res ->> 'id')::uuid;
+  res := admin_pickup(id_d, 'cash');
+  res := admin_add_payment(id_d, 'refund', 10, 'cash', today_bg);
+  res := admin_income(today_bg, today_bg);
+  ok := (res -> 'summary' -> 'today' ->> 'amount')::numeric = num + 90
+    and (res -> 'summary' -> 'today' ->> 'rentals')::int = n + 1
+    and (res -> 'summary' -> 'month' ->> 'amount')::numeric >= num + 90
+    and (res -> 'summary' -> 'all' ->> 'amount')::numeric >= (res -> 'summary' -> 'year' ->> 'amount')::numeric
+    and (res -> 'period' ->> 'amount')::numeric = num + 90
+    and exists (select 1 from jsonb_array_elements(res -> 'period' -> 'by_car') c
+                where c ->> 'car_id' = 'test-vozilo-prihod' and (c ->> 'amount')::numeric = 90 and (c ->> 'rentals')::int = 1);
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('analitika danas: preuzimanje +100 €, povraćaj −10 €, +1 najam [%s]', left(res::text, 300))); end if;
+
+  res := admin_income('2093-05-31', '2093-05-01');
+  ok := res ->> 'reason' = 'invalid_range';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('analitika: neispravan period [%s]', res)); end if;
   reset role;
 
   raise exception using

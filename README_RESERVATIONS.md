@@ -186,7 +186,7 @@ adresu u ime firme.
    → Run. Zatim zalepi ceo
    [supabase/tests/admin-panel-test.sql](supabase/tests/admin-panel-test.sql) → Run.
    Očekivano (crvena poruka je namerna):
-   `REZULTAT TESTA: 105 od 105 provera uspešno. Sve je u redu.`
+   `REZULTAT TESTA: 110 od 110 provera uspešno. Sve je u redu.`
 
 Redosled 1 → 2 → 3 je važan: ako se funkcija objavi pre nego što tajna postoji
 na oba mesta, mejlovi o rezervacijama ne stižu dok se to ne podesi.

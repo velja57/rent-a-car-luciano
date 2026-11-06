@@ -1,40 +1,31 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { adminApi, useAdminData } from '../lib/adminApi';
-import { addDays, dateBelgrade, formatDate, formatMoney } from '../lib/format';
-import { ACTIVE_STATUSES, PAYMENT_KINDS, PAYMENT_METHODS, vehicleById } from '../lib/labels';
+import { formatDate, formatMoney } from '../lib/format';
+import { PAYMENT_KINDS, PAYMENT_METHODS, vehicleById } from '../lib/labels';
 import StatusBadge from './StatusBadge';
 
 const VISIBLE_ROWS = 10;
 
-// Zašto ova uplata ne odgovara prihodu iz perioda (prazno = odgovara).
-function notesFor(r, { from, to, mode, scope }) {
+// Prihod čine samo uplate za rezervacije čije je vozilo preuzeto (isto kao admin_income).
+const COUNTED = ['picked_up', 'completed'];
+const NOT_COUNTED = {
+  confirmed: 'Vozilo nije preuzeto — ne ulazi u prihod',
+  cancelled: 'Otkazana — ne ulazi u prihod',
+  no_show: 'Nije se pojavio — ne ulazi u prihod',
+};
+
+// Zašto se ova uplata ne računa u prihod, ili šta treba proveriti (prazno = sve u redu).
+function notesFor(r) {
   const notes = [];
-  const counted = scope === 'realized' ? r.status === 'completed' : ACTIVE_STATUSES.includes(r.status);
-  if (!counted) {
-    notes.push({
-      text: ACTIVE_STATUSES.includes(r.status) ? 'Nije završena — ne ulazi u realizovano' : 'Ne ulazi u prihod',
-    });
-  } else if (r.total_price === null) {
-    notes.push({ text: 'Rezervacija bez cene — ne ulazi u prihod' });
-  } else if (mode === 'rental') {
-    // Dani najma: od preuzimanja do dana pre vraćanja (isto kao prihod).
-    const lastDay = addDays(r.return_date, -1);
-    if (lastDay < from || r.pickup_date > to) notes.push({ text: 'Najam je van izabranog perioda' });
-    else if (r.pickup_date < from || lastDay > to) notes.push({ text: 'Najam je delom van izabranog perioda' });
-  } else {
-    // Po datumu rezervacije: ceo iznos pripada danu kada je rezervacija napravljena.
-    const booked = dateBelgrade(r.created_at);
-    if (booked < from || booked > to) notes.push({ text: 'Rezervacija je napravljena van izabranog perioda' });
-  }
+  if (!COUNTED.includes(r.status)) notes.push({ text: NOT_COUNTED[r.status] ?? 'Ne ulazi u prihod' });
   const balance = r.balance === null ? null : Number(r.balance);
   if (balance !== null && balance < 0) notes.push({ text: `Preplaćeno ${formatMoney(-balance)}`, warning: true });
   return notes;
 }
 
-// Spisak uplata i povraćaja iza zbira "Naplaćeno u periodu" u analitici:
-// odakle je novac i zašto se naplaćeno razlikuje od prihoda.
-export default function PeriodPayments({ from, to, carId, mode, scope }) {
+// Spisak uplata i povraćaja u periodu u analitici: od čega je sabran prihod.
+export default function PeriodPayments({ from, to, carId }) {
   const navigate = useNavigate();
   const [showAll, setShowAll] = useState(false);
   const { data, error, loading, reload } = useAdminData(
@@ -61,8 +52,8 @@ export default function PeriodPayments({ from, to, carId, mode, scope }) {
   return (
     <>
       <p className="admin-muted admin-hint">
-        Stavke iz kojih je sabran iznos iznad. Napomena pored stavke objašnjava zašto se ne poklapa sa prihodom. Klik na
-        red otvara rezervaciju.
+        Stavke iz kojih je sabran prihod u izabranom periodu. Napomena pored stavke kaže ako se ne računa. Klik na red
+        otvara rezervaciju.
       </p>
       <div className={`admin-table-wrap${loading ? ' admin-table-wrap--loading' : ''}`}>
         <table className="admin-table admin-table--responsive">
@@ -79,7 +70,7 @@ export default function PeriodPayments({ from, to, carId, mode, scope }) {
           <tbody>
             {visible.map((p) => {
               const r = p.reservation;
-              const notes = notesFor(r, { from, to, mode, scope });
+              const notes = notesFor(r);
               return (
                 <tr key={p.id} className="admin-row" onClick={() => navigate(`/rezervacije/${r.id}`)}>
                   <td data-label="Datum uplate">

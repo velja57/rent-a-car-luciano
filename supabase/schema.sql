@@ -797,6 +797,51 @@ select o.reservation_id, 'payment_date_aligned',
 from old o
 join moved m on m.id = o.id;
 
+-- Najmovi preuzeti pre nego što je "Vozilo preuzeto" počelo da beleži naplatu
+-- (nemaju zapisano vreme preuzimanja): kupac plaća ceo iznos pri preuzimanju,
+-- pa se naplata upisuje naknadno — samo za rezervacije sa iznosom i bez ijedne
+-- uplate, uz belešku "upisano naknadno" i stavku u istoriji. Datum uplate je
+-- datum preuzimanja (okidač payments_paid_on_pickup). Ponovno pokretanje ne
+-- upisuje ništa dvaput. Vraća broj upisanih naplata.
+create or replace function record_legacy_pickup_payments()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n integer;
+begin
+  with legacy as (
+    select r.id, r.total_price
+    from reservations r
+    where r.status in ('picked_up', 'completed')
+      and r.picked_up_at is null
+      and r.total_price > 0
+      and not exists (
+        select 1 from payments p
+        where p.reservation_id = r.id and p.kind = 'payment' and p.voided_at is null
+      )
+  ),
+  added as (
+    insert into payments (reservation_id, kind, amount, method, note, created_by)
+    select l.id, 'payment', l.total_price, 'other', 'Naplata pri preuzimanju vozila (upisano naknadno)', 'sistem'
+    from legacy l
+    returning id, reservation_id, amount
+  )
+  insert into reservation_events (reservation_id, action, changes, actor)
+  select a.reservation_id, 'payment_added',
+    jsonb_build_object('payment_id', a.id, 'kind', 'payment', 'amount', a.amount, 'method', 'other',
+      'note', 'Naplata pri preuzimanju vozila (upisano naknadno)'),
+    'sistem'
+  from added a;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+
+select record_legacy_pickup_payments() as upisane_stare_naplate;
+
 -- Zbir uplata jedne rezervacije (bez poništenih stavki). Jedino mesto gde se
 -- to računa — koriste ga lista, detalj i finansije.
 create or replace function payment_totals(p_reservation_id uuid)
@@ -1808,6 +1853,107 @@ begin
 end;
 $$;
 
+-- Analitika prihoda (admin). Prihod = naplaćeno: uplate minus povraćaji (bez
+-- poništenih stavki i kaucije), samo za rezervacije čije je vozilo preuzeto
+-- (preuzeta ili završena) — otkazane i nepreuzete se ne računaju. Datum uplate
+-- je dan preuzimanja vozila. Najam = rezervacija preuzeta tog dana (vreme
+-- preuzimanja po beogradskom vremenu; za starije — datum preuzimanja).
+--   summary  today, week (od ponedeljka), month, year i all (od početka)
+--   period   p_from..p_to: prihod, broj najmova, po vozilu i preuzeti najmovi
+--            bez evidentirane naplate (nisu u prihodu)
+create or replace function admin_income(p_from date, p_to date)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  today date := (now() at time zone 'Europe/Belgrade')::date;
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if p_from is null or p_to is null or p_to < p_from then
+    return jsonb_build_object('success', false, 'reason', 'invalid_range');
+  end if;
+
+  return (
+    with money as (
+      select r.car_id, r.car_name, p.paid_at as day,
+        case when p.kind = 'refund' then -p.amount else p.amount end as amount
+      from payments p
+      join reservations r on r.id = p.reservation_id
+      where p.voided_at is null
+        and p.kind in ('payment', 'refund')
+        and r.status in ('picked_up', 'completed')
+    ),
+    rentals as (
+      select r.*, coalesce((r.picked_up_at at time zone 'Europe/Belgrade')::date, r.pickup_date) as day
+      from reservations r
+      where r.status in ('picked_up', 'completed')
+    ),
+    windows (key, a, b) as (
+      values
+        ('today', today, today),
+        ('week', date_trunc('week', today)::date, date_trunc('week', today)::date + 6),
+        ('month', date_trunc('month', today)::date, (date_trunc('month', today) + interval '1 month')::date - 1),
+        ('year', date_trunc('year', today)::date, (date_trunc('year', today) + interval '1 year')::date - 1),
+        ('all', date '0001-01-01', date '9999-12-31')
+    )
+    select jsonb_build_object(
+      'success', true,
+      'today', today,
+      'summary', (
+        select jsonb_object_agg(w.key, jsonb_build_object(
+          'amount', coalesce((select sum(m.amount) from money m where m.day between w.a and w.b), 0),
+          'rentals', (select count(*) from rentals x where x.day between w.a and w.b)
+        ))
+        from windows w
+      ),
+      'period', jsonb_build_object(
+        'from', p_from,
+        'to', p_to,
+        'amount', coalesce((select sum(m.amount) from money m where m.day between p_from and p_to), 0),
+        'rentals', (select count(*) from rentals x where x.day between p_from and p_to),
+        'by_car', coalesce((
+          select jsonb_agg(jsonb_build_object(
+              'car_id', c.car_id, 'car_name', c.car_name, 'amount', c.amount, 'rentals', c.rentals
+            ) order by c.amount desc, c.car_name)
+          from (
+            select u.car_id, max(u.car_name) as car_name, sum(u.amount) as amount, sum(u.rentals) as rentals
+            from (
+              select m.car_id, m.car_name, m.amount, 0 as rentals from money m where m.day between p_from and p_to
+              union all
+              select x.car_id, x.car_name, 0, 1 from rentals x where x.day between p_from and p_to
+            ) u
+            group by u.car_id
+          ) c
+        ), '[]'::jsonb),
+        'unpaid', coalesce((
+          select jsonb_agg(jsonb_build_object(
+              'id', x.id,
+              'customer_name', x.customer_name,
+              'car_id', x.car_id,
+              'car_name', x.car_name,
+              'pickup_date', x.pickup_date,
+              'return_date', x.return_date,
+              'status', x.status,
+              'total_price', x.total_price
+            ) order by x.day, x.created_at)
+          from rentals x
+          where x.day between p_from and p_to
+            and not exists (
+              select 1 from payments p
+              where p.reservation_id = x.id and p.kind = 'payment' and p.voided_at is null
+            )
+        ), '[]'::jsonb)
+      )
+    )
+  );
+end;
+$$;
+
 -- Finansijski pregled za period (p_from..p_to). Razlikuje:
 --   booked       vrednost aktivnih rezervacija (po datumu preuzimanja) —
 --                to NIJE naplaćen novac; otkazane i "nije se pojavio" se ne računaju
@@ -2479,7 +2625,7 @@ begin
     where n.nspname = 'public'
       and p.proname in (
         'current_actor', 'payment_totals', 'reservation_json', 'reservation_input_error', 'price_quote',
-        'reservation_price', 'reconstruct_reservation_price', 'revenue_lines'
+        'reservation_price', 'reconstruct_reservation_price', 'revenue_lines', 'record_legacy_pickup_payments'
       )
   loop
     execute format('revoke execute on function %s from public, anon, authenticated', f);
