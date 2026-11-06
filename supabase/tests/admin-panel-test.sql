@@ -7,7 +7,7 @@
 -- je test upisao (i nijedan mejl se ne šalje).
 --
 -- Rezultat je u toj poruci, npr:
---   ERROR: REZULTAT TESTA: 102 od 102 provera uspešno. Sve je u redu.
+--   ERROR: REZULTAT TESTA: 105 od 105 provera uspešno. Sve je u redu.
 -- Ako neka provera ne uspe, poruka nabraja koje.
 
 do $test$
@@ -955,6 +955,53 @@ begin
   ok := (res -> 'reservation' ->> 'rental_days')::int = 2 and (res -> 'reservation' ->> 'total_price')::numeric = 60
     and (res -> 'reservation' ->> 'days')::int = 2;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('admin: 9:00 -> 12:00 sledećeg dana = 2 dana × 30 € = 60 € [%s]', left(res::text, 300))); end if;
+  reset role;
+
+  -- =========================================================================
+  -- 14. Vozni park: status vozila (Izdato / Dostupno), najmovi i prihod
+  -- =========================================================================
+  perform set_config('request.jwt.claims', '{"role":"authenticated","email":"neko-drugi@example.com"}', true);
+  set local role authenticated;
+  res := admin_fleet();
+  ok := res ->> 'reason' = 'forbidden';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('ne-admin: vozni park mora biti zabranjen [%s]', left(res::text, 200))); end if;
+  reset role;
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'authenticated', 'email', admin_email)::text, true);
+  set local role authenticated;
+  -- V1 preuzeto (3 dana × 50 = 150, gotovina), V2 preuzeto (100, kartica) i vraćeno ranije
+  -- (skraćeno na 1 dan), V3 potvrđena, V4 otkazana.
+  res := admin_create_reservation(p_car_id => 'test-vozilo-park', p_car_name => 'TEST park', p_customer_name => 'TEST Park 1',
+    p_phone => '066 200 0001', p_pickup => '2094-03-01', p_return => '2094-03-04', p_location => 'TEST', p_daily_rate => 50);
+  id_a := (res ->> 'id')::uuid;
+  res := admin_create_reservation(p_car_id => 'test-vozilo-park', p_car_name => 'TEST park', p_customer_name => 'TEST Park 2',
+    p_phone => '066 200 0002', p_pickup => '2094-03-10', p_return => '2094-03-12', p_location => 'TEST', p_daily_rate => 50);
+  id_b := (res ->> 'id')::uuid;
+  res := admin_create_reservation(p_car_id => 'test-vozilo-park', p_car_name => 'TEST park', p_customer_name => 'TEST Park 3',
+    p_phone => '066 200 0003', p_pickup => '2094-03-20', p_return => '2094-03-22', p_location => 'TEST', p_daily_rate => 50);
+  res := admin_create_reservation(p_car_id => 'test-vozilo-park', p_car_name => 'TEST park', p_customer_name => 'TEST Park 4',
+    p_phone => '066 200 0004', p_pickup => '2094-03-25', p_return => '2094-03-27', p_location => 'TEST', p_daily_rate => 50);
+  res := admin_set_status((res ->> 'id')::uuid, 'cancelled');
+  res := admin_pickup(id_b, 'card');
+  res := admin_return(id_b);
+  res := admin_pickup(id_a, 'cash');
+
+  res := admin_fleet() -> 'cars' -> 'test-vozilo-park';
+  ok := (res -> 'rented' ->> 'id')::uuid = id_a
+    and res -> 'rented' ->> 'customer_name' = 'TEST Park 1'
+    and (res ->> 'reservations')::int = 4
+    and (res ->> 'rentals')::int = 2
+    and (res ->> 'rental_days')::int = 4
+    and (res ->> 'revenue')::numeric = 250;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('vozni park: izdato (kod TEST Park 1), 2 najma, 4 dana, prihod 250 € [%s]', res)); end if;
+
+  res := admin_return(id_a);
+  res := admin_fleet() -> 'cars' -> 'test-vozilo-park';
+  ok := res -> 'rented' = 'null'::jsonb
+    and (res ->> 'rentals')::int = 2
+    and (res ->> 'rental_days')::int = 2
+    and (res ->> 'revenue')::numeric = 250;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('vozni park: posle vraćanja vozilo je dostupno, prihod ostaje 250 € [%s]', res)); end if;
   reset role;
 
   raise exception using

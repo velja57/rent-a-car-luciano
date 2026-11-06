@@ -1,72 +1,82 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { VehicleStatus } from '../components/StatusBadge';
 import { ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
 import { loadPriceList } from '../../lib/priceList';
 import { adminApi, useAdminData } from '../lib/adminApi';
+import { formatDateWithTime, formatMoney } from '../lib/format';
+import { EXTRAS } from '../../data/rental';
 import { extraName, FLEET_ORDER } from '../lib/labels';
 
 const isWholeNumber = (value, min, max) => /^\d+$/.test(String(value).trim()) && Number(value) >= min && Number(value) <= max;
 
-function VehicleRow({ car, saved, price, onSaved }) {
-  const toast = useToast();
-  const [registration, setRegistration] = useState(saved?.registration ?? '');
-  const [notes, setNotes] = useState(saved?.notes ?? '');
-  const [dayPrice, setDayPrice] = useState(price === undefined ? '' : String(price));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const registryDirty = registration.trim().toUpperCase() !== (saved?.registration ?? '') || notes.trim() !== (saved?.notes ?? '');
-  const priceDirty = dayPrice.trim() !== (price === undefined ? '' : String(price));
-
-  const save = async (e) => {
-    e.preventDefault();
-    if (priceDirty && !isWholeNumber(dayPrice, 1, 10000)) {
-      setError('Cena po danu je ceo broj evra (1–10.000).');
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      if (registryDirty) await adminApi.saveVehicle(car.id, registration.trim(), notes.trim());
-      if (priceDirty) await adminApi.setCarPrice(car.id, Number(dayPrice));
-      toast.success(`Sačuvano: ${car.name}.`);
-      onSaved();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
+// Spisak vozila: fotografija, model, godište, registracija, cena i status.
+// Klik na vozilo otvara njegovu stranicu (istorija, prihod, izmena podataka).
+function FleetTable({ registry, prices, fleet }) {
+  const navigate = useNavigate();
   return (
-    <form className="admin-vehicle" onSubmit={save}>
-      <div className="admin-vehicle__name">
-        <strong>{car.name}</strong>
-        <span className="admin-muted">{car.category}</span>
-        {price === undefined && <span className="admin-warning">Nije u cenovniku</span>}
-      </div>
-      <label className="admin-field">
-        <span>Cena po danu (€)</span>
-        <input type="number" inputMode="numeric" min="1" step="1" value={dayPrice} onChange={(e) => setDayPrice(e.target.value)} />
-      </label>
-      <label className="admin-field">
-        <span>Registarska oznaka</span>
-        <input
-          type="text"
-          placeholder="npr. BG 123-AB"
-          value={registration}
-          onChange={(e) => setRegistration(e.target.value)}
-          maxLength={20}
-        />
-      </label>
-      <label className="admin-field">
-        <span>Interna beleška</span>
-        <input type="text" placeholder="npr. servis 15.11." value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </label>
-      <button type="submit" className="admin-btn admin-btn--accent" disabled={(!registryDirty && !priceDirty) || saving}>
-        {saving ? 'Čuvam…' : 'Sačuvaj'}
-      </button>
-      {error && <p className="admin-error admin-vehicle__error">{error}</p>}
-    </form>
+    <div className="admin-table-wrap">
+      <table className="admin-table admin-table--responsive admin-table--fleet">
+        <thead>
+          <tr>
+            <th>Vozilo</th>
+            <th>Godište</th>
+            <th>Registracija</th>
+            <th>Cena po danu</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {FLEET_ORDER.map((car) => {
+            const rented = fleet?.[car.id]?.rented ?? null;
+            const photo = car.images?.[0];
+            return (
+              <tr key={car.id} className="admin-row" onClick={() => navigate(`/vozila/${car.id}`)}>
+                <td data-label="Vozilo">
+                  <div className="admin-fleet-car">
+                    {photo && (
+                      <img
+                        className="admin-fleet-car__photo"
+                        src={photo.thumb}
+                        alt=""
+                        loading="lazy"
+                        style={photo.focus ? { objectPosition: photo.focus } : undefined}
+                      />
+                    )}
+                    <span className="admin-fleet-car__name">
+                      <Link to={`/vozila/${car.id}`} onClick={(e) => e.stopPropagation()}>
+                        {car.name}
+                      </Link>
+                      <span className="admin-muted">{car.category}</span>
+                    </span>
+                  </div>
+                </td>
+                <td data-label="Godište">
+                  <div>{car.year}</div>
+                </td>
+                <td data-label="Registracija">
+                  <div className="admin-nowrap">{registry[car.id]?.registration || <span className="admin-muted">—</span>}</div>
+                </td>
+                <td data-label="Cena po danu">
+                  <div className="admin-nowrap">
+                    {prices[car.id] === undefined ? <span className="admin-warning">Nije u cenovniku</span> : formatMoney(prices[car.id])}
+                  </div>
+                </td>
+                <td data-label="Status">
+                  <div>
+                    {fleet ? <VehicleStatus rented={rented} /> : <span className="admin-muted">…</span>}
+                    {rented && (
+                      <div className="admin-muted admin-nowrap">do {formatDateWithTime(rented.return_date, rented.return_time)}</div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -126,6 +136,7 @@ export default function Vehicles() {
     () => Promise.all([adminApi.listVehicles(), adminApi.priceList()]).then(([registry, prices]) => ({ registry, prices })),
     [],
   );
+  const fleet = useAdminData(() => adminApi.fleet(), []);
 
   // Posle izmene: osveži stranicu i cene u ostatku admin panela (forme, predlozi).
   const refresh = () => {
@@ -139,7 +150,10 @@ export default function Vehicles() {
   const registry = Object.fromEntries(data.registry.map((v) => [v.car_id, v]));
   const prices = data.prices.cars ?? {};
   const tiers = data.prices.discounts ?? [];
-  const extras = data.prices.extras ?? [];
+  // Samo dodaci koje sajt nudi (npr. "dodatni vozač" je uklonjen sa sajta, a ostao je zapisan u bazi).
+  const extras = (data.prices.extras ?? []).filter((extra) => EXTRAS.some((e) => e.id === extra.id));
+  const cars = fleet.data?.cars;
+  const rentedCount = cars ? FLEET_ORDER.filter((car) => cars[car.id]?.rented).length : null;
 
   return (
     <div className="admin-page">
@@ -147,26 +161,21 @@ export default function Vehicles() {
         <div>
           <h1>Vozni park</h1>
           <p className="admin-muted">
-            Promena cene važi odmah na sajtu i za nove rezervacije. Postojeće rezervacije zadržavaju cenu iz trenutka
-            rezervacije. Registarske oznake i beleške vide se samo u admin panelu.
+            {FLEET_ORDER.length} vozila
+            {rentedCount !== null && ` · izdato ${rentedCount} · dostupno ${FLEET_ORDER.length - rentedCount}`}. Klikni
+            na vozilo za istoriju rezervacija, prihod i izmenu cene, registracije ili beleške.
           </p>
         </div>
       </div>
 
-      <section className="admin-panel admin-vehicles">
-        <h2 className="admin-panel__title">Vozila</h2>
-        {FLEET_ORDER.map((car) => (
-          <VehicleRow
-            // key sa sačuvanim vrednostima: posle čuvanja red kreće od novih vrednosti
-            key={`${car.id}-${registry[car.id]?.registration ?? ''}-${registry[car.id]?.notes ?? ''}-${prices[car.id] ?? ''}`}
-            car={car}
-            saved={registry[car.id]}
-            price={prices[car.id]}
-            onSaved={refresh}
-          />
-        ))}
-      </section>
+      {fleet.error && <ErrorState error={fleet.error} onRetry={fleet.reload} />}
 
+      <FleetTable registry={registry} prices={prices} fleet={cars} />
+
+      <h2 className="admin-section-title">Cenovnik</h2>
+      <p className="admin-muted admin-hint">
+        Promena važi odmah na sajtu i za nove rezervacije. Postojeće rezervacije zadržavaju cenu iz trenutka rezervacije.
+      </p>
       <div className="admin-grid-2">
         <section className="admin-panel admin-vehicles">
           <h2 className="admin-panel__title">Popust za duži najam</h2>

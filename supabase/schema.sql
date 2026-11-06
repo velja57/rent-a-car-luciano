@@ -1744,6 +1744,70 @@ begin
 end;
 $$;
 
+-- Vozni park: po vozilu (car_id) —
+--   rented        rezervacija kod koje je vozilo sada (vozilo preuzeto, nije
+--                 vraćeno) ili null; status vozila je "Izdato" ili "Dostupno"
+--   reservations  sve rezervacije vozila (svi statusi)
+--   rentals       realizovani najmovi (vozilo preuzeto ili vraćeno)
+--   rental_days   dani tih najmova (posle ranijeg vraćanja — skraćeni)
+--   revenue       naplaćeno: uplate minus povraćaji (kaucija i poništene se ne računaju)
+create or replace function admin_fleet()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+
+  return jsonb_build_object(
+    'success', true,
+    'cars', coalesce((
+      select jsonb_object_agg(c.car_id, jsonb_build_object(
+        'rented', (
+          select jsonb_build_object(
+            'id', r.id,
+            'customer_name', r.customer_name,
+            'phone', r.phone,
+            'pickup_date', r.pickup_date,
+            'pickup_time', r.pickup_time,
+            'return_date', r.return_date,
+            'return_time', r.return_time,
+            'picked_up_at', r.picked_up_at
+          )
+          from reservations r
+          where r.car_id = c.car_id and r.status = 'picked_up'
+          order by r.pickup_date desc, r.pickup_time desc nulls last
+          limit 1
+        ),
+        'reservations', c.reservations,
+        'rentals', c.rentals,
+        'rental_days', c.rental_days,
+        'revenue', coalesce((
+          select sum(case when p.kind = 'refund' then -p.amount else p.amount end)
+          from payments p
+          join reservations r on r.id = p.reservation_id
+          where r.car_id = c.car_id and p.voided_at is null and p.kind in ('payment', 'refund')
+        ), 0)
+      ))
+      from (
+        select
+          car_id,
+          count(*) as reservations,
+          count(*) filter (where status in ('picked_up', 'completed')) as rentals,
+          coalesce(sum(rental_days_between(pickup_date, pickup_time, return_date, return_time))
+            filter (where status in ('picked_up', 'completed')), 0) as rental_days
+        from reservations
+        group by car_id
+      ) c
+    ), '{}'::jsonb)
+  );
+end;
+$$;
+
 -- Finansijski pregled za period (p_from..p_to). Razlikuje:
 --   booked       vrednost aktivnih rezervacija (po datumu preuzimanja) —
 --                to NIJE naplaćen novac; otkazane i "nije se pojavio" se ne računaju

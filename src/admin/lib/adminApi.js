@@ -91,6 +91,8 @@ export const adminApi = {
     return data === true;
   },
   overview: () => call('admin_overview'),
+  // Vozni park: status vozila (izdato / dostupno), najmovi i prihod po vozilu.
+  fleet: () => call('admin_fleet'),
   listReservations: (params) => call('admin_list_reservations', params),
   getReservation: (id) => call('admin_get_reservation', { p_id: id }),
   // Vreme se šalje samo kad je upisano (bez vremena rezervacija zauzima cele dane).

@@ -11,6 +11,7 @@ import Overview from './pages/Overview';
 import ReservationDetail from './pages/ReservationDetail';
 import ReservationForm from './pages/ReservationForm';
 import Reservations from './pages/Reservations';
+import VehicleDetail from './pages/VehicleDetail';
 import Vehicles from './pages/Vehicles';
 
 function NotConfigured() {
@@ -130,6 +131,7 @@ function AdminPanel({ session }) {
             <Route path="rezervacije/:id/izmena" element={<ReservationForm />} />
             <Route path="kalendar" element={<Calendar />} />
             <Route path="vozila" element={<Vehicles />} />
+            <Route path="vozila/:carId" element={<VehicleDetail />} />
             <Route path="analitika" element={<Analytics />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

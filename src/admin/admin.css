@@ -608,6 +608,17 @@
   color: var(--color-danger);
 }
 
+/* Status vozila u voznom parku */
+.admin-status--available {
+  background: var(--admin-success-soft);
+  color: var(--admin-success);
+}
+
+.admin-status--rented {
+  background: var(--admin-info-soft);
+  color: var(--admin-info);
+}
+
 .admin-status--no_show {
   background: var(--admin-muted-soft);
   color: var(--color-text-muted);
@@ -1424,23 +1435,88 @@
 
 /* ---------- Vozila ---------- */
 
+.admin-fleet-car {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-fleet-car__photo {
+  flex: none;
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-fleet-car__name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-fleet-car__name a {
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.admin-fleet-car__name a:hover {
+  color: var(--color-accent);
+}
+
+.admin-vehicle-photo {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.admin-vehicle-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-vehicle-edit .admin-btn {
+  align-self: flex-start;
+}
+
+/* Vozilo je kod kupca (stranica vozila). */
+.admin-rented {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--admin-info-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-rented a {
+  color: var(--admin-info);
+}
+
+.admin-fleet-hint {
+  margin-top: -8px;
+}
+
+/* Prihod, najmovi i dani vozila: uvek u jednom redu (i na telefonu). */
+.admin-stats.admin-stats--vehicle {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (min-width: 761px) {
+  .admin-table--fleet td {
+    vertical-align: middle;
+  }
+}
+
 .admin-vehicles {
   gap: 0;
   padding-top: 4px;
   padding-bottom: 4px;
-}
-
-.admin-vehicle {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.6fr) minmax(0, 0.9fr) minmax(0, 1.2fr) auto;
-  align-items: end;
-  gap: 12px 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.admin-vehicle:last-child {
-  border-bottom: none;
 }
 
 .admin-vehicle__name {
@@ -1925,10 +2001,6 @@
     grid-column: 1 / -1;
   }
 
-  .admin-vehicle {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .admin-vehicle__name {
     grid-column: 1 / -1;
   }
@@ -2006,7 +2078,6 @@
   .admin-filters,
   .admin-form__grid,
   .admin-extras,
-  .admin-vehicle,
   .admin-payment-form {
     grid-template-columns: minmax(0, 1fr);
   }
