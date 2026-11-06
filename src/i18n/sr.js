@@ -8,7 +8,7 @@ export default {
   meta: {
     homeTitle: 'Luciano Rent a Car',
     homeDescription:
-      'Luciano Rent a Car — iznajmljivanje vozila novije generacije. Rezerviši svoje vozilo za nekoliko klikova.',
+      'Luciano Rent a Car — iznajmljivanje vozila novije generacije u Beogradu. Besplatna dostava na aerodrom, većina vozila bez depozita, plaćanje tek pri preuzimanju.',
     fleetTitle: 'Vozila — Luciano Rent a Car',
     fleetDescription: (count, minPrice, maxDiscount) =>
       `Rent a car Beograd: ${count} vozila od ${minPrice} po danu. Gradski automobili, limuzine, SUV, premium i kombi 8+1. Do −${maxDiscount}% za duži najam.`,
@@ -34,6 +34,7 @@ export default {
     home: 'Početna',
     fleet: 'Vozila',
     whyUs: 'Zašto mi',
+    terms: 'Uslovi najma',
     contact: 'Kontakt',
     call: 'Pozovi nas',
     mainMenu: 'Glavni meni',
@@ -113,9 +114,23 @@ export default {
   included: [
     'Osnovno osiguranje',
     'Neograničena kilometraža',
+    'Pomoć na putu 0–24',
+    'Zimske gume u sezoni',
     'Besplatno otkazivanje do 48h',
     'Bez skrivenih troškova',
   ],
+
+  // Traka ispod hero-a: 4 glavne pogodnosti (p = perkFacts()).
+  perks: {
+    label: 'Pogodnosti',
+    all: 'Sve pogodnosti',
+    bar: (p) => [
+      { id: 'airport', text: p.airportFree ? 'Besplatna dostava na aerodrom' : 'Dostava na aerodrom' },
+      { id: 'deposit', text: p.noDeposit === p.total ? 'Bez depozita' : 'Većina vozila bez depozita' },
+      { id: 'payLater', text: 'Ništa ne plaćaš unapred' },
+      { id: 'roadside', text: 'Pomoć na putu 0–⁠24' },
+    ],
+  },
 
   hero: {
     stageLabel: 'Prikaz izabranog vozila na ulici',
@@ -131,18 +146,62 @@ export default {
 
   whyUs: {
     title: 'Zašto Luciano Rent a Car',
-    items: [
+    subtitle: 'Pogodnosti koje dobijaš uz svaki najam.',
+    // p = perkFacts() (cenovnik i flota), money = format iznosa u evrima
+    items: (p, money) => [
+      p.airportFree
+        ? {
+            id: 'airport',
+            title: 'Besplatna dostava na aerodrom',
+            text: 'Vozilo te čeka na aerodromu Nikola Tesla — dostava i preuzimanje su bez doplate.',
+          }
+        : {
+            id: 'airport',
+            title: 'Dostava na aerodrom',
+            text: `Vozilo dovozimo na aerodrom Nikola Tesla za ${money(p.airportPrice)}.`,
+          },
       {
-        title: 'Širok izbor vozila',
-        text: (count) => `${count} vozila u floti, od gradskih do porodičnih — sva novije generacije i redovno servisirana.`,
+        id: 'deposit',
+        title: 'Bez depozita',
+        text:
+          p.noDeposit === p.total
+            ? 'Ni za jedno vozilo ne tražimo depozit.'
+            : `Za ${p.noDeposit} od ${p.total} vozila ne tražimo depozit.`,
       },
       {
+        id: 'payLater',
+        title: 'Ništa ne plaćaš unapred',
+        text: 'Ceo iznos plaćaš tek kad preuzmeš vozilo — gotovinom ili karticom.',
+      },
+      {
+        id: 'roadside',
+        title: 'Pomoć na putu 0–⁠24',
+        text: 'Kvar ili nezgoda? Pozovi nas u bilo koje doba — kada je moguće, obezbeđujemo zamensko vozilo.',
+      },
+      {
+        id: 'inspected',
+        title: 'Provereno na našem tehničkom pregledu',
+        text: 'Svako vozilo pre izdavanja proveravamo na sopstvenoj liniji tehničkog pregleda, u istoj zgradi.',
+      },
+      {
+        id: 'included',
         title: 'Bez skrivenih troškova',
-        text: 'Cena koju vidiš je cena koju plaćaš — osiguranje i neograničena kilometraža uključeni.',
+        text: `Osiguranje, neograničena kilometraža i zimske gume u sezoni su u ceni${p.childSeatFree ? ', a dečije sedište je besplatno' : ''}.`,
       },
       {
+        id: 'cancel',
         title: 'Besplatno otkazivanje',
         text: 'Planovi se menjaju — otkaži rezervaciju besplatno do 48h pre preuzimanja vozila.',
+      },
+      {
+        id: 'flexible',
+        title: 'Preuzimanje kad tebi odgovara',
+        text: 'Vikendom, rano ujutru ili kasno uveče — uz dogovor telefonom, bez doplate. Vozilo možemo da dovezemo i na tvoju adresu u Beogradu.',
+      },
+      {
+        id: 'discount',
+        title: `Popust do −${p.maxDiscount}%`,
+        text: 'Što duže voziš, manje plaćaš, a stalni klijenti dobijaju i dodatni popust — pitaj nas.',
       },
     ],
     testimonialsTitle: 'Recenzije sa Google-a',
@@ -215,7 +274,7 @@ export default {
     noPickupTimes: 'Tog dana više nema slobodnog termina preko sajta.',
     noReturnTimes: 'Tog dana nema slobodnog termina za vraćanje — vozilo je posle toga rezervisano.',
     extraDay: (time) => `Dan najma traje 24 h: vraćanje posle ${time} računa se kao još jedan dan.`,
-    hoursNote: (phone) => `Preko sajta: radnim danima od 08 do 20 h. Za drugo vreme pozovi ${phone}.`,
+    hoursNote: (phone) => `Preko sajta: radnim danima od 08 do 20 h. Za drugo vreme pozovi ${phone} — bez doplate.`,
     changeLocation: 'Promeni',
     more: 'Dodatne usluge i napomena (opciono)',
     note: 'Napomena',
@@ -309,10 +368,14 @@ export default {
   airport: {
     eyebrow: 'Aerodrom Nikola Tesla',
     title: ['Sletiš u Beograd — ', 'auto te već čeka'],
-    text: 'Za goste iz dijaspore i inostranstva: vozilo dovozimo na aerodrom Nikola Tesla, ti preuzmeš ključeve i kreneš. Cene vozila su iste kao u poslovnici — plaćaš samo dostavu.',
-    points: (price) => [
+    // free = dostava je besplatna (cena 0 € u cenovniku)
+    text: (free) =>
+      free
+        ? 'Za goste iz dijaspore i inostranstva: vozilo dovozimo na aerodrom Nikola Tesla, ti preuzmeš ključeve i kreneš. Dostava i preuzimanje na aerodromu su besplatni, a cene vozila iste kao u poslovnici.'
+        : 'Za goste iz dijaspore i inostranstva: vozilo dovozimo na aerodrom Nikola Tesla, ti preuzmeš ključeve i kreneš. Cene vozila su iste kao u poslovnici — plaćaš samo dostavu.',
+    points: (price, free) => [
       'Vozilo stiže na aerodrom za 30–45 minuta',
-      `Dostava samo ${price} — za preuzimanje ili vraćanje`,
+      free ? 'Besplatna dostava — i pri preuzimanju i pri vraćanju' : `Dostava samo ${price} — za preuzimanje ili vraćanje`,
       'Idealno za dijasporu i goste iz inostranstva',
     ],
     cta: 'Izaberi vozilo',

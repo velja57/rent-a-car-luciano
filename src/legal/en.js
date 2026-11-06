@@ -39,7 +39,8 @@ export const terms = {
       id: 'pick-up',
       title: 'Pick-up and return',
       blocks: [
-        `Online bookings are picked up and returned on weekdays (Monday–Friday) from ${f.hoursFrom}:00 to ${f.hoursTo}:00 at ${c.address}. Other times (weekends, early morning, late evening) and pick-up or return at Nikola Tesla Airport are possible by arrangement over the phone; the airport option is charged as per the price list.`,
+        `Online bookings are picked up and returned on weekdays (Monday–Friday) from ${f.hoursFrom}:00 to ${f.hoursTo}:00 at ${c.address}. Other times (weekends, early morning, late evening) are possible by arrangement over the phone, at no extra charge.`,
+        'We deliver and collect the car at Nikola Tesla Airport free of charge and, by arrangement, at your address in Belgrade.',
         'At pick-up we inspect the car together and record any existing damage and the fuel level in the rental agreement. If you notice damage that has not been recorded, let us know before you drive off.',
         'Return the car to the agreed place at the agreed time, with the keys, documents and equipment it had at pick-up.',
         'After each rental we prepare the car for the next customer, so it may be booked again a few hours after your return time. Please keep to the agreed time.',
@@ -61,7 +62,8 @@ export const terms = {
       title: 'Price and payment',
       blocks: [
         'The daily rate depends on the car and the length of the rental; the long-rental discount is applied automatically. The price shown when you booked applies to your booking.',
-        'The price includes basic insurance and unlimited mileage. Extras (full insurance cover, child seat, airport, travel outside Serbia) are charged as per the price list on the website.',
+        'The price includes basic insurance, unlimited mileage and, in the winter season, winter tyres. The child seat and airport delivery are free. Other extras (full insurance, travel outside Serbia) are charged as per the price list on the website.',
+        'Regular customers may get an additional discount, by arrangement.',
         'The full rental amount is paid at pick-up, in cash or by card. Nothing is paid in advance.',
         'Prices are in euros; the amount in dinars shown on the website is for information only.',
       ],
@@ -142,8 +144,8 @@ export const terms = {
       id: 'accident',
       title: 'Accident, breakdown or theft',
       blocks: [
-        `Accident: secure the scene, call the police (192) when required and contact us immediately at +381 ${f.phone.slice(1)}. For a minor accident with no injuries, where both drivers agree, a European Accident Statement can be filled in — please contact us right away in that case too.`,
-        'Breakdown: call us and we will arrange roadside assistance or a replacement car.',
+        `Accident: secure the scene, call the police (192) when required and contact us immediately at +381 ${f.phone.slice(1)} (available 24/7). For a minor accident with no injuries, where both drivers agree, a European Accident Statement can be filled in — please contact us right away in that case too.`,
+        'Breakdown: call us at any time — roadside assistance is available 24/7. We will arrange a roadside repair or, where possible, a replacement car.',
         'Theft: report it to the police and to us immediately, and return the car keys and documents to us.',
       ],
     },

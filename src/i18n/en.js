@@ -8,7 +8,7 @@ export default {
   meta: {
     homeTitle: 'Luciano Rent a Car — Car rental in Belgrade',
     homeDescription:
-      'Luciano Rent a Car — rent a new-generation car in Belgrade. Book your car in just a few clicks.',
+      'Luciano Rent a Car — rent a new-generation car in Belgrade. Free airport delivery, most cars with no deposit, pay only at pick-up.',
     fleetTitle: 'Vehicles — Luciano Rent a Car',
     fleetDescription: (count, minPrice, maxDiscount) =>
       `Car rental in Belgrade: ${count} cars from ${minPrice} per day. City cars, sedans, SUVs, premium cars and 9-seat vans. Up to −${maxDiscount}% on longer rentals.`,
@@ -34,6 +34,7 @@ export default {
     home: 'Home',
     fleet: 'Vehicles',
     whyUs: 'Why us',
+    terms: 'Rental terms',
     contact: 'Contact',
     call: 'Call us',
     mainMenu: 'Main menu',
@@ -113,9 +114,23 @@ export default {
   included: [
     'Basic insurance',
     'Unlimited mileage',
+    '24/7 roadside assistance',
+    'Winter tyres in season',
     'Free cancellation up to 48h',
     'No hidden fees',
   ],
+
+  // Bar under the hero: 4 main benefits (p = perkFacts()).
+  perks: {
+    label: 'Benefits',
+    all: 'All benefits',
+    bar: (p) => [
+      { id: 'airport', text: p.airportFree ? 'Free airport delivery' : 'Airport delivery' },
+      { id: 'deposit', text: p.noDeposit === p.total ? 'No deposit' : 'Most cars with no deposit' },
+      { id: 'payLater', text: 'Nothing to pay in advance' },
+      { id: 'roadside', text: '24/7 roadside assistance' },
+    ],
+  },
 
   hero: {
     stageLabel: 'The selected car shown on the street',
@@ -131,18 +146,62 @@ export default {
 
   whyUs: {
     title: 'Why Luciano Rent a Car',
-    items: [
+    subtitle: 'Benefits you get with every rental.',
+    // p = perkFacts() (price list and fleet), money = euro amount formatter
+    items: (p, money) => [
+      p.airportFree
+        ? {
+            id: 'airport',
+            title: 'Free airport delivery',
+            text: 'Your car waits for you at Nikola Tesla Airport — delivery and collection at no extra charge.',
+          }
+        : {
+            id: 'airport',
+            title: 'Airport delivery',
+            text: `We deliver the car to Nikola Tesla Airport for ${money(p.airportPrice)}.`,
+          },
       {
-        title: 'A wide choice of cars',
-        text: (count) => `${count} cars in the fleet, from city cars to family cars — all newer-generation and regularly serviced.`,
+        id: 'deposit',
+        title: 'No deposit',
+        text:
+          p.noDeposit === p.total
+            ? 'We do not require a deposit for any car.'
+            : `${p.noDeposit} of our ${p.total} cars require no deposit.`,
       },
       {
+        id: 'payLater',
+        title: 'Nothing to pay in advance',
+        text: 'You pay the full amount only when you pick up the car — in cash or by card.',
+      },
+      {
+        id: 'roadside',
+        title: '24/7 roadside assistance',
+        text: 'Breakdown or accident? Call us any time — where possible, we provide a replacement car.',
+      },
+      {
+        id: 'inspected',
+        title: 'Checked at our own inspection centre',
+        text: 'Every car is checked on our own vehicle inspection line, in the same building, before it is rented out.',
+      },
+      {
+        id: 'included',
         title: 'No hidden costs',
-        text: 'The price you see is the price you pay — insurance and unlimited mileage included.',
+        text: `Insurance, unlimited mileage and winter tyres in season are included${p.childSeatFree ? ', and the child seat is free' : ''}.`,
       },
       {
+        id: 'cancel',
         title: 'Free cancellation',
         text: 'Plans change — cancel your booking free of charge up to 48 hours before pick-up.',
+      },
+      {
+        id: 'flexible',
+        title: 'Pick-up when it suits you',
+        text: 'Weekends, early morning or late evening — by arrangement over the phone, at no extra charge. We can also deliver the car to your address in Belgrade.',
+      },
+      {
+        id: 'discount',
+        title: `Up to −${p.maxDiscount}% off`,
+        text: 'The longer you drive, the less you pay, and regular customers get an extra discount — just ask.',
       },
     ],
     testimonialsTitle: 'Reviews from Google',
@@ -215,7 +274,7 @@ export default {
     noPickupTimes: 'No more online pick-up slots that day.',
     noReturnTimes: 'No return slot that day — the car is booked right after.',
     extraDay: (time) => `A rental day is 24 hours: returning after ${time} counts as one more day.`,
-    hoursNote: (phone) => `Online: weekdays, 8 am to 8 pm. For another time, call ${phone}.`,
+    hoursNote: (phone) => `Online: weekdays, 8 am to 8 pm. For another time, call ${phone} — no extra charge.`,
     changeLocation: 'Change',
     more: 'Extras and note (optional)',
     note: 'Note',
@@ -306,10 +365,14 @@ export default {
   airport: {
     eyebrow: 'Nikola Tesla Airport',
     title: ['Land in Belgrade — ', 'your car is already waiting'],
-    text: 'For visitors from abroad and the diaspora: we deliver the car to Nikola Tesla Airport, you take the keys and go. Car prices are the same as at our office — you only pay for delivery.',
-    points: (price) => [
+    // free = delivery is free (price 0 € in the price list)
+    text: (free) =>
+      free
+        ? 'For visitors from abroad and the diaspora: we deliver the car to Nikola Tesla Airport, you take the keys and go. Airport delivery and collection are free, and car prices are the same as at our office.'
+        : 'For visitors from abroad and the diaspora: we deliver the car to Nikola Tesla Airport, you take the keys and go. Car prices are the same as at our office — you only pay for delivery.',
+    points: (price, free) => [
       'The car arrives at the airport in 30–45 minutes',
-      `Delivery only ${price} — for pick-up or return`,
+      free ? 'Free delivery — for both pick-up and return' : `Delivery only ${price} — for pick-up or return`,
       'Ideal for the diaspora and international visitors',
     ],
     cta: 'Choose a car',

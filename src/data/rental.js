@@ -44,9 +44,11 @@ export const RENTAL_HOURS = {
 export const EUR_TO_RSD = 117.2;
 
 // Dodatne usluge u formi za rezervaciju. per: 'day' = po danu, 'rental' = jednom po najmu.
+// Cene su početne vrednosti — prave stižu iz cenovnika u bazi (admin → Vozni park →
+// Cenovnik). Dečije sedište i dostava na aerodrom su besplatni (cena 0 €).
 export const EXTRAS = [
-  { id: 'child-seat', price: 3, per: 'day' },
+  { id: 'child-seat', price: 0, per: 'day' },
   { id: 'full-cover', price: 8, per: 'day' },
-  { id: 'airport', price: 15, per: 'rental' },
+  { id: 'airport', price: 0, per: 'rental' },
   { id: 'cross-border', price: 30, per: 'rental' },
 ];

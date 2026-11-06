@@ -1,25 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { fleet } from '../data/fleet';
 import { testimonials } from '../data/testimonials';
 import { useI18n } from '../i18n';
-
-// Tekstovi su u rečnicima (whyUs.items), istim redom kao ikonice.
-const icons = [
-  <path key="car" d="M4 17h16M6 17v-4l2-5h8l2 5v4M9 17v2M15 17v2M7 10h10" strokeLinecap="round" strokeLinejoin="round" />,
-  <path key="shield" d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" strokeLinecap="round" strokeLinejoin="round" />,
-  <path key="clock" d="M12 7v5l3.5 2M12 3a9 9 0 100 18 9 9 0 000-18z" strokeLinecap="round" strokeLinejoin="round" />,
-];
+import { perkFacts } from '../lib/perks';
+import { formatEur } from '../lib/pricing';
+import PerkIcon from './PerkIcon';
 
 // Boje avatara sa inicijalom, redom po recenziji (Google-ova paleta).
 const avatarColors = ['#f28b82', '#8ab4f8', '#81c995', '#fdd663'];
 
 export default function WhyUs() {
   const { t, lang } = useI18n();
-  const items = t.whyUs.items.map((item, i) => ({
-    ...item,
-    icon: icons[i],
-    text: typeof item.text === 'function' ? item.text(fleet.length) : item.text,
-  }));
+  // Pogodnosti (tekstovi u rečnicima, whyUs.items); cene i brojevi iz cenovnika i flote.
+  const items = t.whyUs.items(perkFacts(), (amount) => formatEur(amount, lang));
   const gridRef = useRef(null);
   const [visible, setVisible] = useState(false);
 
@@ -45,12 +37,11 @@ export default function WhyUs() {
         <div className="why-us__panel">
           <span className="why-us__eyebrow">{t.nav.whyUs}</span>
           <h2 className="why-us__title">{t.whyUs.title}</h2>
+          <p className="why-us__subtitle">{t.whyUs.subtitle}</p>
           <div className={`why-us__grid${visible ? ' why-us__grid--visible' : ''}`} ref={gridRef}>
             {items.map((item, i) => (
-              <div className="why-us__card" key={item.title} style={{ transitionDelay: `${i * 90}ms` }}>
-                <svg className="why-us__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  {item.icon}
-                </svg>
+              <div className="why-us__card" key={item.id} style={{ transitionDelay: `${i * 60}ms` }}>
+                <PerkIcon name={item.id} className="why-us__icon" />
                 <h3>{item.title}</h3>
                 <p>{item.text}</p>
               </div>

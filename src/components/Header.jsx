@@ -79,6 +79,7 @@ export default function Header() {
       </NavLink>
       <NavLink to={paths.fleet}>{t.nav.fleet}</NavLink>
       <Link to={{ pathname: paths.home, hash: '#zasto-mi' }}>{t.nav.whyUs}</Link>
+      <NavLink to={paths.terms}>{t.nav.terms}</NavLink>
       <a href="#kontakt" onClick={() => setMenuOpen(false)}>
         {t.nav.contact}
       </a>

@@ -75,6 +75,11 @@ export default function Footer() {
         </div>
       </div>
 
+      <nav className="container site-footer__legal" aria-label={t.footer.legalLabel}>
+        <Link to={paths.terms}>{t.footer.terms}</Link>
+        <Link to={paths.privacy}>{t.footer.privacy}</Link>
+      </nav>
+
       <div className="container site-footer__map">
         <iframe
           className="site-footer__map-frame"
@@ -120,11 +125,6 @@ export default function Footer() {
         </a>
         <span className="site-footer__crosspromo-handle">{t.footer.crossPromoHandle}</span>
       </div>
-
-      <nav className="site-footer__legal" aria-label={t.footer.legalLabel}>
-        <Link to={paths.terms}>{t.footer.terms}</Link>
-        <Link to={paths.privacy}>{t.footer.privacy}</Link>
-      </nav>
 
       <p className="site-footer__copy">
         © {new Date().getFullYear()} Luciano Rent a Car. {t.footer.rights}

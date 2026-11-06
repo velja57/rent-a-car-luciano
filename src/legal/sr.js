@@ -40,7 +40,8 @@ export const terms = {
       id: 'preuzimanje',
       title: 'Preuzimanje i vraćanje vozila',
       blocks: [
-        `Preko sajta se vozilo preuzima i vraća radnim danima (ponedeljak–petak) od ${f.hoursFrom} do ${f.hoursTo} h, na adresi ${c.address}. Drugi termini (vikend, rano jutro, kasno veče) i preuzimanje ili vraćanje na aerodromu Nikola Tesla mogući su uz dogovor telefonom; aerodrom se doplaćuje prema cenovniku.`,
+        `Preko sajta se vozilo preuzima i vraća radnim danima (ponedeljak–petak) od ${f.hoursFrom} do ${f.hoursTo} h, na adresi ${c.address}. Drugi termini (vikend, rano jutro, kasno veče) mogući su uz dogovor telefonom, bez doplate.`,
+        'Vozilo besplatno dovozimo i preuzimamo na aerodromu Nikola Tesla, a po dogovoru i na tvojoj adresi u Beogradu.',
         'Pri preuzimanju zajedno pregledamo vozilo; postojeća oštećenja i nivo goriva upisujemo u ugovor. Ako primetiš oštećenje koje nije upisano, javi nam pre nego što kreneš.',
         'Vozilo se vraća na ugovoreno mesto i u ugovoreno vreme, sa ključevima, dokumentima i opremom koju je imalo pri preuzimanju.',
         'Posle svakog najma vozilo pripremamo za sledećeg kupca, pa ono može biti rezervisano već nekoliko sati posle tvog termina vraćanja. Zato te molimo da poštuješ dogovoreno vreme.',
@@ -62,7 +63,8 @@ export const terms = {
       title: 'Cena i plaćanje',
       blocks: [
         'Cena po danu zavisi od vozila i dužine najma; popust za duži najam se računa automatski. Za tvoju rezervaciju važi cena prikazana u trenutku rezervacije.',
-        'U cenu su uključeni osnovno osiguranje i neograničena kilometraža. Dodatne usluge (puno kasko, dečije sedište, aerodrom, izlazak iz Srbije) plaćaju se prema cenovniku na sajtu.',
+        'U cenu su uključeni osnovno osiguranje, neograničena kilometraža i, u zimskoj sezoni, zimske gume. Dečije sedište i dostava na aerodrom su besplatni. Ostale dodatne usluge (puno kasko, izlazak iz Srbije) plaćaju se prema cenovniku na sajtu.',
+        'Stalni klijenti mogu da dobiju dodatni popust, po dogovoru.',
         'Ceo iznos najma plaća se pri preuzimanju vozila, gotovinom ili platnom karticom. Unapred se ništa ne plaća.',
         'Cene su izražene u evrima; iznos u dinarima na sajtu je informativan.',
       ],
@@ -143,8 +145,8 @@ export const terms = {
       id: 'nezgoda',
       title: 'Saobraćajna nezgoda, kvar ili krađa',
       blocks: [
-        `Nezgoda: obezbedi mesto nezgode, pozovi policiju (192) kada je to potrebno i odmah nas obavesti na ${f.phone}. Za manju nezgodu bez povređenih, kada se učesnici slažu, može se popuniti evropski izveštaj o saobraćajnoj nezgodi — i tada nas odmah obavesti.`,
-        'Kvar: pozovi nas, pa ćemo dogovoriti pomoć na putu ili zamenu vozila.',
+        `Nezgoda: obezbedi mesto nezgode, pozovi policiju (192) kada je to potrebno i odmah nas obavesti na ${f.phone} (dostupni smo 0–24). Za manju nezgodu bez povređenih, kada se učesnici slažu, može se popuniti evropski izveštaj o saobraćajnoj nezgodi — i tada nas odmah obavesti.`,
+        'Kvar: pozovi nas u bilo koje doba — pomoć na putu dostupna je 0–24. Dogovorićemo popravku na putu ili, kada je moguće, zamensko vozilo.',
         'Krađa: odmah je prijavi policiji i nama i vrati nam ključeve i dokumenta vozila.',
       ],
     },

@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { EXTRAS } from '../data/rental';
 import { useI18n } from '../i18n';
 import { whatsappUrl } from '../lib/contact';
+import { perkFacts } from '../lib/perks';
 import { formatEur } from '../lib/pricing';
 import ResponseTime from './ResponseTime';
 import './HomeSections.css';
@@ -11,6 +12,8 @@ export default function AirportSection() {
   const { lang, t, paths } = useI18n();
   const a = t.airport;
   const airportPrice = EXTRAS.find((e) => e.id === 'airport').price;
+  // Besplatno samo kad je cena u cenovniku (admin) zaista 0 €.
+  const { airportFree } = perkFacts();
 
   return (
     <section className="airport-section" aria-labelledby="airport-title">
@@ -30,10 +33,10 @@ export default function AirportSection() {
               {a.title[0]}
               <span>{a.title[1]}</span>
             </h2>
-            <p className="fleet__subtitle">{a.text}</p>
+            <p className="fleet__subtitle">{a.text(airportFree)}</p>
 
             <ul className="airport-card__points">
-              {a.points(formatEur(airportPrice, lang)).map((point) => (
+              {a.points(formatEur(airportPrice, lang), airportFree).map((point) => (
                 <li key={point}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                     <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
