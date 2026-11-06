@@ -1,6 +1,6 @@
 import { COMPANY } from '../data/company';
 import { fleet } from '../data/fleet';
-import { MAX_ONLINE_DAYS, PHONE_DISPLAY, RENTAL_HOURS } from '../data/rental';
+import { LOYALTY_DISCOUNT_PERCENT, MAX_ONLINE_DAYS, PHONE_DISPLAY, RENTAL_HOURS } from '../data/rental';
 
 // Činjenice koje uslovi najma i politika privatnosti navode — iz istih podataka
 // kao ostatak sajta (flota, pravila najma, kontakt), da tekst uvek odgovara sajtu.
@@ -19,6 +19,7 @@ export const FACTS = {
   graceMinutes: RENTAL_HOURS.graceMinutes,
   maxOnlineDays: MAX_ONLINE_DAYS,
   freeCancellationHours: 48,
+  loyaltyDiscount: LOYALTY_DISCOUNT_PERCENT,
 };
 
 // "A, B i C" / "A, B and C"

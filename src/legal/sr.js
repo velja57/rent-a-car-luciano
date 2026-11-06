@@ -64,7 +64,7 @@ export const terms = {
       blocks: [
         'Cena po danu zavisi od vozila i dužine najma; popust za duži najam se računa automatski. Za tvoju rezervaciju važi cena prikazana u trenutku rezervacije.',
         'U cenu su uključeni osnovno osiguranje, neograničena kilometraža i, u zimskoj sezoni, zimske gume. Dečije sedište i dostava na aerodrom su besplatni. Ostale dodatne usluge (puno kasko, izlazak iz Srbije) plaćaju se prema cenovniku na sajtu.',
-        'Stalni klijenti mogu da dobiju dodatni popust, po dogovoru.',
+        `Od trećeg najma kod nas, kao stalni klijent dobijaš dodatnih ${f.loyaltyDiscount}% popusta na cenu najma vozila. Popust se obračunava pri preuzimanju vozila, na cenu posle popusta za duži najam, i ne odnosi se na dodatne usluge.`,
         'Ceo iznos najma plaća se pri preuzimanju vozila, gotovinom ili platnom karticom. Unapred se ništa ne plaća.',
         'Cene su izražene u evrima; iznos u dinarima na sajtu je informativan.',
       ],

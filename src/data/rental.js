@@ -22,6 +22,10 @@ export const DISCOUNT_TIERS = [
   { minDays: 30, discount: 0.3 },
 ];
 
+// Popust za stalne klijente (od trećeg najma), dodatno na popust za duži najam.
+// Sajt ne zna ko je stalni klijent, pa se obračunava pri preuzimanju vozila.
+export const LOYALTY_DISCOUNT_PERCENT = 10;
+
 // Najduži najam koji kupac može da rezerviše preko sajta (duži se dogovara
 // telefonom). Isto ograničenje proverava i baza (create_reservation).
 export const MAX_ONLINE_DAYS = 30;

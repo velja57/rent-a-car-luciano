@@ -201,7 +201,7 @@ export default {
       {
         id: 'discount',
         title: `Popust do −${p.maxDiscount}%`,
-        text: 'Što duže voziš, manje plaćaš, a stalni klijenti dobijaju i dodatni popust — pitaj nas.',
+        text: `Što duže voziš, manje plaćaš — a od trećeg najma, kao stalni klijent, dobijaš još ${p.loyaltyDiscount}% popusta.`,
       },
     ],
     testimonialsTitle: 'Recenzije sa Google-a',

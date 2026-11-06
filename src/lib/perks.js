@@ -1,5 +1,5 @@
 import { fleet } from '../data/fleet';
-import { EXTRAS } from '../data/rental';
+import { EXTRAS, LOYALTY_DISCOUNT_PERCENT } from '../data/rental';
 import { MAX_DISCOUNT_PERCENT } from './pricing';
 
 // Podaci za pogodnosti na početnoj (traka ispod hero-a, "Zašto Luciano", aerodrom).
@@ -14,5 +14,6 @@ export function perkFacts() {
     noDeposit: fleet.filter((car) => !car.deposit).length,
     total: fleet.length,
     maxDiscount: MAX_DISCOUNT_PERCENT,
+    loyaltyDiscount: LOYALTY_DISCOUNT_PERCENT,
   };
 }

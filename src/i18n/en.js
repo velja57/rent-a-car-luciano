@@ -201,7 +201,7 @@ export default {
       {
         id: 'discount',
         title: `Up to −${p.maxDiscount}% off`,
-        text: 'The longer you drive, the less you pay, and regular customers get an extra discount — just ask.',
+        text: `The longer you drive, the less you pay — and from your third rental, as a regular customer, you get an extra ${p.loyaltyDiscount}% off.`,
       },
     ],
     testimonialsTitle: 'Reviews from Google',

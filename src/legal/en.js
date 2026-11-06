@@ -63,7 +63,7 @@ export const terms = {
       blocks: [
         'The daily rate depends on the car and the length of the rental; the long-rental discount is applied automatically. The price shown when you booked applies to your booking.',
         'The price includes basic insurance, unlimited mileage and, in the winter season, winter tyres. The child seat and airport delivery are free. Other extras (full insurance, travel outside Serbia) are charged as per the price list on the website.',
-        'Regular customers may get an additional discount, by arrangement.',
+        `From your third rental with us, as a regular customer you get an extra ${f.loyaltyDiscount}% off the car rental price. The discount is applied at pick-up, to the price after the long-rental discount, and does not apply to extras.`,
         'The full rental amount is paid at pick-up, in cash or by card. Nothing is paid in advance.',
         'Prices are in euros; the amount in dinars shown on the website is for information only.',
       ],
