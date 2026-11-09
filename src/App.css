@@ -914,23 +914,126 @@
   animation: bookingCallPulse 2s ease-out infinite;
 }
 
+/* Mapa preko cele širine, panel sa adresom i radnim vremenom stoji preko nje. */
 .site-footer__map {
+  /* Desna ivica panela; mapa kreće 320px levo od nje, pa Google-ova kartica sa
+     adresom ostaje iza panela, a oznaka lokacije u vidljivom delu. */
+  --map-panel-right: calc(max(0px, (100vw - 1240px) / 2) + 24px + 430px);
+  --map-left: calc(var(--map-panel-right) - 320px);
+  position: relative;
   margin-top: 28px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .site-footer__map-frame {
+  position: absolute;
+  top: 0;
+  left: var(--map-left);
   display: block;
+  width: calc(100% - var(--map-left));
+  height: 100%;
+  border: 0;
+}
+
+/* Klikovi prolaze do mape svuda osim preko panela. */
+.site-footer__map-inner {
+  position: relative;
+  display: flex;
+  min-height: 560px;
+  pointer-events: none;
+}
+
+.site-footer__panel {
+  position: relative;
   width: 100%;
-  height: 280px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  max-width: 430px;
+  padding: 44px 40px;
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+}
+
+/* Pozadina panela se nastavlja do leve ivice ekrana. */
+.site-footer__panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 100vw;
+  background: var(--color-bg);
+}
+
+.site-footer__panel-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.site-footer__panel-contact {
+  margin: 26px 0 38px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.site-footer__panel-contact li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.site-footer__panel-contact svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: var(--color-accent);
+}
+
+.site-footer__panel-contact a {
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.site-footer__panel-contact a:hover {
+  color: var(--color-accent);
+}
+
+.site-footer__panel-hours {
+  margin: 22px 0 0;
+}
+
+.site-footer__panel-hours div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 15.5px;
+}
+
+.site-footer__panel-hours dt {
+  color: var(--color-text-muted);
+}
+
+.site-footer__panel-hours dd {
+  margin: 0;
+  font-weight: 700;
 }
 
 .site-footer__directions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 14px;
+  margin-top: 18px;
   color: var(--color-accent);
   font-weight: 700;
   font-size: 14px;
@@ -941,9 +1044,67 @@
   text-decoration: underline;
 }
 
-@media (max-width: 640px) {
+/* Uži ekrani: panel iznad, mapa ispod. */
+@media (max-width: 1000px) {
+  .site-footer__map {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
   .site-footer__map-frame {
-    height: 220px;
+    position: static;
+    width: 100%;
+    height: 300px;
+  }
+
+  .site-footer__map-inner {
+    display: block;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .site-footer__panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 56px;
+    max-width: none;
+    padding: 36px 24px;
+    border-right: 0;
+    box-shadow: none;
+  }
+
+  .site-footer__panel::before {
+    content: none;
+  }
+
+  .site-footer__panel-contact {
+    margin-bottom: 0;
+  }
+
+  .site-footer__panel-title:nth-of-type(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .site-footer__panel-hours {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .site-footer__directions {
+    grid-column: 1;
+    justify-self: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-footer__panel {
+    display: block;
+    padding: 32px 24px;
+  }
+
+  .site-footer__panel-contact {
+    margin-bottom: 36px;
   }
 }
 

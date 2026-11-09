@@ -217,6 +217,12 @@ export default {
     tagline: 'Iznajmljivanje vozila novije generacije.',
     address: 'Kralja Mihaila Zetskog 43, Batajnica, Beograd',
     hours: 'Radno vreme: 08:00 - 16:00 (radnim danima)',
+    whereTitle: 'Gde se nalazimo',
+    hoursTitle: 'Radno vreme',
+    hoursRows: [
+      ['Ponedeljak – Petak', '08:00 – 16:00'],
+      ['Subota – Nedelja', 'Uz dogovor'],
+    ],
     rights: 'Sva prava zadržana.',
     legalLabel: 'Pravne informacije',
     terms: 'Uslovi najma',

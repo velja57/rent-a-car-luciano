@@ -1,4 +1,6 @@
 import { Link } from 'react-router';
+import { COMPANY } from '../data/company';
+import { PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
 import { isWorkingNow } from '../lib/contact';
 
@@ -6,6 +8,12 @@ import { isWorkingNow } from '../lib/contact';
 const INSTAGRAM_URL = 'https://www.instagram.com/luciano_tehnicki_pregled/';
 
 const CONTACT_ICONS = {
+  pin: (
+    <>
+      <path d="M12 21s7-6.2 7-11.5A7 7 0 005 9.5C5 14.8 12 21 12 21z" strokeLinejoin="round" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </>
+  ),
   phone: (
     <path
       d="M5 4h3.5l1.5 4-2 1.5a11 11 0 005.5 5.5l1.5-2 4 1.5V18a2 2 0 01-2 2A15 15 0 013 6a2 2 0 012-2z"
@@ -80,7 +88,7 @@ export default function Footer() {
         <Link to={paths.privacy}>{t.footer.privacy}</Link>
       </nav>
 
-      <div className="container site-footer__map">
+      <div className="site-footer__map">
         <iframe
           className="site-footer__map-frame"
           src={`https://www.google.com/maps?q=${mapQuery}&output=embed`}
@@ -88,14 +96,44 @@ export default function Footer() {
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
         />
-        <a
-          className="site-footer__directions"
-          href={`https://www.google.com/maps/dir/?api=1&destination=${mapQuery}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t.footer.directions} →
-        </a>
+        <div className="container site-footer__map-inner">
+          <div className="site-footer__panel">
+            <h2 className="site-footer__panel-title">{t.footer.whereTitle}</h2>
+            <ul className="site-footer__panel-contact">
+              <li>
+                <ContactIcon name="pin" />
+                {t.footer.address}
+              </li>
+              <li>
+                <ContactIcon name="phone" />
+                <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>
+              </li>
+              <li>
+                <ContactIcon name="mail" />
+                <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
+              </li>
+            </ul>
+
+            <h2 className="site-footer__panel-title">{t.footer.hoursTitle}</h2>
+            <dl className="site-footer__panel-hours">
+              {t.footer.hoursRows.map(([days, time]) => (
+                <div key={days}>
+                  <dt>{days}</dt>
+                  <dd>{time}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <a
+              className="site-footer__directions"
+              href={`https://www.google.com/maps/dir/?api=1&destination=${mapQuery}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t.footer.directions} →
+            </a>
+          </div>
+        </div>
       </div>
 
       <div className="container site-footer__crosspromo">

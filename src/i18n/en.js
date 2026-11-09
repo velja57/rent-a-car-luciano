@@ -217,6 +217,12 @@ export default {
     tagline: 'New-generation car rental.',
     address: 'Kralja Mihaila Zetskog 43, Batajnica, Belgrade',
     hours: 'Working hours: 08:00 - 16:00 (weekdays)',
+    whereTitle: 'Where to find us',
+    hoursTitle: 'Working hours',
+    hoursRows: [
+      ['Monday – Friday', '08:00 – 16:00'],
+      ['Saturday – Sunday', 'By arrangement'],
+    ],
     rights: 'All rights reserved.',
     legalLabel: 'Legal information',
     terms: 'Rental terms',
