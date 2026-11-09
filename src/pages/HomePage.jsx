@@ -1,5 +1,4 @@
 import AirportSection from '../components/AirportSection';
-import FleetTeaser from '../components/FleetTeaser';
 import Hero from '../components/Hero';
 import PerksBar from '../components/PerksBar';
 import WhyUs from '../components/WhyUs';
@@ -15,7 +14,6 @@ export default function HomePage() {
     <>
       <Hero />
       <PerksBar />
-      <FleetTeaser />
       <AirportSection />
       <WhyUs />
     </>

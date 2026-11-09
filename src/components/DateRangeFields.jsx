@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
 import { formatDate, todayISO } from '../lib/pricing';
 import { blockedDays, isWorkday } from '../lib/rentalTimes';
@@ -26,8 +26,10 @@ function monthGrid(month) {
 // vreme). Precrtani su dani kada se zbog tuđih termina ne može preuzeti (pri
 // izboru preuzimanja), odnosno vratiti vozilo (pri izboru vraćanja); period ne
 // sme da "preskoči" tuđu rezervaciju. Vikendom se preko sajta ne preuzima i ne
-// vraća (samo uz dogovor telefonom).
-export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) {
+// vraća (samo uz dogovor telefonom). times: { start, end } — polja koja stoje uz
+// datume (vreme preuzimanja/vraćanja). popover: kalendar se otvara preko sadržaja
+// i zatvara klikom van njega ili na Escape.
+export default function DateRangeFields({ pickup, ret, onChange, booked = [], times, popover = false }) {
   const { lang, t } = useI18n();
   const c = t.calendar;
   const today = todayISO();
@@ -37,6 +39,23 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
   const [month, setMonth] = useState((pickup || today).slice(0, 7));
   const [hover, setHover] = useState(null);
   const [message, setMessage] = useState('');
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!popover || !open) return undefined;
+    const onPointerDown = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [popover, open]);
 
   // Početak prve tuđe rezervacije posle izabranog preuzimanja — vraćanje
   // najkasnije tog dana (i samo ako ostaje vremena pre njenog preuzimanja).
@@ -85,31 +104,8 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
 
   const rangeEnd = ret || (selecting === 'end' && hover && hover > pickup ? hover : null);
 
-  return (
-    <div className="date-range">
-      <div className="date-range__fields">
-        {[
-          ['start', t.common.pickup, pickup],
-          ['end', t.common.return, ret],
-        ].map(([which, label, value]) => (
-          <button
-            key={which}
-            type="button"
-            className={`date-range__field${open && selecting === which ? ' date-range__field--active' : ''}`}
-            aria-expanded={open}
-            onClick={() => openFor(which)}
-          >
-            <span className="date-range__label">{label}</span>
-            <span className={`date-range__value${value ? '' : ' date-range__value--empty'}`}>
-              {value ? formatDate(value, lang) : c.choose}
-            </span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <path d="M4 7h16v13H4zM4 11h16M9 4v5M15 4v5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        ))}
-      </div>
-
+  const calendar = (
+    <>
       {open && (
         <div className="date-calendar">
           <div className="date-calendar__head">
@@ -207,6 +203,37 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [] }) 
           {message}
         </p>
       )}
+    </>
+  );
+
+  return (
+    <div ref={rootRef} className={`date-range${popover ? ' date-range--popover' : ''}${times ? ' date-range--times' : ''}`}>
+      <div className="date-range__fields">
+        {[
+          ['start', t.common.pickup, pickup],
+          ['end', t.common.return, ret],
+        ].map(([which, label, value]) => (
+          <Fragment key={which}>
+            <button
+              type="button"
+              className={`date-range__field${open && selecting === which ? ' date-range__field--active' : ''}`}
+              aria-expanded={open}
+              onClick={() => openFor(which)}
+            >
+              <span className="date-range__label">{label}</span>
+              <span className={`date-range__value${value ? '' : ' date-range__value--empty'}`}>
+                {value ? formatDate(value, lang) : c.choose}
+              </span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                <path d="M4 7h16v13H4zM4 11h16M9 4v5M15 4v5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {times?.[which]}
+          </Fragment>
+        ))}
+      </div>
+
+      {popover ? <div className="date-range__popup">{calendar}</div> : calendar}
     </div>
   );
 }

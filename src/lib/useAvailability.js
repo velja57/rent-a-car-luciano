@@ -6,7 +6,8 @@ const AVAILABILITY_DEBOUNCE_MS = 450;
 
 // Proverava dostupnost više vozila za isti period (ista RPC funkcija kao forma
 // za rezervaciju). status: idle | checking | ready | error; byId: { [id]: true/false }.
-export function useAvailability(carIds, pickup, ret) {
+// Sa vremenima (Hero) provera je tačna po terminu; bez njih samo po datumima.
+export function useAvailability(carIds, pickup, ret, pickupTime = '', returnTime = '') {
   const [state, setState] = useState({ status: 'idle', byId: {} });
   const idsKey = carIds.join(',');
 
@@ -20,9 +21,14 @@ export function useAvailability(carIds, pickup, ret) {
     setState((s) => ({ ...s, status: 'checking' }));
     const timer = setTimeout(async () => {
       const ids = idsKey.split(',');
-      const results = await Promise.all(
-        ids.map((id) => supabase.rpc('is_car_available', { p_car_id: id, p_pickup: pickup, p_return: ret })),
-      );
+      const checkCar = async (id) => {
+        const dates = { p_car_id: id, p_pickup: pickup, p_return: ret };
+        if (!pickupTime || !returnTime) return supabase.rpc('is_car_available', dates);
+        const result = await supabase.rpc('is_car_available', { ...dates, p_pickup_time: pickupTime, p_return_time: returnTime });
+        // Baza još bez provere po vremenu (schema.sql nije pokrenut) — samo datumi.
+        return result.error?.code === 'PGRST202' ? supabase.rpc('is_car_available', dates) : result;
+      };
+      const results = await Promise.all(ids.map(checkCar));
       if (cancelled) return;
       if (results.some((r) => r.error)) {
         setState({ status: 'error', byId: {} });
@@ -35,7 +41,7 @@ export function useAvailability(carIds, pickup, ret) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [idsKey, pickup, ret]);
+  }, [idsKey, pickup, ret, pickupTime, returnTime]);
 
   return state;
 }

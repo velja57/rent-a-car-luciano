@@ -43,6 +43,18 @@ export function isWorkday(date) {
   return RENTAL_HOURS.weekdays.includes(weekday);
 }
 
+// Podrazumevano vreme preuzimanja: 10:00 ako je slobodno, inače prvo slobodno.
+export function defaultPickupTime(options) {
+  return options.includes('10:00') ? '10:00' : (options[0] ?? '');
+}
+
+// Podrazumevano vreme vraćanja: isto kao preuzimanje (pun broj dana), inače
+// najkasnije pre njega (bez dodatnog dana), inače prvo slobodno.
+export function defaultReturnTime(options, pickupTime) {
+  if (options.includes(pickupTime)) return pickupTime;
+  return options.filter((time) => time < pickupTime).pop() ?? options[0] ?? '';
+}
+
 // Zauzetost rezervacije: od preuzimanja do vraćanja + 2 h pripreme; bez
 // upisanog vremena — od početka dana preuzimanja do kraja dana vraćanja.
 export function reservationSpan(r) {

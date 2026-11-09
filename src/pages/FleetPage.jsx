@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
 import CallNotice from '../components/CallNotice';
 import DateRangeFields from '../components/DateRangeFields';
 import DiscountLadder from '../components/DiscountLadder';
 import FleetCard from '../components/FleetCard';
+import FleetFilters from '../components/FleetFilters';
 import ReservationModal from '../components/ReservationModal';
 import ResponseTime from '../components/ResponseTime';
-import { fleet, fuelKind, VEHICLE_TYPES } from '../data/fleet';
+import { fleet } from '../data/fleet';
 import { DISCOUNT_TIERS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { useI18n } from '../i18n';
 import { whatsappUrl } from '../lib/contact';
@@ -14,27 +14,11 @@ import { useCallNotice } from '../lib/useCallNotice';
 import { discountPercent, formatEur, lowestRate, MAX_DISCOUNT_PERCENT, tierFor } from '../lib/pricing';
 import { isSupabaseConfigured } from '../lib/supabaseClient';
 import { useAvailability } from '../lib/useAvailability';
+import { ALL_CAR_IDS, useFleetFilters } from '../lib/useFleetFilters';
 import { usePageMeta } from '../lib/usePageMeta';
 import { useRentalDates } from '../lib/useRentalDates';
 import '../components/Fleet.css';
 import './FleetPage.css';
-
-// Vrednosti filtera u adresi su iste na oba jezika (?menjac=automatik…), nazivi su u rečnicima.
-const TRANSMISSIONS = ['automatik', 'manuelni'];
-const FUELS = ['dizel', 'benzin', 'hibrid'];
-
-const SORTS = [
-  { id: 'cena', compare: (a, b) => a.pricePerDay - b.pricePerDay },
-  { id: 'cena-opadajuce', compare: (a, b) => b.pricePerDay - a.pricePerDay },
-  { id: 'snaga', compare: (a, b) => b.power - a.power },
-  {
-    id: 'preporuka',
-    compare: (a, b) => Number(Boolean(b.recommended)) - Number(Boolean(a.recommended)) || a.pricePerDay - b.pricePerDay,
-  },
-];
-
-const FILTER_KEYS = ['tip', 'menjac', 'gorivo', 'slobodna'];
-const allIds = fleet.map((c) => c.id);
 
 export default function FleetPage() {
   const { lang, t } = useI18n();
@@ -45,54 +29,14 @@ export default function FleetPage() {
   usePageMeta(t.meta.fleetTitle, t.meta.fleetDescription(fleet.length, formatEur(minPrice, lang), MAX_DISCOUNT_PERCENT));
   const { showCallNotice, handleCallClick, handleMouseLeave } = useCallNotice();
 
-  const [params, setParams] = useSearchParams();
   const { pickup, ret, days, setDates } = useRentalDates();
-  const availability = useAvailability(allIds, pickup, ret);
+  const availability = useAvailability(ALL_CAR_IDS, pickup, ret);
+  const filters = useFleetFilters(availability);
+  const { onlyFree, availabilityReady, setParam, resetFilters, isFree, visible, filtersActive } = filters;
   const [reservationCar, setReservationCar] = useState(null);
   // Dugme koje je otvorilo formu — fokus mu se vraća kad se forma zatvori.
   const triggerRef = useRef(null);
 
-  const type = params.get('tip') ?? '';
-  const transmission = params.get('menjac') ?? '';
-  const fuel = params.get('gorivo') ?? '';
-  const onlyFree = params.get('slobodna') === '1';
-  const sort = SORTS.find((s) => s.id === params.get('sort')) ?? SORTS[0];
-  const availabilityReady = availability.status === 'ready';
-
-  const setParam = (key, value) => {
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (value) next.set(key, value);
-        else next.delete(key);
-        return next;
-      },
-      { replace: true },
-    );
-  };
-
-  const resetFilters = () => {
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        FILTER_KEYS.forEach((k) => next.delete(k));
-        return next;
-      },
-      { replace: true },
-    );
-  };
-
-  const isFree = (car) => availability.byId[car.id] !== false;
-
-  // Filtriranje radi nad originalnim (srpskim) podacima — prevod je samo za prikaz.
-  const visible = fleet
-    .filter((car) => !type || car.type === type)
-    .filter((car) => !transmission || car.transmission.toLowerCase() === transmission)
-    .filter((car) => !fuel || fuelKind(car).toLowerCase() === fuel)
-    .filter((car) => !(onlyFree && availabilityReady) || isFree(car))
-    .sort((a, b) => (availabilityReady ? Number(isFree(b)) - Number(isFree(a)) : 0) || sort.compare(a, b));
-
-  const filtersActive = FILTER_KEYS.some((k) => params.has(k));
   const freeCount = availabilityReady ? fleet.filter(isFree).length : null;
   const [shownBefore, shownCount, shownAfter] = f.shown(visible.length, fleet.length);
   const [ladderText, ladderStrong] = f.ladderTitle(MAX_DISCOUNT_PERCENT);
@@ -154,64 +98,7 @@ export default function FleetPage() {
           </div>
         </section>
 
-        <div className="fleet-filters" role="group" aria-label={f.filtersLabel}>
-          <div className="fleet-filters__chips">
-            <button
-              type="button"
-              className={`fleet-chip${type ? '' : ' fleet-chip--active'}`}
-              aria-pressed={!type}
-              onClick={() => setParam('tip', '')}
-            >
-              {f.allTypes}
-            </button>
-            {VEHICLE_TYPES.map((id) => (
-              <button
-                type="button"
-                key={id}
-                className={`fleet-chip${type === id ? ' fleet-chip--active' : ''}`}
-                aria-pressed={type === id}
-                onClick={() => setParam('tip', type === id ? '' : id)}
-              >
-                {t.types[id]}
-              </button>
-            ))}
-          </div>
-
-          <div className="fleet-filters__selects">
-            <label className="fleet-select">
-              <span>{f.transmission}</span>
-              <select value={transmission} onChange={(e) => setParam('menjac', e.target.value)}>
-                <option value="">{f.allTransmissions}</option>
-                {TRANSMISSIONS.map((id) => (
-                  <option key={id} value={id}>
-                    {f.transmissions[id]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="fleet-select">
-              <span>{f.fuel}</span>
-              <select value={fuel} onChange={(e) => setParam('gorivo', e.target.value)}>
-                <option value="">{f.allFuels}</option>
-                {FUELS.map((id) => (
-                  <option key={id} value={id}>
-                    {f.fuels[id]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="fleet-select">
-              <span>{f.sort}</span>
-              <select value={sort.id} onChange={(e) => setParam('sort', e.target.value === SORTS[0].id ? '' : e.target.value)}>
-                {SORTS.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {f.sorts[s.id]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
+        <FleetFilters filters={filters} />
 
         <div className="fleet-results" aria-live="polite">
           <p>

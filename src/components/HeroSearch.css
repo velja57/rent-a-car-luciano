@@ -1,0 +1,261 @@
+/* ---------- Hero: pretraga vozila na početnoj ---------- */
+/* Filteri, kartice i rezultati su stilovi iz Fleet.css i FleetPage.css;
+   ovde je samo raspored (.fleet daje promenljive, ostalo se isključuje). */
+.hero-search {
+  min-height: 100svh;
+  padding: 116px 0 72px;
+  overflow: visible;
+  border-top: 0;
+  background: radial-gradient(1100px 540px at 50% -160px, rgba(212, 162, 78, 0.15), transparent 68%), var(--color-bg);
+}
+
+.hero-search::before {
+  content: none;
+}
+
+.hero-search__head {
+  max-width: 1000px;
+  margin: 0 auto 30px;
+  text-align: center;
+}
+
+.hero-search__title {
+  font-size: clamp(36px, 5vw, 62px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.hero-search__title span {
+  color: var(--color-accent);
+}
+
+.hero-search__subtitle {
+  margin-top: 14px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Traka za pretragu */
+.hero-search__bar {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 14px 12px;
+  padding: 16px;
+  background: linear-gradient(180deg, rgba(24, 26, 32, 0.92), rgba(14, 15, 19, 0.95));
+  border: 1px solid var(--fleet-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md), 0 0 60px rgba(212, 162, 78, 0.06);
+}
+
+.hero-search__bar .fleet-filters {
+  display: contents;
+}
+
+.hero-search__bar .fleet-filters__selects {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hero-search__bar .fleet-select select {
+  min-width: 0;
+  width: 100%;
+  height: 42px;
+  text-overflow: ellipsis;
+}
+
+.hero-search__bar .fleet-filters__chips {
+  grid-column: 1 / -1;
+  justify-content: center;
+}
+
+.hero-search__time {
+  padding-right: 10px;
+}
+
+.hero-search__time select {
+  width: 100%;
+  padding: 0 14px 0 0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%) right 5px center / 5px 5px no-repeat,
+    linear-gradient(-45deg, transparent 50%, var(--color-text-muted) 50%) right 0 center / 5px 5px no-repeat;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+.hero-search__time:has(select:disabled) {
+  cursor: default;
+}
+
+.hero-search__time:has(select:disabled):hover {
+  border-color: var(--color-border);
+}
+
+.hero-search__time select:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.hero-search__time:has(select:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Kartice: tri u redu, vide se odmah */
+.hero-search .fleet-results {
+  margin: 18px 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.hero-search .fleet-card {
+  flex: 0 1 calc((100% - 2 * 22px) / 3);
+  opacity: 1;
+  transform: none;
+}
+
+.hero-search .fleet-card__specs {
+  margin-bottom: 16px;
+}
+
+.hero-search__grid--preview .fleet-card:nth-child(4) {
+  display: none;
+}
+
+.hero-search__more {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.hero-search__more .car-form__cta {
+  padding: 15px 34px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Aerodrom je ranije stajao ispod sekcije flote i koristio njen donji razmak. */
+.perks-bar + .airport-section {
+  padding-top: 90px;
+}
+
+@media (max-width: 1100px) {
+  .hero-search__bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-search__bar .fleet-filters__selects {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+/* Tablet: dva u redu, pa se prvo vide četiri */
+@media (max-width: 1000px) {
+  .hero-search .fleet-card {
+    flex-basis: calc((100% - 22px) / 2);
+  }
+
+  .hero-search__grid--preview .fleet-card:nth-child(4) {
+    display: flex;
+  }
+
+  .hero-search__more[data-count='4'] {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-search {
+    padding: 84px 0 56px;
+  }
+
+  .hero-search__head {
+    margin-bottom: 16px;
+  }
+
+  .hero-search .fleet-results {
+    margin: 12px 0;
+  }
+
+  .hero-search .date-range__fields {
+    gap: 8px;
+  }
+
+  .hero-search .date-range__field {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .hero-search__subtitle {
+    font-size: 15.5px;
+  }
+
+  .hero-search__bar {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .hero-search__bar .fleet-filters__chips {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    margin: 0 -12px;
+    padding: 0 12px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .hero-search__bar .fleet-filters__chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hero-search__bar .fleet-chip {
+    flex-shrink: 0;
+  }
+
+  /* Dva filtera u redu, sortiranje celom širinom; 16px da telefon ne zumira pri dodiru. */
+  .hero-search__bar .fleet-filters__selects {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-search__bar .fleet-select:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .hero-search__bar select {
+    font-size: 16px;
+  }
+
+  .hero-search .fleet-card {
+    flex-basis: 100%;
+  }
+
+  .perks-bar + .airport-section {
+    padding-top: 56px;
+  }
+
+  .hero-search__grid--preview .fleet-card:nth-child(4) {
+    display: none;
+  }
+
+  .hero-search__more[data-count='4'] {
+    display: flex;
+  }
+
+  .hero-search__more .car-form__cta {
+    width: 100%;
+  }
+}

@@ -4,7 +4,7 @@ import { EXTRAS, MAX_ONLINE_DAYS, PHONE_DISPLAY, PHONE_HREF } from '../data/rent
 import { dictionaries, useI18n } from '../i18n';
 import { bookingMessage, isWorkingNow, priceLine, questionMessage, whatsappUrl } from '../lib/contact';
 import { discountPercent, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
-import { billableDays, graceUntil, isWorkday, pickupSlots, returnSlots } from '../lib/rentalTimes';
+import { billableDays, defaultPickupTime, defaultReturnTime, graceUntil, isWorkday, pickupSlots, returnSlots } from '../lib/rentalTimes';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { useBookedDates } from '../lib/useBookedDates';
 import { useCallNotice } from '../lib/useCallNotice';
@@ -33,18 +33,6 @@ function calculateAge(dobString) {
 function formatExtraPrice(extra, t, lang) {
   if (!extra.price) return t.reservation.free;
   return extra.per === 'day' ? `${formatEur(extra.price, lang)} ${t.common.perDay}` : formatEur(extra.price, lang);
-}
-
-// Podrazumevano vreme preuzimanja: 10:00 ako je slobodno, inače prvo slobodno.
-function defaultPickupTime(options) {
-  return options.includes('10:00') ? '10:00' : (options[0] ?? '');
-}
-
-// Podrazumevano vreme vraćanja: isto kao preuzimanje (pun broj dana), inače
-// najkasnije pre njega (bez dodatnog dana), inače prvo slobodno.
-function defaultReturnTime(options, pickupTime) {
-  if (options.includes(pickupTime)) return pickupTime;
-  return options.filter((time) => time < pickupTime).pop() ?? options[0] ?? '';
 }
 
 function openInNewTab(url) {
@@ -78,8 +66,17 @@ function Icon({ name }) {
 
 // Tri načina rezervacije, po važnosti: (1) online forma -> baza + mejl vlasniku
 // i potvrda kupcu, (2) gotova WhatsApp poruka, (3) poziv. initialPickup /
-// initialReturn: datumi već izabrani na stranici vozila/flote.
-export default function ReservationModal({ car, onClose, triggerRef, initialPickup = '', initialReturn = '' }) {
+// initialReturn: datumi već izabrani na stranici vozila/flote; initialPickupTime /
+// initialReturnTime: vremena izabrana u Hero sekciji.
+export default function ReservationModal({
+  car,
+  onClose,
+  triggerRef,
+  initialPickup = '',
+  initialReturn = '',
+  initialPickupTime = '',
+  initialReturnTime = '',
+}) {
   const { lang, t, paths } = useI18n();
   const r = t.reservation;
   const closeButtonRef = useRef(null);
@@ -98,8 +95,8 @@ export default function ReservationModal({ car, onClose, triggerRef, initialPick
     dob: '',
     pickupDate: startDatesValid ? initialPickup : '',
     returnDate: startDatesValid ? initialReturn : '',
-    pickupTime: '',
-    returnTime: '',
+    pickupTime: startDatesValid ? initialPickupTime : '',
+    returnTime: startDatesValid ? initialReturnTime : '',
     location: r.defaultLocation,
     note: '',
   });

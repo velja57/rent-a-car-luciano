@@ -142,6 +142,11 @@ export default {
     moreInfo: 'Više informacija o vozilu',
     fleetLink: (n) => `Pogledaj svih ${n} vozila u floti →`,
     switching: 'Menjamo vozilo na prikazu…',
+    searchTitle: ['Iznajmi automobil ', 'za svaki put'],
+    searchSubtitle: 'Izaberi datume i odmah vidi slobodna vozila i tačnu cenu za ceo period.',
+    time: 'Vreme',
+    found: (n) => ['Pronađeno ', n, n % 10 === 1 && n % 100 !== 11 ? ' vozilo' : ' vozila'],
+    noFree: 'Za izabrane termine nema slobodnih vozila.',
   },
 
   whyUs: {

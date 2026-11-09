@@ -142,6 +142,11 @@ export default {
     moreInfo: 'More about this car',
     fleetLink: (n) => `See all ${n} cars in our fleet →`,
     switching: 'Switching the car on display…',
+    searchTitle: ['Rent a car ', 'for every trip'],
+    searchSubtitle: 'Choose your dates and instantly see available cars and the exact price for the whole rental.',
+    time: 'Time',
+    found: (n) => ['', n, n === 1 ? ' car found' : ' cars found'],
+    noFree: 'No cars are available for the selected dates and times.',
   },
 
   whyUs: {

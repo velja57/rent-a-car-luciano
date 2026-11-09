@@ -39,7 +39,8 @@ function pad(n) {
 
 // car: originalni podaci (prevodi se ovde, za prikaz). availability: true/false
 // kad je provera gotova, undefined kad nema datuma ili provera još traje (checking = true).
-export default function FleetCard({ car: rawCar, index, total, dates, availability, checking, onReserve }) {
+// compact: Hero sekcija — veća fotografija, bez rednog broja i merača snage.
+export default function FleetCard({ car: rawCar, index, total, dates, availability, checking, onReserve, compact = false }) {
   const { lang, t, paths, localize } = useI18n();
   const car = localize(rawCar);
   const cardRef = useRef(null);
@@ -92,8 +93,10 @@ export default function FleetCard({ car: rawCar, index, total, dates, availabili
         <img
           className="fleet-card__img"
           src={cover.thumb}
+          srcSet={compact ? `${cover.thumb} 640w, ${cover.src} 1280w` : undefined}
+          sizes={compact ? '(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 400px' : undefined}
           alt={`${car.name} — ${t.views[cover.view]}`}
-          loading="lazy"
+          loading={compact && index < 3 ? 'eager' : 'lazy'}
           decoding="async"
           style={{ objectPosition: cover.focus }}
         />
@@ -125,9 +128,11 @@ export default function FleetCard({ car: rawCar, index, total, dates, availabili
       </Link>
 
       <div className="fleet-card__body">
-        <span className="fleet-card__index">
-          {pad(index + 1)} / {pad(total)}
-        </span>
+        {!compact && (
+          <span className="fleet-card__index">
+            {pad(index + 1)} / {pad(total)}
+          </span>
+        )}
         <h3 className="fleet-card__name">
           <Link to={detailsHref}>{car.name}</Link>
         </h3>
@@ -149,18 +154,20 @@ export default function FleetCard({ car: rawCar, index, total, dates, availabili
           ))}
         </ul>
 
-        <div className="fleet-card__meter">
-          <span>{t.card.power}</span>
-          <span className="fleet-card__meter-track" aria-hidden="true">
-            <span
-              className="fleet-card__meter-fill"
-              style={{ '--fill': `${Math.round((car.power / MAX_POWER) * 100)}%` }}
-            />
-          </span>
-          <span className="fleet-card__meter-value">
-            {car.power} {t.powerUnit}
-          </span>
-        </div>
+        {!compact && (
+          <div className="fleet-card__meter">
+            <span>{t.card.power}</span>
+            <span className="fleet-card__meter-track" aria-hidden="true">
+              <span
+                className="fleet-card__meter-fill"
+                style={{ '--fill': `${Math.round((car.power / MAX_POWER) * 100)}%` }}
+              />
+            </span>
+            <span className="fleet-card__meter-value">
+              {car.power} {t.powerUnit}
+            </span>
+          </div>
+        )}
 
         <div className="fleet-card__footer">
           {period ? (
