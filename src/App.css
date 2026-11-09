@@ -916,8 +916,10 @@
 
 /* Mapa preko cele širine, panel sa adresom i radnim vremenom stoji preko nje. */
 .site-footer__map {
-  /* Mapa počinje od desne ivice panela, pa je oznaka na sredini vidljivog dela. */
-  --map-left: calc(max(0px, (100vw - 1240px) / 2) + 24px + 430px);
+  /* Desna ivica panela; mapa kreće 320px levo od nje, pa Google-ova kartica sa
+     adresom ostaje iza panela, a oznaka lokacije u vidljivom delu. */
+  --map-panel-right: calc(max(0px, (100vw - 1240px) / 2) + 24px + 430px);
+  --map-left: calc(var(--map-panel-right) - 320px);
   position: relative;
   margin-top: 28px;
   border-top: 1px solid var(--color-border);
@@ -932,7 +934,6 @@
   width: calc(100% - var(--map-left));
   height: 100%;
   border: 0;
-  filter: saturate(1.5);
 }
 
 /* Klikovi prolaze do mape svuda osim preko panela. */

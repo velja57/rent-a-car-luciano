@@ -4,7 +4,7 @@ import { companyLine, FACTS, joinList } from './facts';
 // Link u tekstu: [tekst](adresa). Brojke i vozila dolaze iz FACTS (isti podaci kao sajt).
 const f = FACTS;
 const c = f.company;
-const UPDATED = '9. novembar 2026.';
+const UPDATED = '6. novembar 2026.';
 const firm = companyLine({ pib: 'PIB', mb: 'matični broj' });
 const olderCars = joinList(f.olderDriverCars.map((car) => `${car.name} (${car.minAge} godina)`), 'i');
 const depositCars = joinList(f.depositCars.map((car) => `${car.name} (${car.deposit} €)`), 'i');
@@ -232,8 +232,7 @@ export const privacy = {
         [
           'Naši zaposleni koji rade sa rezervacijama, preko zaštićenog administratorskog panela.',
           'Pružaoci usluga koji podatke obrađuju po našem nalogu: Supabase (baza podataka sa rezervacijama), Resend (slanje mejlova potvrde i podsetnika) i Vercel (hosting sajta).',
-          'Google: na sajtu se koriste Google fontovi; pri njihovom učitavanju Google dobija tvoju IP adresu.',
-          'OpenStreetMap: mapa u podnožju sajta učitava se sa servera OpenStreetMap fondacije, koja pri učitavanju dobija tvoju IP adresu.',
+          'Google: na sajtu se prikazuju Google mapa i Google fontovi; pri njihovom učitavanju Google dobija tvoju IP adresu, a mapa može da postavi Google kolačiće.',
           'Meta (WhatsApp, Instagram): samo ako nas kontaktiraš preko tih aplikacija; tada važe i njihova pravila privatnosti.',
           'Osiguravajuća društva, servisi i državni organi (policija, sud, poreska uprava): kada je to potrebno zbog štete ili kada to zahteva zakon.',
         ],
@@ -242,7 +241,7 @@ export const privacy = {
     {
       id: 'inostranstvo',
       title: 'Prenos podataka van Srbije',
-      blocks: ['Neki od navedenih pružalaca usluga (Supabase, Resend, Vercel, Google, Meta) obrađuju podatke i van Republike Srbije, u Evropskoj uniji i SAD. Prenos se vrši u skladu sa Zakonom, uz mere zaštite koje ti pružaoci usluga obezbeđuju svojim ugovorima o obradi podataka. Mapu u podnožju isporučuje OpenStreetMap fondacija sa sedištem u Velikoj Britaniji.'],
+      blocks: ['Neki od navedenih pružalaca usluga (Supabase, Resend, Vercel, Google, Meta) obrađuju podatke i van Republike Srbije, u Evropskoj uniji i SAD. Prenos se vrši u skladu sa Zakonom, uz mere zaštite koje ti pružaoci usluga obezbeđuju svojim ugovorima o obradi podataka.'],
     },
     {
       id: 'cuvanje',
@@ -279,7 +278,7 @@ export const privacy = {
     {
       id: 'kolacici',
       title: 'Kolačići',
-      blocks: ['Sajt ne koristi kolačiće za analitiku ni oglašavanje. Google fontovi učitavaju se sa Google servera, koji mogu da koriste svoje kolačiće i tehničke podatke prema [pravilima privatnosti kompanije Google](https://policies.google.com/privacy). Mapa u podnožju učitava se sa servera OpenStreetMap-a, prema [njihovim pravilima privatnosti](https://osmfoundation.org/wiki/Privacy_Policy). Administratorski panel koristi memoriju pregledača samo za prijavu zaposlenih.'],
+      blocks: ['Sajt ne koristi kolačiće za analitiku ni oglašavanje. Google mapa u podnožju sajta i Google fontovi učitavaju se sa Google servera, koji mogu da koriste svoje kolačiće i tehničke podatke prema [pravilima privatnosti kompanije Google](https://policies.google.com/privacy). Administratorski panel koristi memoriju pregledača samo za prijavu zaposlenih.'],
     },
     {
       id: 'bezbednost',
