@@ -3,7 +3,7 @@ import { companyLine, FACTS, joinList } from './facts';
 // Rental terms and privacy policy — English (same content as sr.js).
 const f = FACTS;
 const c = { ...f.company, address: f.company.address.replace('Beograd', 'Belgrade') };
-const UPDATED = '6 November 2026';
+const UPDATED = '9 November 2026';
 const firm = companyLine({ pib: 'tax ID (PIB)', mb: 'registration no. (MB)' }, c.address);
 const olderCars = joinList(f.olderDriverCars.map((car) => `${car.name} (${car.minAge} years)`), 'and');
 const depositCars = joinList(f.depositCars.map((car) => `${car.name} (€${car.deposit})`), 'and');
@@ -231,7 +231,8 @@ export const privacy = {
         [
           'Our staff who handle bookings, through a protected admin panel.',
           'Service providers processing data on our behalf: Supabase (booking database), Resend (sending confirmation and reminder emails) and Vercel (website hosting).',
-          'Google: the website shows a Google map and uses Google Fonts; when they load, Google receives your IP address, and the map may set Google cookies.',
+          'Google: the website uses Google Fonts; when they load, Google receives your IP address.',
+          'OpenStreetMap: the map in the footer is loaded from the servers of the OpenStreetMap Foundation, which receives your IP address when it loads.',
           'Meta (WhatsApp, Instagram): only if you contact us through these apps; their privacy rules also apply.',
           'Insurers, repair shops and public authorities (police, courts, tax administration): when needed because of damage or when required by law.',
         ],
@@ -240,7 +241,7 @@ export const privacy = {
     {
       id: 'transfers',
       title: 'Transfers outside Serbia',
-      blocks: ['Some of the service providers listed (Supabase, Resend, Vercel, Google, Meta) also process data outside the Republic of Serbia, in the European Union and the USA. Transfers are made in accordance with the Law, with the safeguards these providers ensure through their data processing agreements.'],
+      blocks: ['Some of the service providers listed (Supabase, Resend, Vercel, Google, Meta) also process data outside the Republic of Serbia, in the European Union and the USA. Transfers are made in accordance with the Law, with the safeguards these providers ensure through their data processing agreements. The map in the footer is provided by the OpenStreetMap Foundation, based in the United Kingdom.'],
     },
     {
       id: 'retention',
@@ -277,7 +278,7 @@ export const privacy = {
     {
       id: 'cookies',
       title: 'Cookies',
-      blocks: ['The website does not use cookies for analytics or advertising. The Google map in the footer and Google Fonts are loaded from Google servers, which may use their own cookies and technical data under [Google’s privacy policy](https://policies.google.com/privacy). The admin panel uses browser storage only for staff sign-in.'],
+      blocks: ['The website does not use cookies for analytics or advertising. Google Fonts are loaded from Google servers, which may use their own cookies and technical data under [Google’s privacy policy](https://policies.google.com/privacy). The map in the footer is loaded from OpenStreetMap servers, under [their privacy policy](https://osmfoundation.org/wiki/Privacy_Policy). The admin panel uses browser storage only for staff sign-in.'],
     },
     {
       id: 'security',

@@ -7,6 +7,16 @@ import { isWorkingNow } from '../lib/contact';
 // Tehnički pregled Luciano deli zgradu i adresu sa Rent a Car-om — isti Instagram profil.
 const INSTAGRAM_URL = 'https://www.instagram.com/luciano_tehnicki_pregled/';
 
+// Mapa u boji (OpenStreetMap): oznaka na adresi firme i kraj koji se vidi oko nje.
+const MAP_POINT = { lat: 44.8916914, lon: 20.2937072 };
+const MAP_SPAN = { lat: 0.005, lon: 0.012 };
+const MAP_BBOX = [
+  MAP_POINT.lon - MAP_SPAN.lon,
+  MAP_POINT.lat - MAP_SPAN.lat,
+  MAP_POINT.lon + MAP_SPAN.lon,
+  MAP_POINT.lat + MAP_SPAN.lat,
+].join(',');
+
 const CONTACT_ICONS = {
   pin: (
     <>
@@ -91,7 +101,7 @@ export default function Footer() {
       <div className="site-footer__map">
         <iframe
           className="site-footer__map-frame"
-          src={`https://www.google.com/maps?q=${mapQuery}&output=embed`}
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${MAP_BBOX}&layer=mapnik&marker=${MAP_POINT.lat},${MAP_POINT.lon}`}
           title={t.footer.mapTitle}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
