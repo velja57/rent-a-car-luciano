@@ -218,7 +218,6 @@ export default {
     crossPromoMessage:
       'Posetite i naš tehnički pregled vozila — u istoj zgradi, na istoj adresi. Isti broj telefona, isto radno vreme.',
     crossPromoCta: 'Pratite nas na Instagramu',
-    crossPromoHandle: '@luciano_tehnicki_pregled',
     crossPromoAltInterior: 'Linija za tehnički pregled vozila u objektu Luciano',
     crossPromoAltExterior: 'Zgrada Tehničkog pregleda Luciano, Kralja Mihaila Zetskog 43',
     crossPromoAltBmw: 'BMW i3 na liniji tehničkog pregleda Luciano',

@@ -218,7 +218,6 @@ export default {
     crossPromoMessage:
       'We also run a vehicle technical inspection center — same building, same address. Same phone number, same working hours.',
     crossPromoCta: 'Follow us on Instagram',
-    crossPromoHandle: '@luciano_tehnicki_pregled',
     crossPromoAltInterior: 'Vehicle inspection line inside the Luciano facility',
     crossPromoAltExterior: 'Luciano Vehicle Inspection building, Kralja Mihaila Zetskog 43',
     crossPromoAltBmw: 'BMW i3 on the Luciano inspection line',

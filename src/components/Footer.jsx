@@ -128,7 +128,6 @@ export default function Footer() {
           </svg>
           {t.footer.crossPromoCta}
         </a>
-        <span className="site-footer__crosspromo-handle">{t.footer.crossPromoHandle}</span>
       </div>
 
       <div className="container site-footer__bottom">
