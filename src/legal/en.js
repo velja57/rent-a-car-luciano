@@ -3,7 +3,7 @@ import { companyLine, FACTS, joinList } from './facts';
 // Rental terms and privacy policy — English (same content as sr.js).
 const f = FACTS;
 const c = { ...f.company, address: f.company.address.replace('Beograd', 'Belgrade') };
-const UPDATED = '6 November 2026';
+const UPDATED = '10 November 2026';
 const firm = companyLine({ pib: 'tax ID (PIB)', mb: 'registration no. (MB)' }, c.address);
 const olderCars = joinList(f.olderDriverCars.map((car) => `${car.name} (${car.minAge} years)`), 'and');
 const depositCars = joinList(f.depositCars.map((car) => `${car.name} (€${car.deposit})`), 'and');
@@ -198,7 +198,7 @@ export const privacy = {
       title: 'What data we collect',
       blocks: [
         [
-          'Online booking: name, email, phone number, date of birth, chosen car, pick-up and return dates and times, location, extras, note and website language.',
+          'Online booking: name, email, phone number, chosen car, pick-up and return dates and times, location, extras, note and website language.',
           'Rental: details from your ID card or passport and driving licence entered in the rental agreement, the amount and method of payment, the condition of the car and, where needed, details of a traffic accident or offence.',
           'Contact by phone, WhatsApp, email or Instagram: the data you send us yourself.',
           'Technical data: when you open the website, the hosting and the services listed below automatically receive your IP address and browser details.',
@@ -211,7 +211,7 @@ export const privacy = {
       title: 'Why we process data and on what legal basis',
       blocks: [
         [
-          'To process your booking, send the confirmation and a reminder the day before pick-up, and to conclude and perform the rental agreement — performance of a contract and steps prior to entering into it (Article 12(1)(2) of the Law). We use your date of birth to check the age requirement for the chosen car.',
+          'To process your booking, send the confirmation and a reminder the day before pick-up, and to conclude and perform the rental agreement — performance of a contract and steps prior to entering into it (Article 12(1)(2) of the Law). We check the age requirement for the chosen car at pick-up, from your ID card or passport and driving licence.',
           'To comply with legal obligations, such as business and tax records and providing driver details to the competent authorities (point 3).',
           'Our legitimate interest (point 6): protection against fake bookings and abuse (e.g. a limited number of bookings from the same contact), website security, and establishing or defending legal claims.',
         ],

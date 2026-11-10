@@ -467,15 +467,14 @@ begin
     );
   end if;
 
-  -- Ista obavezna polja kao u formi na sajtu (email i datum rođenja više nisu
-  -- obavezni na nivou tabele, zbog telefonskih rezervacija iz admin panela).
+  -- Ista obavezna polja kao u formi na sajtu. Datum rođenja se ne traži: uzrast
+  -- se proverava pri preuzimanju, po ličnoj karti i vozačkoj dozvoli.
   if coalesce(trim(p_car_id), '') = ''
     or coalesce(trim(p_car_name), '') = ''
     or coalesce(trim(p_customer_name), '') = ''
     or coalesce(trim(p_phone), '') = ''
     or coalesce(trim(p_location), '') = ''
     or coalesce(trim(p_email), '') !~ '^\S+@\S+\.\S+$'
-    or p_dob is null
   then
     return jsonb_build_object('success', false, 'reason', 'invalid_input');
   end if;

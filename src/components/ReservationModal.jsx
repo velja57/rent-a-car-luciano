@@ -20,16 +20,6 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function calculateAge(dobString) {
-  const dob = new Date(dobString);
-  if (Number.isNaN(dob.getTime())) return null;
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const monthDiff = today.getMonth() - dob.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
-  return age;
-}
-
 function formatExtraPrice(extra, t, lang) {
   if (!extra.price) return t.reservation.free;
   return extra.per === 'day' ? `${formatEur(extra.price, lang)} ${t.common.perDay}` : formatEur(extra.price, lang);
@@ -92,7 +82,6 @@ export default function ReservationModal({
     name: '',
     email: '',
     phone: '',
-    dob: '',
     pickupDate: startDatesValid ? initialPickup : '',
     returnDate: startDatesValid ? initialReturn : '',
     pickupTime: startDatesValid ? initialPickupTime : '',
@@ -203,14 +192,6 @@ export default function ReservationModal({
     if (!/^[0-9+\s/()-]{6,}$/.test(form.phone)) next.phone = e.phone;
     if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = e.email;
 
-    if (!form.dob) {
-      next.dob = e.dob;
-    } else {
-      const age = calculateAge(form.dob);
-      if (age === null) next.dob = e.dobInvalid;
-      else if (age < car.minAge) next.dob = e.minAge(car.minAge);
-    }
-
     if (!form.pickupDate) next.pickupDate = e.pickup;
     else if (form.pickupDate < todayISO()) next.pickupDate = e.pickupPast;
 
@@ -253,7 +234,6 @@ export default function ReservationModal({
       `${w.name}: ${form.name.trim()}`,
       `${w.email}: ${form.email.trim()}`,
       `${w.phone}: ${form.phone.trim()}`,
-      `${w.dob}: ${form.dob}`,
       `${w.pickup}: ${[form.pickupDate, pickupTime].filter(Boolean).join(' ')}`,
       `${w.return}: ${[form.returnDate, returnTime].filter(Boolean).join(' ')}`,
       `${w.location}: ${form.location.trim()}`,
@@ -299,7 +279,8 @@ export default function ReservationModal({
       p_customer_name: form.name.trim(),
       p_email: form.email.trim(),
       p_phone: form.phone.trim(),
-      p_dob: form.dob,
+      // Datum rođenja se više ne traži (uzrast se proverava pri preuzimanju).
+      p_dob: null,
       p_pickup: form.pickupDate,
       p_return: form.returnDate,
       p_location: form.location.trim(),
@@ -494,12 +475,6 @@ export default function ReservationModal({
                   {errors.email && <em className="reservation-form__error">{errors.email}</em>}
                 </label>
               </div>
-
-              <label className="reservation-form__field">
-                <span>{r.dob}</span>
-                <input type="date" autoComplete="bday" value={form.dob} onChange={setField('dob')} max={todayISO()} />
-                {errors.dob && <em className="reservation-form__error">{errors.dob}</em>}
-              </label>
 
               {editingLocation ? (
                 <label className="reservation-form__field">

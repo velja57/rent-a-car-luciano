@@ -169,6 +169,12 @@ begin
   ok := res ->> 'reason' = 'invalid_input';
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: rezervacija bez emaila mora biti odbijena [%s]', res)); end if;
 
+  -- Forma na sajtu više ne traži datum rođenja (posebno test vozilo, da ne utiče na ostale provere).
+  res := create_reservation(car || '-bez-datuma', 'TEST vozilo', 'TEST Bez datuma rodjenja', 'bezdatuma@example.com', '060 111 333', null,
+    '2099-08-10', '2099-08-12', 'TEST lokacija', null);
+  ok := (res ->> 'success')::boolean;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('sajt: rezervacija bez datuma rođenja prolazi [%s]', res)); end if;
+
   res := create_reservation(car, 'TEST vozilo', 'TEST Kupac', 'test@example.com', '060 111 222', '1990-01-01',
     '2099-08-05', '2099-08-05', 'TEST lokacija', null);
   ok := res ->> 'reason' = 'invalid_dates';

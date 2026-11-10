@@ -4,7 +4,7 @@ import { companyLine, FACTS, joinList } from './facts';
 // Link u tekstu: [tekst](adresa). Brojke i vozila dolaze iz FACTS (isti podaci kao sajt).
 const f = FACTS;
 const c = f.company;
-const UPDATED = '6. novembar 2026.';
+const UPDATED = '10. novembar 2026.';
 const firm = companyLine({ pib: 'PIB', mb: 'matični broj' });
 const olderCars = joinList(f.olderDriverCars.map((car) => `${car.name} (${car.minAge} godina)`), 'i');
 const depositCars = joinList(f.depositCars.map((car) => `${car.name} (${car.deposit} €)`), 'i');
@@ -199,7 +199,7 @@ export const privacy = {
       title: 'Koje podatke prikupljamo',
       blocks: [
         [
-          'Rezervacija preko sajta: ime i prezime, email, broj telefona, datum rođenja, izabrano vozilo, datumi i vreme preuzimanja i vraćanja, lokacija, dodatne usluge, napomena i jezik sajta.',
+          'Rezervacija preko sajta: ime i prezime, email, broj telefona, izabrano vozilo, datumi i vreme preuzimanja i vraćanja, lokacija, dodatne usluge, napomena i jezik sajta.',
           'Najam vozila: podaci iz lične karte ili pasoša i vozačke dozvole koji se upisuju u ugovor o najmu, iznos i način plaćanja, stanje vozila, a po potrebi i podaci o saobraćajnoj nezgodi ili prekršaju.',
           'Kontakt telefonom, WhatsApp-om, mejlom ili preko Instagrama: podaci koje nam sam pošalješ.',
           'Tehnički podaci: kada otvoriš sajt, hosting i servisi navedeni niže automatski dobijaju IP adresu i podatke o pregledaču.',
@@ -212,7 +212,7 @@ export const privacy = {
       title: 'Zašto obrađujemo podatke i na osnovu čega',
       blocks: [
         [
-          'Da obradimo rezervaciju, pošaljemo potvrdu i podsetnik dan pre preuzimanja i zaključimo i izvršimo ugovor o najmu — izvršenje ugovora i radnje pre njegovog zaključenja (član 12. stav 1. tačka 2) Zakona). Datum rođenja koristimo da proverimo uslov uzrasta za izabrano vozilo.',
+          'Da obradimo rezervaciju, pošaljemo potvrdu i podsetnik dan pre preuzimanja i zaključimo i izvršimo ugovor o najmu — izvršenje ugovora i radnje pre njegovog zaključenja (član 12. stav 1. tačka 2) Zakona). Uslov uzrasta za izabrano vozilo proveravamo pri preuzimanju, po ličnoj karti ili pasošu i vozačkoj dozvoli.',
           'Da ispunimo zakonske obaveze, kao što su poslovne i poreske evidencije i dostavljanje podataka o vozaču nadležnim organima (tačka 3).',
           'Naš legitimni interes (tačka 6): zaštita od lažnih rezervacija i zloupotreba (npr. ograničen broj rezervacija sa istog kontakta), bezbednost sajta i ostvarivanje ili odbrana pravnih zahteva.',
         ],
