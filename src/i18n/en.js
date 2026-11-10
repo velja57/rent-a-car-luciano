@@ -126,9 +126,9 @@ export default {
     all: 'All benefits',
     bar: (p) => [
       { id: 'airport', text: p.airportFree ? 'Free airport delivery' : 'Airport delivery' },
-      { id: 'deposit', text: p.noDeposit === p.total ? 'No deposit' : 'Most cars with no deposit' },
-      { id: 'payLater', text: 'Nothing to pay in advance' },
       { id: 'roadside', text: '24/7 roadside assistance' },
+      { id: 'cancel', text: 'Free cancellation' },
+      { id: 'discount', text: `Up to −${p.maxDiscount}% off` },
     ],
   },
 

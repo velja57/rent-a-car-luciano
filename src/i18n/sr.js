@@ -126,9 +126,9 @@ export default {
     all: 'Sve pogodnosti',
     bar: (p) => [
       { id: 'airport', text: p.airportFree ? 'Besplatna dostava na aerodrom' : 'Dostava na aerodrom' },
-      { id: 'deposit', text: p.noDeposit === p.total ? 'Bez depozita' : 'Većina vozila bez depozita' },
-      { id: 'payLater', text: 'Ništa ne plaćaš unapred' },
       { id: 'roadside', text: 'Pomoć na putu 0–⁠24' },
+      { id: 'cancel', text: 'Besplatno otkazivanje' },
+      { id: 'discount', text: `Popust do −${p.maxDiscount}%` },
     ],
   },
 
