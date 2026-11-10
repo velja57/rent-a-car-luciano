@@ -154,14 +154,15 @@
 
 .airport-label {
   fill: var(--color-text-muted);
-  font-family: var(--fleet-mono);
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
 }
 
 .airport-label--time {
   fill: var(--color-accent);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 @media (max-width: 900px) {
