@@ -135,7 +135,6 @@ Deno.serve(async (req: Request) => {
   const customerEmail = String(record.email ?? '');
   const customerName = escapeHtml(record.customer_name);
   const customerPhone = escapeHtml(record.phone);
-  const dob = String(record.date_of_birth ?? '');
   const carName = escapeHtml(record.car_name);
   const pickupDate = String(record.pickup_date ?? '');
   const returnDate = String(record.return_date ?? '');
@@ -168,7 +167,6 @@ Deno.serve(async (req: Request) => {
         <li><strong>Ime i prezime:</strong> ${customerName}</li>
         <li><strong>Telefon:</strong> ${customerPhone}</li>
         <li><strong>Email:</strong> ${escapeHtml(customerEmail)}</li>
-        <li><strong>Datum rođenja:</strong> ${dob ? formatDate(dob) : '-'}</li>
         <li><strong>Preuzimanje:</strong> ${formatDateTime(pickupDate, pickupTime)}</li>
         <li><strong>Vraćanje:</strong> ${formatDateTime(returnDate, returnTime)}</li>
         <li><strong>Lokacija preuzimanja:</strong> ${location}</li>

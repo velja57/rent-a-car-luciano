@@ -266,6 +266,7 @@ export default {
     noReturnTimes: 'No return slot that day — the car is booked right after.',
     extraDay: (time) => `A rental day is 24 hours: returning after ${time} counts as one more day.`,
     hoursNote: (phone) => `Online: weekdays, 8 am to 8 pm. For another time, call ${phone} — no extra charge.`,
+    documentsNote: (age) => `At pick-up, bring your ID card or passport and your driving licence. The driver must be at least ${age}.`,
     changeLocation: 'Change',
     more: 'Extras and note (optional)',
     note: 'Note',

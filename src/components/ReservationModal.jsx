@@ -555,6 +555,9 @@ export default function ReservationModal({
                 </div>
               )}
 
+              {/* Uzrast i dokumenta se proveravaju pri preuzimanju (forma ih ne traži). */}
+              <p className="reservation-form__note">{r.documentsNote(car.minAge)}</p>
+
               {submitError && (
                 <div className="booking-error">
                   <p className="reservation-form__error reservation-form__error--block">{submitError}</p>

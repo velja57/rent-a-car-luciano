@@ -266,6 +266,8 @@ export default {
     noReturnTimes: 'Tog dana nema slobodnog termina za vraćanje — vozilo je posle toga rezervisano.',
     extraDay: (time) => `Dan najma traje 24 h: vraćanje posle ${time} računa se kao još jedan dan.`,
     hoursNote: (phone) => `Preko sajta: radnim danima od 08 do 20 h. Za drugo vreme pozovi ${phone} — bez doplate.`,
+    documentsNote: (age) =>
+      `Pri preuzimanju ponesi ličnu kartu ili pasoš i vozačku dozvolu. Vozač mora imati najmanje ${age} ${age % 10 === 1 && age % 100 !== 11 ? 'godinu' : [2, 3, 4].includes(age % 10) && ![12, 13, 14].includes(age % 100) ? 'godine' : 'godina'}.`,
     changeLocation: 'Promeni',
     more: 'Dodatne usluge i napomena (opciono)',
     note: 'Napomena',
