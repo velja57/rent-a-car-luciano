@@ -60,22 +60,12 @@ export default function Footer() {
         <div>
           <p className="site-footer__logo">Luciano Rent a Car</p>
           <p className="site-footer__text">{t.footer.tagline}</p>
-          <p className="site-footer__text">{t.footer.address}</p>
-          <p className="site-footer__text">{t.footer.hours}</p>
           <span className={`site-footer__status${workingNow ? ' site-footer__status--open' : ''}`}>
             <i aria-hidden="true" />
             {workingNow ? t.footer.openNow : t.footer.closedNow}
           </span>
         </div>
         <div className="site-footer__contact">
-          <a href="tel:+381604848086">
-            <ContactIcon name="phone" />
-            060 484 8086
-          </a>
-          <a href="mailto:luciano@gmail.com">
-            <ContactIcon name="mail" />
-            luciano@gmail.com
-          </a>
           <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
             <ContactIcon name="instagram" />
             Instagram
