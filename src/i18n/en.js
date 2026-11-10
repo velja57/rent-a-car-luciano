@@ -358,7 +358,7 @@ export default {
   airport: {
     eyebrow: 'Nikola Tesla Airport',
     title: ['Land in Belgrade — ', 'your car is already waiting'],
-    routeFrom: 'BELGRADE',
+    routeFrom: 'AIRPORT',
     // free = delivery is free (price 0 € in the price list)
     text: (free) =>
       free
