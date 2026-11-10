@@ -16,7 +16,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 22px;
-  font-family: var(--fleet-mono);
+  font-family: var(--fleet-label-font);
   font-size: 11.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -163,7 +163,7 @@
   bottom: 16px;
   z-index: 2;
   padding: 5px 10px;
-  font-family: var(--fleet-mono);
+  font-family: var(--fleet-label-font);
   font-size: 12px;
   letter-spacing: 0.16em;
   background: rgba(11, 12, 15, 0.6);
@@ -256,7 +256,7 @@
 
 .vehicle-panel__engine {
   margin-top: -6px;
-  font-family: var(--fleet-mono);
+  font-family: var(--fleet-label-font);
   font-size: 12.5px;
   color: var(--color-text-muted);
 }
@@ -299,7 +299,7 @@
 }
 
 .vehicle-panel__price-label {
-  font-family: var(--fleet-mono);
+  font-family: var(--fleet-label-font);
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -502,7 +502,7 @@
 }
 
 .vehicle-spec__label {
-  font-family: var(--fleet-mono);
+  font-family: var(--fleet-label-font);
   font-size: 10.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;

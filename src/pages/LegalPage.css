@@ -1,6 +1,7 @@
 /* ---------- Pravne stranice (uslovi najma, politika privatnosti) ---------- */
 .legal {
-  --fleet-mono: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  /* Font sitnih natpisa (oznake, nazivi polja) — isti Inter kao ostatak sajta. */
+  --fleet-label-font: var(--font-sans);
   --fleet-line: rgba(212, 162, 78, 0.28);
   position: relative;
   padding: 130px 0 110px;

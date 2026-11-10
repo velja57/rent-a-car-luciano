@@ -131,7 +131,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-family: var(--fleet-mono);
+  font-family: var(--fleet-label-font);
   font-size: 10.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -233,7 +233,7 @@
 }
 
 .fleet-included__title {
-  font-family: var(--fleet-mono);
+  font-family: var(--fleet-label-font);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2em;
