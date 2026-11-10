@@ -26,13 +26,6 @@ const CONTACT_ICONS = {
       <path d="M4 7l8 6 8-6" strokeLinejoin="round" />
     </>
   ),
-  instagram: (
-    <>
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.3" cy="6.7" r="0.6" fill="currentColor" stroke="none" />
-    </>
-  ),
 };
 
 function ContactIcon({ name }) {
@@ -56,28 +49,6 @@ export default function Footer() {
 
   return (
     <footer id="kontakt" className="site-footer">
-      <div className="container site-footer__inner">
-        <div>
-          <p className="site-footer__logo">Luciano Rent a Car</p>
-          <p className="site-footer__text">{t.footer.tagline}</p>
-          <span className={`site-footer__status${workingNow ? ' site-footer__status--open' : ''}`}>
-            <i aria-hidden="true" />
-            {workingNow ? t.footer.openNow : t.footer.closedNow}
-          </span>
-        </div>
-        <div className="site-footer__contact">
-          <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer">
-            <ContactIcon name="instagram" />
-            Instagram
-          </a>
-        </div>
-      </div>
-
-      <nav className="container site-footer__legal" aria-label={t.footer.legalLabel}>
-        <Link to={paths.terms}>{t.footer.terms}</Link>
-        <Link to={paths.privacy}>{t.footer.privacy}</Link>
-      </nav>
-
       <div className="site-footer__map">
         <iframe
           className="site-footer__map-frame"
@@ -104,7 +75,13 @@ export default function Footer() {
               </li>
             </ul>
 
-            <h2 className="site-footer__panel-title">{t.footer.hoursTitle}</h2>
+            <div className="site-footer__panel-head">
+              <h2 className="site-footer__panel-title">{t.footer.hoursTitle}</h2>
+              <span className={`site-footer__status${workingNow ? ' site-footer__status--open' : ''}`}>
+                <i aria-hidden="true" />
+                {workingNow ? t.footer.openNow : t.footer.closedNow}
+              </span>
+            </div>
             <dl className="site-footer__panel-hours">
               {t.footer.hoursRows.map(([days, time]) => (
                 <div key={days}>
@@ -154,9 +131,15 @@ export default function Footer() {
         <span className="site-footer__crosspromo-handle">{t.footer.crossPromoHandle}</span>
       </div>
 
-      <p className="site-footer__copy">
-        © {new Date().getFullYear()} Luciano Rent a Car. {t.footer.rights}
-      </p>
+      <div className="container site-footer__bottom">
+        <p className="site-footer__copy">
+          © {new Date().getFullYear()} Luciano Rent a Car. {t.footer.rights}
+        </p>
+        <nav className="site-footer__legal" aria-label={t.footer.legalLabel}>
+          <Link to={paths.terms}>{t.footer.terms}</Link>
+          <Link to={paths.privacy}>{t.footer.privacy}</Link>
+        </nav>
+      </div>
     </footer>
   );
 }
