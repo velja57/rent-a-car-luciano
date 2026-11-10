@@ -373,6 +373,7 @@ export default {
     ],
     cta: 'Izaberi vozilo',
     whatsapp: 'Dogovori dolazak na aerodrom',
+    routeFrom: 'BEOGRAD',
     whatsappMessage: 'Zdravo! Stižem na aerodrom Nikola Tesla i treba mi vozilo. Datum i vreme dolaska: ',
   },
 

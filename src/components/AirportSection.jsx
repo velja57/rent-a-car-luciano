@@ -72,7 +72,7 @@ export default function AirportSection() {
               <circle cx="60" cy="180" r="7" className="airport-dot" />
               <circle cx="262" cy="150" r="7" className="airport-dot airport-dot--end" />
               <text x="60" y="210" textAnchor="middle" className="airport-label">
-                BEG
+                {a.routeFrom}
               </text>
               <text x="262" y="180" textAnchor="middle" className="airport-label">
                 LUCIANO
