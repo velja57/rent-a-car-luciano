@@ -367,7 +367,7 @@ export default {
         ? 'Za goste iz dijaspore i inostranstva: vozilo dovozimo na aerodrom Nikola Tesla, ti preuzmeš ključeve i kreneš. Dostava i preuzimanje na aerodromu su besplatni, a cene vozila iste kao u poslovnici.'
         : 'Za goste iz dijaspore i inostranstva: vozilo dovozimo na aerodrom Nikola Tesla, ti preuzmeš ključeve i kreneš. Cene vozila su iste kao u poslovnici — plaćaš samo dostavu.',
     points: (price, free) => [
-      'Vozilo stiže na aerodrom za 30–45 minuta',
+      'Vozilo stiže na aerodrom za 20–30 minuta',
       free ? 'Besplatna dostava — i pri preuzimanju i pri vraćanju' : `Dostava samo ${price} — za preuzimanje ili vraćanje`,
       'Idealno za dijasporu i goste iz inostranstva',
     ],

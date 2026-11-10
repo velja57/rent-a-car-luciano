@@ -365,7 +365,7 @@ export default {
         ? 'For visitors from abroad and the diaspora: we deliver the car to Nikola Tesla Airport, you take the keys and go. Airport delivery and collection are free, and car prices are the same as at our office.'
         : 'For visitors from abroad and the diaspora: we deliver the car to Nikola Tesla Airport, you take the keys and go. Car prices are the same as at our office — you only pay for delivery.',
     points: (price, free) => [
-      'The car arrives at the airport in 30–45 minutes',
+      'The car arrives at the airport in 20–30 minutes',
       free ? 'Free delivery — for both pick-up and return' : `Delivery only ${price} — for pick-up or return`,
       'Ideal for the diaspora and international visitors',
     ],

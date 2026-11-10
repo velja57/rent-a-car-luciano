@@ -77,8 +77,8 @@ export default function AirportSection() {
               <text x="262" y="180" textAnchor="middle" className="airport-label">
                 LUCIANO
               </text>
-              <text x="160" y="72" textAnchor="middle" className="airport-label airport-label--time">
-                30–45 MIN
+              <text x="160" y="76" textAnchor="middle" className="airport-label airport-label--time">
+                20–30 MIN
               </text>
             </svg>
           </div>
