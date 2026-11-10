@@ -166,19 +166,6 @@ export default {
             text: `We deliver the car to Nikola Tesla Airport for ${money(p.airportPrice)}.`,
           },
       {
-        id: 'deposit',
-        title: 'No deposit',
-        text:
-          p.noDeposit === p.total
-            ? 'We do not require a deposit for any car.'
-            : `${p.noDeposit} of our ${p.total} cars require no deposit.`,
-      },
-      {
-        id: 'payLater',
-        title: 'Nothing to pay in advance',
-        text: 'You pay the full amount only when you pick up the car — in cash or by card.',
-      },
-      {
         id: 'roadside',
         title: '24/7 roadside assistance',
         text: 'Breakdown or accident? Call us any time — where possible, we provide a replacement car.',
@@ -197,11 +184,6 @@ export default {
         id: 'cancel',
         title: 'Free cancellation',
         text: 'Plans change — cancel your booking free of charge up to 48 hours before pick-up.',
-      },
-      {
-        id: 'flexible',
-        title: 'Pick-up when it suits you',
-        text: 'Weekends, early morning or late evening — by arrangement over the phone, at no extra charge. We can also deliver the car to your address in Belgrade.',
       },
       {
         id: 'discount',

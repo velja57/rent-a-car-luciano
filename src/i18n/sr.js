@@ -166,19 +166,6 @@ export default {
             text: `Vozilo dovozimo na aerodrom Nikola Tesla za ${money(p.airportPrice)}.`,
           },
       {
-        id: 'deposit',
-        title: 'Bez depozita',
-        text:
-          p.noDeposit === p.total
-            ? 'Ni za jedno vozilo ne tražimo depozit.'
-            : `Za ${p.noDeposit} od ${p.total} vozila ne tražimo depozit.`,
-      },
-      {
-        id: 'payLater',
-        title: 'Ništa ne plaćaš unapred',
-        text: 'Ceo iznos plaćaš tek kad preuzmeš vozilo — gotovinom ili karticom.',
-      },
-      {
         id: 'roadside',
         title: 'Pomoć na putu 0–⁠24',
         text: 'Kvar ili nezgoda? Pozovi nas u bilo koje doba — kada je moguće, obezbeđujemo zamensko vozilo.',
@@ -197,11 +184,6 @@ export default {
         id: 'cancel',
         title: 'Besplatno otkazivanje',
         text: 'Planovi se menjaju — otkaži rezervaciju besplatno do 48h pre preuzimanja vozila.',
-      },
-      {
-        id: 'flexible',
-        title: 'Preuzimanje kad tebi odgovara',
-        text: 'Vikendom, rano ujutru ili kasno uveče — uz dogovor telefonom, bez doplate. Vozilo možemo da dovezemo i na tvoju adresu u Beogradu.',
       },
       {
         id: 'discount',
