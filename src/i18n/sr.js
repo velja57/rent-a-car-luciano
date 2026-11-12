@@ -133,15 +133,6 @@ export default {
   },
 
   hero: {
-    stageLabel: 'Prikaz izabranog vozila na ulici',
-    eyebrow: 'Rezervacija',
-    title: 'Izaberi svoje vozilo',
-    subtitle: 'Pogledaj dostupna vozila i karakteristike pre nego što rezervišeš.',
-    carLabel: 'Vozilo',
-    comingSoon: ' — Uskoro dostupno',
-    moreInfo: 'Više informacija o vozilu',
-    fleetLink: (n) => `Pogledaj svih ${n} vozila u floti →`,
-    switching: 'Menjamo vozilo na prikazu…',
     searchTitle: ['Iznajmi automobil ', 'za svaki put'],
     searchSubtitle: 'Izaberi datume i odmah vidi slobodna vozila i tačnu cenu za ceo period.',
     time: 'Vreme',
@@ -371,20 +362,6 @@ export default {
     whatsapp: 'Dogovori dolazak na aerodrom',
     routeFrom: 'AERODROM',
     whatsappMessage: 'Zdravo! Stižem na aerodrom Nikola Tesla i treba mi vozilo. Datum i vreme dolaska: ',
-  },
-
-  teaser: {
-    eyebrow: 'Naša flota',
-    title: ['Vozilo za ', 'svaki put'],
-    subtitle:
-      'Od štedljivih gradskih automobila do premium limuzina i kombija za celo društvo. Što duže voziš, manje plaćaš — a većina vozila je bez depozita.',
-    statModels: 'modela',
-    statFrom: 'od',
-    statUpTo: 'do',
-    statLongRental: 'za duži najam',
-    all: (n) => `Sva vozila (${n})`,
-    cta: 'Pogledaj celu flotu',
-    ctaText: 'Filteri, pretraga slobodnih vozila po datumima i tačna cena za tvoj period.',
   },
 
   card: {

@@ -133,15 +133,6 @@ export default {
   },
 
   hero: {
-    stageLabel: 'The selected car shown on the street',
-    eyebrow: 'Booking',
-    title: 'Choose your car',
-    subtitle: 'Browse the available cars and their features before you book.',
-    carLabel: 'Car',
-    comingSoon: ' — Coming soon',
-    moreInfo: 'More about this car',
-    fleetLink: (n) => `See all ${n} cars in our fleet →`,
-    switching: 'Switching the car on display…',
     searchTitle: ['Rent a car ', 'for every trip'],
     searchSubtitle: 'Choose your dates and instantly see available cars and the exact price for the whole rental.',
     time: 'Time',
@@ -367,20 +358,6 @@ export default {
     cta: 'Choose a car',
     whatsapp: 'Arrange an airport pick-up',
     whatsappMessage: "Hi! I'm arriving at Nikola Tesla Airport and need a car. Arrival date and time: ",
-  },
-
-  teaser: {
-    eyebrow: 'Our fleet',
-    title: ['A car for ', 'every journey'],
-    subtitle:
-      'From fuel-efficient city cars to premium sedans and vans for the whole group. The longer you drive, the less you pay — and most cars need no deposit.',
-    statModels: 'models',
-    statFrom: 'from',
-    statUpTo: 'up to',
-    statLongRental: 'on longer rentals',
-    all: (n) => `All cars (${n})`,
-    cta: 'Explore the full fleet',
-    ctaText: 'Filters, availability search by date and the exact price for your dates.',
   },
 
   card: {

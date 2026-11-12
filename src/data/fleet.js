@@ -44,8 +44,7 @@ function photo(carId, n, view, author, license, file, focus) {
 }
 
 function heroCar(id) {
-  const { framesDir: _framesDir, frameCount: _frameCount, ...car } = cars.find((c) => c.id === id);
-  return car;
+  return cars.find((c) => c.id === id);
 }
 
 export const fleet = [
