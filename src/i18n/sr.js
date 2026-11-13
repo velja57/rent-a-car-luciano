@@ -453,7 +453,6 @@ export default {
     prev: 'Prethodna fotografija',
     next: 'Sledeća fotografija',
     thumb: (i, alt) => `Fotografija ${i}: ${alt}`,
-    photo: 'Foto:',
   },
 
   // Vrednosti iz podataka o vozilima (src/data) su na srpskom — ovde se ne prevode.

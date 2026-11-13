@@ -99,14 +99,6 @@ export default function VehicleGallery({ car }) {
           </button>
         ))}
       </div>
-
-      <p className="vehicle-gallery__credit">
-        {t.gallery.photo}{' '}
-        <a href={image.credit.url} target="_blank" rel="noopener noreferrer">
-          {image.credit.author}
-        </a>{' '}
-        · {image.credit.license} · Wikimedia Commons
-      </p>
     </div>
   );
 }

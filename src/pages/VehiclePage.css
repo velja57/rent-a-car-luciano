@@ -212,21 +212,6 @@
   outline-offset: 2px;
 }
 
-.vehicle-gallery__credit {
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
-}
-
-.vehicle-gallery__credit a {
-  color: inherit;
-  text-decoration-color: rgba(255, 255, 255, 0.25);
-}
-
-.vehicle-gallery__credit a:hover {
-  color: var(--color-accent);
-}
-
 /* ----- Panel sa cenom i rezervacijom ----- */
 .vehicle-panel {
   position: sticky;

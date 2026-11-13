@@ -20,8 +20,10 @@
 //
 // Fotografije: Wikimedia Commons (slobodne licence) — tačan model i generacija,
 // boja nije nužno ista kao kod naših vozila (obe Ibize su bele, kao naše — isti
-// auto sa Commons-a, isečen da popuni kadar). Autor i licenca MORAJU ostati
-// navedeni uz sliku (prikazuju se ispod galerije vozila).
+// auto sa Commons-a, isečen da popuni kadar). Autor i licenca su zapisani u
+// credit, ali se po odluci vlasnika (14. 11. 2026) ne prikazuju na sajtu —
+// licence CC BY / CC BY-SA traže navođenje autora; sa sopstvenim
+// fotografijama vozila ovo više nije potrebno.
 
 // Nazivi tipova su u rečnicima (src/i18n, types).
 export const VEHICLE_TYPES = ['mali', 'srednji', 'suv', 'premium'];

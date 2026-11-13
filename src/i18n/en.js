@@ -449,7 +449,6 @@ export default {
     prev: 'Previous photo',
     next: 'Next photo',
     thumb: (i, alt) => `Photo ${i}: ${alt}`,
-    photo: 'Photo:',
   },
 
   // Translations of values that come from the car data (src/data, in Serbian).
