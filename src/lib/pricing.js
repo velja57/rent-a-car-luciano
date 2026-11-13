@@ -48,13 +48,20 @@ export function lowestRate(car) {
   return dailyRate(car, DISCOUNT_TIERS[DISCOUNT_TIERS.length - 1].minDays);
 }
 
+// Cena dodatka za izabrano vozilo: puno kasko ima cenu po vozilu (fullCoverPrice),
+// ostali dodaci opštu — isto pravilo kao price_quote u bazi.
+export function extraPrice(extra, car) {
+  if (extra.id === 'full-cover' && Number.isFinite(car?.fullCoverPrice)) return car.fullCoverPrice;
+  return extra.price;
+}
+
 export function quote(car, days, extraIds = []) {
   const rate = dailyRate(car, days);
   const rental = rate * days;
-  const extras = EXTRAS.filter((e) => extraIds.includes(e.id)).map((e) => ({
-    ...e,
-    cost: e.per === 'day' ? e.price * days : e.price,
-  }));
+  const extras = EXTRAS.filter((e) => extraIds.includes(e.id)).map((e) => {
+    const price = extraPrice(e, car);
+    return { ...e, price, cost: e.per === 'day' ? price * days : price };
+  });
   const extrasTotal = extras.reduce((sum, e) => sum + e.cost, 0);
   return {
     days,

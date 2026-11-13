@@ -298,6 +298,19 @@ insert into price_list (car_id, price_per_day) values
   ('vw-golf-8', 55), ('vw-tiguan', 58), ('volvo-v60', 62), ('audi-a6', 68)
 on conflict (car_id) do nothing;
 
+-- Puno kasko po vozilu (€/dan): starija vozila 8 €, novija i skuplja 13 €. Admin
+-- ga menja na stranici vozila; null = važi opšta cena dodatka "full-cover".
+-- Ponovno pokretanje ovog fajla ne menja cenu koju je admin već upisao.
+alter table price_list add column if not exists full_cover_price integer
+  check (full_cover_price is null or full_cover_price between 0 and 10000);
+
+update price_list p set full_cover_price = v.price
+from (values
+  ('skoda-fabia', 8), ('seat-ibiza-benzin', 8), ('seat-ibiza-dizel', 8), ('vw-golf-7', 8),
+  ('vw-golf-8', 13), ('vw-tiguan', 13), ('volvo-v60', 13), ('audi-a6', 13)
+) as v (car_id, price)
+where p.car_id = v.car_id and p.full_cover_price is null;
+
 create table if not exists discount_tiers (
   min_days integer primary key check (min_days between 1 and 365),
   discount_percent integer not null check (discount_percent between 0 and 90)
@@ -318,9 +331,12 @@ create table if not exists rental_extras (
 alter table rental_extras enable row level security;
 
 insert into rental_extras (id, price, per, sort) values
-  ('additional-driver', 0, 'rental', 1), ('child-seat', 3, 'day', 2), ('full-cover', 8, 'day', 3),
-  ('airport', 15, 'rental', 4), ('cross-border', 30, 'rental', 5)
+  ('child-seat', 0, 'day', 2), ('full-cover', 8, 'day', 3),
+  ('airport', 0, 'rental', 4), ('cross-border', 30, 'rental', 5)
 on conflict (id) do nothing;
+
+-- "Dodatni vozač" se ne nudi (uklonjen sa sajta i iz admina).
+delete from rental_extras where id = 'additional-driver';
 
 -- Cenovnik za sajt (javni podaci, bez ličnih podataka).
 create or replace function get_price_list()
@@ -332,6 +348,10 @@ set search_path = public
 as $$
   select jsonb_build_object(
     'cars', coalesce((select jsonb_object_agg(car_id, price_per_day) from price_list), '{}'::jsonb),
+    'full_cover', coalesce(
+      (select jsonb_object_agg(car_id, full_cover_price) from price_list where full_cover_price is not null),
+      '{}'::jsonb
+    ),
     'discounts', coalesce(
       (select jsonb_agg(jsonb_build_object('min_days', min_days, 'discount_percent', discount_percent) order by min_days)
        from discount_tiers),
@@ -382,10 +402,18 @@ begin
   end if;
   pct := coalesce((select discount_percent from discount_tiers where min_days <= n_days order by min_days desc limit 1), 0);
   rate := round(base_price * (100 - pct) / 100.0);
-  select coalesce(sum(case when per = 'day' then price * n_days else price end), 0), coalesce(array_agg(id order by sort, id), '{}')
+  -- Puno kasko ima cenu po vozilu (price_list.full_cover_price); ostali dodaci opštu.
+  select coalesce(sum(case when x.per = 'day' then x.price * n_days else x.price end), 0), coalesce(array_agg(x.id order by x.sort, x.id), '{}')
   into extras_sum, extra_ids
-  from rental_extras
-  where id = any (coalesce(p_extras, '{}'));
+  from (
+    select e.id, e.per, e.sort,
+      case
+        when e.id = 'full-cover' then coalesce((select pl.full_cover_price from price_list pl where pl.car_id = p_car_id), e.price)
+        else e.price
+      end as price
+    from rental_extras e
+    where e.id = any (coalesce(p_extras, '{}'))
+  ) x;
 
   return jsonb_build_object(
     'list_price', base_price,
@@ -2106,6 +2134,31 @@ begin
     updated_at = now(),
     updated_by = excluded.updated_by;
 
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+-- Puno kasko za jedno vozilo (€/dan). Vozilo mora već biti u cenovniku.
+create or replace function admin_set_car_full_cover(p_car_id text, p_price integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not is_admin() then
+    return jsonb_build_object('success', false, 'reason', 'forbidden');
+  end if;
+  if p_price is null or p_price not between 0 and 10000 then
+    return jsonb_build_object('success', false, 'reason', 'invalid_price');
+  end if;
+
+  update price_list
+  set full_cover_price = p_price, updated_at = now(), updated_by = current_actor()
+  where car_id = p_car_id;
+  if not found then
+    return jsonb_build_object('success', false, 'reason', 'not_found');
+  end if;
   return jsonb_build_object('success', true);
 end;
 $$;

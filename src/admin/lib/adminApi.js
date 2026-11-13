@@ -145,6 +145,7 @@ export const adminApi = {
     return data;
   },
   setCarPrice: (carId, price) => call('admin_set_car_price', { p_car_id: carId, p_price_per_day: price }),
+  setCarFullCover: (carId, price) => call('admin_set_car_full_cover', { p_car_id: carId, p_price: price }),
   setDiscount: (minDays, percent) => call('admin_set_discount', { p_min_days: minDays, p_discount_percent: percent }),
   setExtraPrice: (id, price) => call('admin_set_extra_price', { p_id: id, p_price: price }),
   addPayment: ({ reservationId, kind, amount, method, paidAt, note }) =>

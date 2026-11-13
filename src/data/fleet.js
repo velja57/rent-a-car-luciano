@@ -9,6 +9,8 @@
 // supabase/schema.sql (price_list). Važeće cene su u bazi — admin ih menja u
 // admin panelu (Vozila), a sajt ih učitava preko src/lib/priceList.js.
 // Popusti za duži najam su u src/data/rental.js.
+// fullCoverPrice = puno kasko €/dan za to vozilo (starija vozila 8 €, novija 13 €);
+// važeća cena je takođe u bazi (price_list.full_cover_price, admin → stranica vozila).
 //
 // Snagu i opremu je klijent potvrdio (13. 11. 2026); potrošnja je približna
 // vrednost za taj motor.
@@ -70,6 +72,7 @@ export const fleet = [
     minAge: 18,
     deposit: null,
     pricePerDay: 25,
+    fullCoverPrice: 8,
     ...RENTAL_TERMS,
     description:
       'Pouzdan i štedljiv gradski hečbek koji se lako parkira i malo troši. Pametan izbor za svakodnevne vožnje po Beogradu po najpovoljnijoj ceni.',
@@ -103,6 +106,7 @@ export const fleet = [
     minAge: 18,
     deposit: null,
     pricePerDay: 30,
+    fullCoverPrice: 8,
     ...RENTAL_TERMS,
     description:
       'Moderan i okretan gradski automobil sa živahnim benzinskim motorom. Prostran za svoju klasu i prijatan za vožnju — odličan za grad i kraće izlete.',
@@ -135,6 +139,7 @@ export const fleet = [
     minAge: 18,
     deposit: null,
     pricePerDay: 32,
+    fullCoverPrice: 8,
     ...RENTAL_TERMS,
     description:
       'Moderna Ibiza sa štedljivim dizel motorom — idealna kada planiraš više kilometara. Mala potrošnja i udobna vožnja i na dužim relacijama.',
@@ -168,6 +173,7 @@ export const fleet = [
     minAge: 18,
     deposit: null,
     pricePerDay: 33,
+    fullCoverPrice: 8,
     ...RENTAL_TERMS,
     description:
       'Legendarni Golf — prostran, tih i pouzdan, sa štedljivim dizel motorom. Proveren izbor za grad i putovanja kroz Srbiju.',
@@ -202,6 +208,7 @@ export const fleet = [
     minAge: 18,
     deposit: null,
     pricePerDay: 55,
+    fullCoverPrice: 13,
     ...RENTAL_TERMS,
     description:
       'Kompaktan hečbek najnovije generacije (2024), potpuno opremljen. Tih dizel motor i automatski menjač čine vožnju opuštenom u svakoj prilici.',
@@ -246,6 +253,7 @@ export const fleet = [
     minAge: 21,
     deposit: null,
     pricePerDay: 58,
+    fullCoverPrice: 13,
     ...RENTAL_TERMS,
     description:
       'Prostrani porodični SUV sa automatskim menjačem, povišenom pozicijom za vožnju i prtljažnikom od 615 litara. Bogata oprema za udobna putovanja sa celom porodicom.',
@@ -288,6 +296,7 @@ export const fleet = [
     minAge: 21,
     deposit: null,
     pricePerDay: 62,
+    fullCoverPrice: 13,
     ...RENTAL_TERMS,
     description:
       'Elegantan švedski karavan premium klase, poznat po vrhunskoj bezbednosti, sa prtljažnikom od 529 litara. Automatski menjač i bogata oprema za opuštena duga putovanja.',
@@ -330,6 +339,7 @@ export const fleet = [
     minAge: 21,
     deposit: null,
     pricePerDay: 68,
+    fullCoverPrice: 13,
     ...RENTAL_TERMS,
     description:
       'Poslovna limuzina premium klase sa automatskim menjačem i bogatom opremom. Tiha, prostrana i reprezentativna — za poslovne sastanke, transfere i posebne prilike.',

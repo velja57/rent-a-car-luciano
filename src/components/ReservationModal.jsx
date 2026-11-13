@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { EXTRAS, MAX_ONLINE_DAYS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { dictionaries, useI18n } from '../i18n';
 import { bookingMessage, isWorkingNow, priceLine, questionMessage, whatsappUrl } from '../lib/contact';
-import { discountPercent, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
+import { discountPercent, extraPrice, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
 import { billableDays, defaultPickupTime, defaultReturnTime, graceUntil, isWorkday, pickupSlots, returnSlots } from '../lib/rentalTimes';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { useBookedDates } from '../lib/useBookedDates';
@@ -20,9 +20,10 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatExtraPrice(extra, t, lang) {
-  if (!extra.price) return t.reservation.free;
-  return extra.per === 'day' ? `${formatEur(extra.price, lang)} ${t.common.perDay}` : formatEur(extra.price, lang);
+function formatExtraPrice(extra, car, t, lang) {
+  const price = extraPrice(extra, car);
+  if (!price) return t.reservation.free;
+  return extra.per === 'day' ? `${formatEur(price, lang)} ${t.common.perDay}` : formatEur(price, lang);
 }
 
 function openInNewTab(url) {
@@ -507,7 +508,7 @@ export default function ReservationModal({
                         onChange={() => toggleExtra(extra.id)}
                       />
                       <span className="reservation-extras__label">{t.extras[extra.id]}</span>
-                      <span className="reservation-extras__price">{formatExtraPrice(extra, t, lang)}</span>
+                      <span className="reservation-extras__price">{formatExtraPrice(extra, car, t, lang)}</span>
                     </label>
                   ))}
                 </fieldset>

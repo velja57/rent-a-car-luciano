@@ -31,16 +31,18 @@ function Stat({ value, label }) {
   );
 }
 
-// Cena po danu (cenovnik u bazi), registarska oznaka i interna beleška.
-function EditForm({ car, saved, price, onSaved }) {
+// Cena po danu i puno kasko (cenovnik u bazi), registarska oznaka i interna beleška.
+function EditForm({ car, saved, price, fullCover, onSaved }) {
   const toast = useToast();
   const [registration, setRegistration] = useState(saved?.registration ?? '');
   const [notes, setNotes] = useState(saved?.notes ?? '');
   const [dayPrice, setDayPrice] = useState(price === undefined ? '' : String(price));
+  const [coverPrice, setCoverPrice] = useState(fullCover === undefined ? '' : String(fullCover));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const registryDirty = registration.trim().toUpperCase() !== (saved?.registration ?? '') || notes.trim() !== (saved?.notes ?? '');
   const priceDirty = dayPrice.trim() !== (price === undefined ? '' : String(price));
+  const coverDirty = coverPrice.trim() !== (fullCover === undefined ? '' : String(fullCover));
 
   const save = async (e) => {
     e.preventDefault();
@@ -48,11 +50,16 @@ function EditForm({ car, saved, price, onSaved }) {
       setError('Cena po danu je ceo broj evra (1–10.000).');
       return;
     }
+    if (coverDirty && !isWholeNumber(coverPrice, 0, 10000)) {
+      setError('Puno kasko je ceo broj evra po danu (0–10.000).');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       if (registryDirty) await adminApi.saveVehicle(car.id, registration.trim(), notes.trim());
       if (priceDirty) await adminApi.setCarPrice(car.id, Number(dayPrice));
+      if (coverDirty) await adminApi.setCarFullCover(car.id, Number(coverPrice));
       toast.success(`Sačuvano: ${car.name}.`);
       onSaved();
     } catch (err) {
@@ -69,6 +76,10 @@ function EditForm({ car, saved, price, onSaved }) {
         <input type="number" inputMode="numeric" min="1" step="1" value={dayPrice} onChange={(e) => setDayPrice(e.target.value)} />
       </label>
       <label className="admin-field">
+        <span>Puno kasko (€/dan)</span>
+        <input type="number" inputMode="numeric" min="0" step="1" value={coverPrice} onChange={(e) => setCoverPrice(e.target.value)} />
+      </label>
+      <label className="admin-field">
         <span>Registarska oznaka</span>
         <input
           type="text"
@@ -83,7 +94,7 @@ function EditForm({ car, saved, price, onSaved }) {
         <input type="text" placeholder="npr. servis 15.11." value={notes} onChange={(e) => setNotes(e.target.value)} />
       </label>
       {error && <p className="admin-error">{error}</p>}
-      <button type="submit" className="admin-btn admin-btn--accent" disabled={(!registryDirty && !priceDirty) || saving}>
+      <button type="submit" className="admin-btn admin-btn--accent" disabled={(!registryDirty && !priceDirty && !coverDirty) || saving}>
         {saving ? 'Čuvam…' : 'Sačuvaj'}
       </button>
       <p className="admin-muted admin-hint">
@@ -226,6 +237,7 @@ export default function VehicleDetail() {
 
   const saved = info.data.registry.find((v) => v.car_id === car.id);
   const price = info.data.prices.cars?.[car.id];
+  const fullCover = info.data.prices.full_cover?.[car.id];
   const stats = fleet.data?.cars?.[car.id];
   const rented = stats?.rented ?? null;
   const photo = car.images?.[0];
@@ -297,6 +309,9 @@ export default function VehicleDetail() {
             <Row label="Cena po danu">
               {price === undefined ? <span className="admin-warning">Nije u cenovniku</span> : formatMoney(price)}
             </Row>
+            <Row label="Puno kasko">
+              {fullCover === undefined ? <span className="admin-muted">—</span> : `${formatMoney(fullCover)} / dan`}
+            </Row>
             {saved?.notes && <Row label="Beleška">{saved.notes}</Row>}
           </dl>
         </section>
@@ -305,10 +320,11 @@ export default function VehicleDetail() {
           <h2 className="admin-panel__title">Izmena podataka</h2>
           <EditForm
             // key sa sačuvanim vrednostima: posle čuvanja forma kreće od novih vrednosti
-            key={`${saved?.registration ?? ''}-${saved?.notes ?? ''}-${price ?? ''}`}
+            key={`${saved?.registration ?? ''}-${saved?.notes ?? ''}-${price ?? ''}-${fullCover ?? ''}`}
             car={car}
             saved={saved}
             price={price}
+            fullCover={fullCover}
             onSaved={refresh}
           />
         </section>

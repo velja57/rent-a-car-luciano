@@ -13,6 +13,8 @@ export function applyPriceList(list) {
   fleet.forEach((car) => {
     const price = list.cars?.[car.id];
     if (Number.isFinite(price)) car.pricePerDay = price;
+    const fullCover = list.full_cover?.[car.id];
+    if (Number.isFinite(fullCover)) car.fullCoverPrice = fullCover;
   });
   (list.discounts ?? []).forEach(({ min_days: minDays, discount_percent: percent }) => {
     const tier = DISCOUNT_TIERS.find((t) => t.minDays === minDays);

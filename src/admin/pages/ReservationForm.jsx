@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
+import { extraPrice } from '../../lib/pricing';
 import { billableDays, graceUntil } from '../../lib/rentalTimes';
 import { adminApi, useAdminData } from '../lib/adminApi';
 import { formatDate, formatMoney, shortId, todayBelgrade } from '../lib/format';
@@ -392,15 +393,16 @@ export default function ReservationForm() {
           <h2 className="admin-panel__title">Cena i dodaci</h2>
           <fieldset className="admin-extras">
             <legend className="admin-muted">Dodaci</legend>
-            {extraOptions().map((extra) => (
-              <label key={extra.id} className="admin-check">
-                <input type="checkbox" checked={form.extras.includes(extra.id)} onChange={() => toggleExtra(extra.id)} />
-                <span>{extra.name}</span>
-                <span className="admin-muted">
-                  {extra.price ? `${extra.price}€${extra.per === 'day' ? '/dan' : ''}` : 'besplatno'}
-                </span>
-              </label>
-            ))}
+            {extraOptions().map((extra) => {
+              const price = extraPrice(extra, vehicle);
+              return (
+                <label key={extra.id} className="admin-check">
+                  <input type="checkbox" checked={form.extras.includes(extra.id)} onChange={() => toggleExtra(extra.id)} />
+                  <span>{extra.name}</span>
+                  <span className="admin-muted">{price ? `${price}€${extra.per === 'day' ? '/dan' : ''}` : 'besplatno'}</span>
+                </label>
+              );
+            })}
           </fieldset>
           <div className="admin-form__grid">
             <Field label="Cena po danu (€)" error={errors.dailyRate} hint="Prazno = cena nije dogovorena.">

@@ -13,7 +13,7 @@ const isWholeNumber = (value, min, max) => /^\d+$/.test(String(value).trim()) &&
 
 // Spisak vozila: fotografija, model, godište, registracija, cena i status.
 // Klik na vozilo otvara njegovu stranicu (istorija, prihod, izmena podataka).
-function FleetTable({ registry, prices, fleet }) {
+function FleetTable({ registry, prices, fullCover, fleet }) {
   const navigate = useNavigate();
   return (
     <div className="admin-table-wrap">
@@ -24,6 +24,7 @@ function FleetTable({ registry, prices, fleet }) {
             <th>Godište</th>
             <th>Registracija</th>
             <th>Cena po danu</th>
+            <th>Puno kasko</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -61,6 +62,11 @@ function FleetTable({ registry, prices, fleet }) {
                 <td data-label="Cena po danu">
                   <div className="admin-nowrap">
                     {prices[car.id] === undefined ? <span className="admin-warning">Nije u cenovniku</span> : formatMoney(prices[car.id])}
+                  </div>
+                </td>
+                <td data-label="Puno kasko">
+                  <div className="admin-nowrap">
+                    {fullCover[car.id] === undefined ? <span className="admin-muted">—</span> : `${formatMoney(fullCover[car.id])} / dan`}
                   </div>
                 </td>
                 <td data-label="Status">
@@ -149,9 +155,10 @@ export default function Vehicles() {
 
   const registry = Object.fromEntries(data.registry.map((v) => [v.car_id, v]));
   const prices = data.prices.cars ?? {};
+  const fullCover = data.prices.full_cover ?? {};
   const tiers = data.prices.discounts ?? [];
-  // Samo dodaci koje sajt nudi (npr. "dodatni vozač" je uklonjen sa sajta, a ostao je zapisan u bazi).
-  const extras = (data.prices.extras ?? []).filter((extra) => EXTRAS.some((e) => e.id === extra.id));
+  // Samo dodaci koje sajt nudi. Puno kasko ima cenu po vozilu (stranica vozila), pa ga ovde nema.
+  const extras = (data.prices.extras ?? []).filter((extra) => extra.id !== 'full-cover' && EXTRAS.some((e) => e.id === extra.id));
   const cars = fleet.data?.cars;
   const rentedCount = cars ? FLEET_ORDER.filter((car) => cars[car.id]?.rented).length : null;
 
@@ -170,7 +177,7 @@ export default function Vehicles() {
 
       {fleet.error && <ErrorState error={fleet.error} onRetry={fleet.reload} />}
 
-      <FleetTable registry={registry} prices={prices} fleet={cars} />
+      <FleetTable registry={registry} prices={prices} fullCover={fullCover} fleet={cars} />
 
       <h2 className="admin-section-title">Cenovnik</h2>
       <p className="admin-muted admin-hint">
@@ -198,7 +205,10 @@ export default function Vehicles() {
 
         <section className="admin-panel admin-vehicles">
           <h2 className="admin-panel__title">Dodatne usluge</h2>
-          <p className="admin-muted admin-hint">Cena dodatka po danu najma ili jednom po rezervaciji.</p>
+          <p className="admin-muted admin-hint">
+            Cena dodatka po danu najma ili jednom po rezervaciji. Puno kasko ima cenu za svako vozilo posebno — menja se
+            na stranici vozila (klik na vozilo u tabeli iznad).
+          </p>
           {extras.map((extra) => (
             <PriceRow
               key={`${extra.id}-${extra.price}`}

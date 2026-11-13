@@ -49,7 +49,8 @@ export const EUR_TO_RSD = 117.2;
 
 // Dodatne usluge u formi za rezervaciju. per: 'day' = po danu, 'rental' = jednom po najmu.
 // Cene su početne vrednosti — prave stižu iz cenovnika u bazi (admin → Vozni park →
-// Cenovnik). Dečije sedište i dostava na aerodrom su besplatni (cena 0 €).
+// Cenovnik). Dečije sedište i dostava na aerodrom su besplatni (cena 0 €). Puno kasko
+// ima cenu po vozilu (fleet.js, fullCoverPrice); 8 € ovde važi samo za vozilo bez nje.
 export const EXTRAS = [
   { id: 'child-seat', price: 0, per: 'day' },
   { id: 'full-cover', price: 8, per: 'day' },

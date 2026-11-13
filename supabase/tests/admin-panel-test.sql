@@ -41,7 +41,14 @@ begin
   --    "stare" rezervacije bez snimka cene, samo sa tekstom obračuna.
   -- =========================================================================
   insert into price_list (car_id, price_per_day) values (car, 40)
-  on conflict (car_id) do update set price_per_day = 40;
+  on conflict (car_id) do update set price_per_day = 40, full_cover_price = null;
+
+  -- Cene dodataka za test (prave cene u bazi mogu biti drugačije; sve se poništava na kraju).
+  update rental_extras set price = 3 where id = 'child-seat';
+  update rental_extras set price = 8 where id = 'full-cover';
+
+  ok := not exists (select 1 from rental_extras where id = 'additional-driver');
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'dodatak "dodatni vozač" ne postoji u bazi'); end if;
 
   insert into reservations (car_id, car_name, customer_name, email, phone, date_of_birth, pickup_date, return_date,
     pickup_location, price_summary)
@@ -134,6 +141,14 @@ begin
     ok := true;
   end;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'anon ne sme da menja cenovnik'); end if;
+
+  begin
+    perform admin_set_car_full_cover(car, 1);
+    ok := false;
+  exception when insufficient_privilege then
+    ok := true;
+  end;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'anon ne sme da menja puno kasko'); end if;
 
   begin
     perform admin_fleet_usage('2099-01-01', '2099-01-31');
@@ -445,6 +460,21 @@ begin
   res := admin_quote(car, '2099-08-30', '2099-09-02', array['child-seat', 'nepostoji']);
   ok := (res -> 'quote' ->> 'total')::numeric = 132 and res -> 'quote' -> 'extras' = '["child-seat"]'::jsonb;
   total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('predlog cene za admin formu (123 + 3 × 3 = 132, nepoznat dodatak se ignoriše) [%s]', res)); end if;
+
+  res := admin_quote(car, '2099-08-30', '2099-09-02', array['full-cover']);
+  ok := (res -> 'quote' ->> 'total')::numeric = 147;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('puno kasko bez cene vozila: opšta cena (123 + 3 × 8 = 147) [%s]', res)); end if;
+
+  res := admin_set_car_full_cover(car, 13);
+  ok := (res ->> 'success')::boolean
+    and (admin_quote(car, '2099-08-30', '2099-09-02', array['full-cover']) -> 'quote' ->> 'total')::numeric = 162
+    and (admin_quote(car, '2099-08-30', '2099-09-02', array['child-seat']) -> 'quote' ->> 'total')::numeric = 132
+    and (get_price_list() -> 'full_cover' ->> car)::integer = 13;
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, format('puno kasko po vozilu: 123 + 3 × 13 = 162, ostali dodaci po opštoj ceni, sajt vidi 13 € [%s]', res)); end if;
+
+  ok := admin_set_car_full_cover(car, -1) ->> 'reason' = 'invalid_price'
+    and admin_set_car_full_cover('test-vozilo-nepostoji', 5) ->> 'reason' = 'not_found';
+  total := total + 1; if ok then passed := passed + 1; else failed := array_append(failed, 'puno kasko: neispravna cena i nepoznato vozilo se odbijaju'); end if;
 
   res := admin_revenue('2099-08-01', '2099-08-31', 'rental', 'booked', car);
   ok := (res -> 'totals' ->> 'rental')::numeric = 82 and (res -> 'totals' ->> 'reservations')::int = 1;
