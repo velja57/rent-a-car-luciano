@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { cars } from '../data/cars';
 import { fleet } from '../data/fleet';
 import { DISCOUNT_TIERS, EXTRAS } from '../data/rental';
 import { refreshPricingConstants } from './pricing';
@@ -11,7 +10,7 @@ import { isSupabaseConfigured, supabase } from './supabaseClient';
 // baza nije dostupna), a zatim ih zamenjuje cenama iz baze, pa sajt uvek
 // prikazuje iste cene koje baza naplaćuje.
 export function applyPriceList(list) {
-  [...cars, ...fleet].forEach((car) => {
+  fleet.forEach((car) => {
     const price = list.cars?.[car.id];
     if (Number.isFinite(price)) car.pricePerDay = price;
   });

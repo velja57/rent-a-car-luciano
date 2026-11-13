@@ -3,7 +3,7 @@ import { fleet, fuelKind } from '../data/fleet';
 
 // Vrednosti filtera u adresi su iste na oba jezika (?menjac=automatik…), nazivi su u rečnicima.
 export const TRANSMISSIONS = ['automatik', 'manuelni'];
-export const FUELS = ['dizel', 'benzin', 'hibrid'];
+export const FUELS = ['dizel', 'benzin'];
 
 export const SORTS = [
   { id: 'cena', compare: (a, b) => a.pricePerDay - b.pricePerDay },

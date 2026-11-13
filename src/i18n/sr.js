@@ -8,10 +8,10 @@ export default {
   meta: {
     homeTitle: 'Luciano Rent a Car',
     homeDescription:
-      'Luciano Rent a Car — iznajmljivanje vozila novije generacije u Beogradu. Besplatna dostava na aerodrom, većina vozila bez depozita, plaćanje tek pri preuzimanju.',
+      'Luciano Rent a Car — iznajmi pouzdan automobil u Beogradu. Bez depozita, besplatna dostava na aerodrom i plaćanje tek pri preuzimanju. Rezerviši online!',
     fleetTitle: 'Vozila — Luciano Rent a Car',
     fleetDescription: (count, minPrice, maxDiscount) =>
-      `Rent a car Beograd: ${count} vozila od ${minPrice} po danu. Gradski automobili, limuzine, SUV, premium i kombi 8+1. Do −${maxDiscount}% za duži najam.`,
+      `Rent a car Beograd: ${count} vozila od ${minPrice} po danu — od gradskih automobila do SUV-a i premium vozila. Do −${maxDiscount}% za duži najam.`,
     vehicleTitle: (name) => `${name} — rent a car Beograd | Luciano Rent a Car`,
     vehicleDescription: (car, lowest) =>
       `Iznajmi ${car.name} (${car.year}.) u Beogradu — ${car.transmission.toLowerCase()}, ${car.fuel.toLowerCase()}, ${car.seats} sedišta. Već od ${lowest} po danu, neograničena kilometraža.`,
@@ -98,10 +98,9 @@ export default {
 
   types: {
     mali: 'Gradski',
-    srednji: 'Kompakt i limuzine',
+    srednji: 'Kompaktni',
     suv: 'SUV i crossover',
     premium: 'Premium',
-    kombi: 'Kombi',
   },
 
   extras: {
@@ -187,7 +186,7 @@ export default {
   },
 
   footer: {
-    tagline: 'Iznajmljivanje vozila novije generacije.',
+    tagline: 'Pouzdan automobil za svaki put — bez depozita.',
     address: 'Kralja Mihaila Zetskog 43, Batajnica, Beograd',
     hours: 'Radno vreme: 08:00 - 16:00 (radnim danima)',
     whereTitle: 'Gde se nalazimo',
@@ -397,7 +396,7 @@ export default {
     transmissions: { automatik: 'Automatik', manuelni: 'Manuelni' },
     fuel: 'Gorivo',
     allFuels: 'Sva',
-    fuels: { dizel: 'Dizel', benzin: 'Benzin', hibrid: 'Hibrid' },
+    fuels: { dizel: 'Dizel', benzin: 'Benzin' },
     sort: 'Sortiraj',
     sorts: { cena: 'Najniža cena', 'cena-opadajuce': 'Najviša cena', snaga: 'Najveća snaga', preporuka: 'Preporučeno' },
     shown: (shown, total) => ['Prikazano ', shown, ` od ${total} vozila`],

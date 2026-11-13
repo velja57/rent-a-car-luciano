@@ -701,71 +701,6 @@
   outline-offset: 2px;
 }
 
-/* ----- Izdvojena vozila na početnoj ----- */
-.fleet-teaser__head {
-  max-width: none;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.fleet-teaser__head > div {
-  max-width: 720px;
-}
-
-.fleet-teaser__all {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: none;
-  color: var(--color-text);
-  border: 1px solid var(--fleet-line);
-  border-radius: 999px;
-  background: rgba(212, 162, 78, 0.06);
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
-}
-
-.fleet-teaser__all svg {
-  width: 16px;
-  height: 16px;
-  color: var(--color-accent);
-  transition: translate 0.2s ease;
-}
-
-.fleet-teaser__all:hover {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.fleet-teaser__all:hover svg {
-  translate: 4px 0;
-}
-
-.fleet-teaser__cta {
-  margin-top: 44px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
-}
-
-.fleet-teaser__cta .car-form__cta {
-  display: inline-block;
-  padding: 15px 30px;
-  text-decoration: none;
-}
-
-.fleet-teaser__cta p {
-  font-size: 13.5px;
-  color: var(--color-text-muted);
-}
-
 /* Izbor datuma (kalendar) ima svoje stilove: DateRangeFields.css */
 
 /* ----- Lestvica popusta po dužini najma ----- */
@@ -875,11 +810,6 @@
     flex-basis: calc((100% - 22px) / 2);
   }
 
-  .fleet-teaser__head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .discount-ladder {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -908,28 +838,6 @@
 
   .fleet-card {
     flex-basis: 100%;
-  }
-
-  /* Izdvojena vozila na telefonu: horizontalni klizač umesto dugačke liste */
-  .fleet-teaser__grid {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    gap: 14px;
-    margin: 0 -24px;
-    padding: 4px 24px 18px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-padding: 0 24px;
-    scrollbar-width: none;
-  }
-
-  .fleet-teaser__grid::-webkit-scrollbar {
-    display: none;
-  }
-
-  .fleet-teaser__grid .fleet-card {
-    flex: 0 0 84%;
-    scroll-snap-align: start;
   }
 
   .discount-ladder {

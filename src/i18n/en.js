@@ -8,10 +8,10 @@ export default {
   meta: {
     homeTitle: 'Luciano Rent a Car — Car rental in Belgrade',
     homeDescription:
-      'Luciano Rent a Car — rent a new-generation car in Belgrade. Free airport delivery, most cars with no deposit, pay only at pick-up.',
+      'Luciano Rent a Car — rent a reliable car in Belgrade. No deposit, free airport delivery and pay only at pick-up. Book online today!',
     fleetTitle: 'Vehicles — Luciano Rent a Car',
     fleetDescription: (count, minPrice, maxDiscount) =>
-      `Car rental in Belgrade: ${count} cars from ${minPrice} per day. City cars, sedans, SUVs, premium cars and 9-seat vans. Up to −${maxDiscount}% on longer rentals.`,
+      `Car rental in Belgrade: ${count} cars from ${minPrice} per day — from city cars to an SUV and premium cars. Up to −${maxDiscount}% on longer rentals.`,
     vehicleTitle: (name) => `${name} — car rental Belgrade | Luciano Rent a Car`,
     vehicleDescription: (car, lowest) =>
       `Rent a ${car.name} (${car.year}) in Belgrade — ${car.transmission.toLowerCase()}, ${car.fuel.toLowerCase()}, ${car.seats} seats. From ${lowest} per day, unlimited mileage.`,
@@ -98,10 +98,9 @@ export default {
 
   types: {
     mali: 'City cars',
-    srednji: 'Compact & sedans',
+    srednji: 'Compact cars',
     suv: 'SUV & crossover',
     premium: 'Premium',
-    kombi: 'Vans',
   },
 
   extras: {
@@ -187,7 +186,7 @@ export default {
   },
 
   footer: {
-    tagline: 'New-generation car rental.',
+    tagline: 'A reliable car for every trip — no deposit.',
     address: 'Kralja Mihaila Zetskog 43, Batajnica, Belgrade',
     hours: 'Working hours: 08:00 - 16:00 (weekdays)',
     whereTitle: 'Where to find us',
@@ -393,7 +392,7 @@ export default {
     transmissions: { automatik: 'Automatic', manuelni: 'Manual' },
     fuel: 'Fuel',
     allFuels: 'All',
-    fuels: { dizel: 'Diesel', benzin: 'Petrol', hibrid: 'Hybrid' },
+    fuels: { dizel: 'Diesel', benzin: 'Petrol' },
     sort: 'Sort by',
     sorts: { cena: 'Lowest price', 'cena-opadajuce': 'Highest price', snaga: 'Most powerful', preporuka: 'Recommended' },
     shown: (shown, total) => ['Showing ', shown, ` of ${total} cars`],
@@ -466,6 +465,7 @@ export default {
       Poslovna: 'Business',
       Kombi: 'Van',
       'Sportska limuzina': 'Sports sedan',
+      Karavan: 'Estate',
     },
     transmission: { Automatik: 'Automatic', Manuelni: 'Manual' },
     fuel: {
@@ -478,6 +478,7 @@ export default {
     drive: { Prednji: 'Front-wheel', Zadnji: 'Rear-wheel', '4x4': '4x4' },
     luggage: {
       '1 veliki + 1 mali kofer': '1 large + 1 small suitcase',
+      '1 veliki + 2 mala kofera': '1 large + 2 small suitcases',
       '2 velika kofera': '2 large suitcases',
       '3 velika kofera': '3 large suitcases',
       '4 velika kofera': '4 large suitcases',
@@ -507,6 +508,8 @@ export default {
       'Trozonska automatska klima': 'Three-zone climate control',
       'Električni prtljažnik': 'Electric tailgate',
       '9 sedišta': '9 seats',
+      'Centralno zaključavanje': 'Central locking',
+      'Električni podizači stakala': 'Electric windows',
     },
   },
 };

@@ -278,9 +278,11 @@ grant execute on function get_booked_dates(text) to anon;
 -- ============================================================================
 -- Menja se u admin panelu (Vozila). Sajt čita cene odavde (get_price_list),
 -- a iznos svake rezervacije računa baza (price_quote). Početne vrednosti su
--- iste kao u src/data/fleet.js, cars.js i rental.js; ponovno pokretanje ovog
--- fajla NE vraća cene koje je admin promenio (on conflict do nothing).
+-- iste kao u src/data/fleet.js i rental.js; ponovno pokretanje ovog fajla NE
+-- vraća cene koje je admin promenio (on conflict do nothing).
 -- Cene su u celim evrima, popusti u celim procentima (isti rezultat kao sajt).
+-- Redovi probnih vozila iz ranijih verzija (fiat-500, golf, audi…) ostaju u
+-- bazi; ne smetaju, jer ih sajt i admin više ne prikazuju u ponudi.
 
 create table if not exists price_list (
   car_id text primary key check (car_id ~ '^[a-z0-9-]{1,60}$'),
@@ -292,9 +294,8 @@ create table if not exists price_list (
 alter table price_list enable row level security;
 
 insert into price_list (car_id, price_per_day) values
-  ('fiat-500', 21), ('renault-clio', 37), ('toyota-yaris-cross', 38), ('toyota-corolla', 43),
-  ('skoda-octavia', 44), ('dacia-duster', 48), ('kia-sportage', 53), ('golf', 55),
-  ('bmw-serija-3', 57), ('audi', 60), ('skoda-superb', 61), ('renault-trafic', 70)
+  ('skoda-fabia', 25), ('seat-ibiza-benzin', 30), ('seat-ibiza-dizel', 32), ('vw-golf-7', 33),
+  ('vw-golf-8', 55), ('vw-tiguan', 58), ('volvo-v60', 62), ('audi-a6', 68)
 on conflict (car_id) do nothing;
 
 create table if not exists discount_tiers (
