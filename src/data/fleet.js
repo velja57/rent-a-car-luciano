@@ -19,7 +19,8 @@
 // recommended: oznaka "Preporuka".
 //
 // Fotografije: Wikimedia Commons (slobodne licence) — tačan model i generacija,
-// boja nije nužno ista kao kod naših vozila. Autor i licenca MORAJU ostati
+// boja nije nužno ista kao kod naših vozila (obe Ibize su bele, kao naše — isti
+// auto sa Commons-a, isečen da popuni kadar). Autor i licenca MORAJU ostati
 // navedeni uz sliku (prikazuju se ispod galerije vozila).
 
 // Nazivi tipova su u rečnicima (src/i18n, types).
@@ -109,8 +110,8 @@ export const fleet = [
     },
     features: STANDARD_FEATURES,
     images: [
-      photo('seat-ibiza-benzin', 1, 'front', 'Vauxford', 'CC BY-SA 4.0', '2018_SEAT_Ibiza_SE_Technology_MPi_1.0_Front.jpg'),
-      photo('seat-ibiza-benzin', 2, 'rear', 'Vauxford', 'CC BY-SA 4.0', '2018_SEAT_Ibiza_SE_Technology_MPi_1.0_Rear.jpg'),
+      photo('seat-ibiza-benzin', 1, 'front', 'Charles from Port Chester, New York', 'CC BY 2.0', 'Seat_Ibiza_FR_(2019)_(53989592012).jpg'),
+      photo('seat-ibiza-benzin', 2, 'rear', 'Charles from Port Chester, New York', 'CC BY 2.0', 'Seat_Ibiza_FR_(2019)_(53990488771).jpg'),
     ],
   },
   {
@@ -141,8 +142,8 @@ export const fleet = [
     },
     features: STANDARD_FEATURES,
     images: [
-      photo('seat-ibiza-dizel', 1, 'front', 'Alexander Migl', 'CC BY-SA 4.0', 'Seat_Ibiza_6F_IMG_3967.jpg'),
-      photo('seat-ibiza-dizel', 2, 'rear', 'Alexander Migl', 'CC BY-SA 4.0', 'Seat_Ibiza_6F_IMG_3968.jpg'),
+      photo('seat-ibiza-dizel', 1, 'front', 'Charles from Port Chester, New York', 'CC BY 2.0', 'Seat_Ibiza_FR_(2019)_(53989592012).jpg'),
+      photo('seat-ibiza-dizel', 2, 'rear', 'Charles from Port Chester, New York', 'CC BY 2.0', 'Seat_Ibiza_FR_(2019)_(53989592017).jpg'),
       photo('seat-ibiza-dizel', 3, 'interior', 'GalacticCuriosity', 'CC BY-SA 4.0', 'Seat_Ibiza_FR_Business_intense_(2018)_interior.jpg'),
     ],
   },
