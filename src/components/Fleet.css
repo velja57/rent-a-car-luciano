@@ -196,7 +196,8 @@
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  /* Nepotpun poslednji red počinje levo, kao i ostali redovi. */
+  justify-content: flex-start;
   gap: 22px;
 }
 
