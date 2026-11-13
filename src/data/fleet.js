@@ -10,8 +10,8 @@
 // admin panelu (Vozila), a sajt ih učitava preko src/lib/priceList.js.
 // Popusti za duži najam su u src/data/rental.js.
 //
-// Snaga, potrošnja i oprema su za najčešću verziju tog modela i godišta —
-// tačnu snagu potvrditi iz saobraćajne dozvole (polje P.2, kW).
+// Snagu i opremu je klijent potvrdio (13. 11. 2026); potrošnja je približna
+// vrednost za taj motor.
 //
 // deposit: null = bez depozita; broj = iznos u evrima.
 // type: grupa za filter na stranici /vozila (vidi VEHICLE_TYPES).
