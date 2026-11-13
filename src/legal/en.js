@@ -3,7 +3,7 @@ import { companyLine, FACTS, joinList } from './facts';
 // Rental terms and privacy policy — English (same content as sr.js).
 const f = FACTS;
 const c = { ...f.company, address: f.company.address.replace('Beograd', 'Belgrade') };
-const UPDATED = '10 November 2026';
+const UPDATED = '14 November 2026';
 const firm = companyLine({ pib: 'tax ID (PIB)', mb: 'registration no. (MB)' }, c.address);
 const olderCars = joinList(f.olderDriverCars.map((car) => `${car.name} (${car.minAge} years)`), 'and');
 const depositCars = joinList(f.depositCars.map((car) => `${car.name} (€${car.deposit})`), 'and');
@@ -230,7 +230,7 @@ export const privacy = {
       blocks: [
         [
           'Our staff who handle bookings, through a protected admin panel.',
-          'Service providers processing data on our behalf: Supabase (booking database), Resend (sending confirmation and reminder emails) and Vercel (website hosting).',
+          'Service providers processing data on our behalf: Supabase (booking database), Resend (sending confirmation and reminder emails) and Vercel (website hosting and anonymous visit statistics).',
           'Google: the website shows a Google map and uses Google Fonts; when they load, Google receives your IP address, and the map may set Google cookies.',
           'Meta (WhatsApp, Instagram): only if you contact us through these apps; their privacy rules also apply.',
           'Insurers, repair shops and public authorities (police, courts, tax administration): when needed because of damage or when required by law.',
@@ -277,7 +277,7 @@ export const privacy = {
     {
       id: 'cookies',
       title: 'Cookies',
-      blocks: ['The website does not use cookies for analytics or advertising. The Google map in the footer and Google Fonts are loaded from Google servers, which may use their own cookies and technical data under [Google’s privacy policy](https://policies.google.com/privacy). The admin panel uses browser storage only for staff sign-in.'],
+      blocks: ['The website does not use cookies for analytics or advertising. For anonymous visit statistics (number of visits, pages viewed, country and device type) we use Vercel Web Analytics, which works without cookies and does not collect data that could identify a visitor. The Google map in the footer and Google Fonts are loaded from Google servers, which may use their own cookies and technical data under [Google’s privacy policy](https://policies.google.com/privacy). The admin panel uses browser storage only for staff sign-in.'],
     },
     {
       id: 'security',

@@ -4,7 +4,7 @@ import { companyLine, FACTS, joinList } from './facts';
 // Link u tekstu: [tekst](adresa). Brojke i vozila dolaze iz FACTS (isti podaci kao sajt).
 const f = FACTS;
 const c = f.company;
-const UPDATED = '10. novembar 2026.';
+const UPDATED = '14. novembar 2026.';
 const firm = companyLine({ pib: 'PIB', mb: 'matični broj' });
 const olderCars = joinList(f.olderDriverCars.map((car) => `${car.name} (${car.minAge} godina)`), 'i');
 const depositCars = joinList(f.depositCars.map((car) => `${car.name} (${car.deposit} €)`), 'i');
@@ -231,7 +231,7 @@ export const privacy = {
       blocks: [
         [
           'Naši zaposleni koji rade sa rezervacijama, preko zaštićenog administratorskog panela.',
-          'Pružaoci usluga koji podatke obrađuju po našem nalogu: Supabase (baza podataka sa rezervacijama), Resend (slanje mejlova potvrde i podsetnika) i Vercel (hosting sajta).',
+          'Pružaoci usluga koji podatke obrađuju po našem nalogu: Supabase (baza podataka sa rezervacijama), Resend (slanje mejlova potvrde i podsetnika) i Vercel (hosting sajta i anonimna statistika poseta).',
           'Google: na sajtu se prikazuju Google mapa i Google fontovi; pri njihovom učitavanju Google dobija tvoju IP adresu, a mapa može da postavi Google kolačiće.',
           'Meta (WhatsApp, Instagram): samo ako nas kontaktiraš preko tih aplikacija; tada važe i njihova pravila privatnosti.',
           'Osiguravajuća društva, servisi i državni organi (policija, sud, poreska uprava): kada je to potrebno zbog štete ili kada to zahteva zakon.',
@@ -278,7 +278,7 @@ export const privacy = {
     {
       id: 'kolacici',
       title: 'Kolačići',
-      blocks: ['Sajt ne koristi kolačiće za analitiku ni oglašavanje. Google mapa u podnožju sajta i Google fontovi učitavaju se sa Google servera, koji mogu da koriste svoje kolačiće i tehničke podatke prema [pravilima privatnosti kompanije Google](https://policies.google.com/privacy). Administratorski panel koristi memoriju pregledača samo za prijavu zaposlenih.'],
+      blocks: ['Sajt ne koristi kolačiće za analitiku ni oglašavanje. Za anonimnu statistiku poseta (broj poseta, posećene stranice, zemlja i vrsta uređaja) koristimo Vercel Web Analytics, koji radi bez kolačića i ne prikuplja podatke po kojima se posetilac može prepoznati. Google mapa u podnožju sajta i Google fontovi učitavaju se sa Google servera, koji mogu da koriste svoje kolačiće i tehničke podatke prema [pravilima privatnosti kompanije Google](https://policies.google.com/privacy). Administratorski panel koristi memoriju pregledača samo za prijavu zaposlenih.'],
     },
     {
       id: 'bezbednost',
