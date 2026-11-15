@@ -1604,22 +1604,6 @@
   color: var(--color-accent);
 }
 
-.admin-payment-form__date {
-  min-height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14.5px;
-  color: var(--color-text);
-}
-
-.admin-payment-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
-  align-items: end;
-  gap: 12px;
-}
-
 /* ---------- Analitika ---------- */
 
 .admin-analytics {
@@ -1772,14 +1756,6 @@
 
   /* Analitika: "Ukupan prihod" preko cele širine, ostale kartice dve po dve. */
   .admin-stats--5 > :first-child {
-    grid-column: 1 / -1;
-  }
-
-  .admin-payment-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-payment-form__note {
     grid-column: 1 / -1;
   }
 
@@ -1967,8 +1943,7 @@
 
   .admin-filters,
   .admin-form__grid,
-  .admin-extras,
-  .admin-payment-form {
+  .admin-extras {
     grid-template-columns: minmax(0, 1fr);
   }
 

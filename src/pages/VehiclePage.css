@@ -488,7 +488,7 @@
 
 .vehicle-spec__label {
   font-family: var(--fleet-label-font);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-muted);

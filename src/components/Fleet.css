@@ -156,38 +156,6 @@
   line-height: 1.6;
 }
 
-.fleet__stats {
-  margin: 28px 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.fleet__stat {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 10px 16px;
-  font-family: var(--fleet-label-font);
-  font-size: 11.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.fleet__stat strong {
-  font-family: var(--font-sans);
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0;
-  color: var(--color-text);
-}
-
 /* ----- Mreža kartica ----- */
 /* Flex + centriranje: nepotpun poslednji red stoji na sredini. */
 .fleet__grid {
@@ -486,7 +454,7 @@
 
 .fleet-card__spec-label {
   font-family: var(--fleet-label-font);
-  font-size: 9.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -508,7 +476,7 @@
   align-items: center;
   gap: 10px;
   font-family: var(--fleet-label-font);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -570,7 +538,7 @@
   justify-content: space-between;
   gap: 8px;
   font-family: var(--fleet-label-font);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -742,7 +710,7 @@
 
 .discount-ladder__days {
   font-family: var(--fleet-label-font);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -827,14 +795,6 @@
 
   .fleet__subtitle {
     font-size: 15px;
-  }
-
-  .fleet__stat {
-    padding: 8px 12px;
-  }
-
-  .fleet__stat strong {
-    font-size: 17px;
   }
 
   .fleet-card {
