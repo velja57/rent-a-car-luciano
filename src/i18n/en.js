@@ -276,6 +276,7 @@ export default {
       unavailable: 'The car is not available for the selected dates. Please choose different dates.',
       submit: 'Something went wrong while sending your booking. Please try again or give us a call.',
       tooLong: (n) => `Online bookings are limited to ${n} days. For a longer rental, please give us a call.`,
+      tooFar: (n) => `Online bookings can be made up to ${n} months ahead. For a later date, please give us a call.`,
       tooMany: 'You already have 3 active bookings. To add another, please call us or message us on WhatsApp.',
       busy: "We can't take online bookings right now. Please call us or message us on WhatsApp.",
     },

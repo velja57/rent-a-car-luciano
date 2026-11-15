@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { EXTRAS, MAX_ONLINE_DAYS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
+import { EXTRAS, MAX_ADVANCE_MONTHS, MAX_ONLINE_DAYS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { dictionaries, useI18n } from '../i18n';
 import { bookingMessage, isWorkingNow, priceLine, questionMessage, whatsappUrl } from '../lib/contact';
 import { discountPercent, extraPrice, formatEur, formatRsd, quote, rentalDays, todayISO } from '../lib/pricing';
@@ -15,6 +15,13 @@ import ResponseTime from './ResponseTime';
 // Koliko čekamo nakon poslednjeg unosa datuma pre nego što proverimo
 // dostupnost u bazi (da ne pucamo zahtev na svaki pritisak tastera).
 const AVAILABILITY_DEBOUNCE_MS = 450;
+
+// Najkasniji datum preuzimanja preko sajta: danas + MAX_ADVANCE_MONTHS (isto u bazi).
+function latestPickupISO() {
+  const [y, m, d] = todayISO().split('-').map(Number);
+  const months = y * 12 + (m - 1) + MAX_ADVANCE_MONTHS;
+  return `${Math.floor(months / 12)}-${String((months % 12) + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
 
 function formatExtraPrice(extra, car, t, lang) {
   const price = extraPrice(extra, car);
@@ -216,6 +223,7 @@ export default function ReservationModal({
 
     if (!form.pickupDate) next.pickupDate = e.pickup;
     else if (form.pickupDate < todayISO()) next.pickupDate = e.pickupPast;
+    else if (form.pickupDate > latestPickupISO()) next.pickupDate = e.tooFar(MAX_ADVANCE_MONTHS);
 
     if (!form.returnDate) next.returnDate = e.return;
     else if (form.pickupDate && form.returnDate <= form.pickupDate) {
@@ -345,6 +353,8 @@ export default function ReservationModal({
         setErrors((prev) => ({ ...prev, returnDate: r.errors.unavailable }));
       } else if (data?.reason === 'too_long') {
         setErrors((prev) => ({ ...prev, returnDate: r.errors.tooLong(MAX_ONLINE_DAYS) }));
+      } else if (data?.reason === 'too_far') {
+        setErrors((prev) => ({ ...prev, pickupDate: r.errors.tooFar(MAX_ADVANCE_MONTHS) }));
       } else if (data?.reason === 'invalid_time') {
         setErrors((prev) => ({ ...prev, time: r.errors.invalidTime }));
       } else if (data?.reason === 'too_many') {
@@ -482,19 +492,33 @@ export default function ReservationModal({
 
               <label className="reservation-form__field">
                 <span>{r.name}</span>
-                <input ref={firstFieldRef} type="text" autoComplete="name" value={form.name} onChange={setField('name')} />
+                <input
+                  ref={firstFieldRef}
+                  type="text"
+                  autoComplete="name"
+                  maxLength={120}
+                  value={form.name}
+                  onChange={setField('name')}
+                />
                 {errors.name && <em className="reservation-form__error">{errors.name}</em>}
               </label>
 
               <div className="reservation-form__row">
                 <label className="reservation-form__field">
                   <span>{r.phone}</span>
-                  <input type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={setField('phone')} />
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    maxLength={40}
+                    value={form.phone}
+                    onChange={setField('phone')}
+                  />
                   {errors.phone && <em className="reservation-form__error">{errors.phone}</em>}
                 </label>
                 <label className="reservation-form__field">
                   <span>{r.email}</span>
-                  <input type="email" autoComplete="email" value={form.email} onChange={setField('email')} />
+                  <input type="email" autoComplete="email" maxLength={254} value={form.email} onChange={setField('email')} />
                   {errors.email && <em className="reservation-form__error">{errors.email}</em>}
                 </label>
               </div>
@@ -502,7 +526,7 @@ export default function ReservationModal({
               {editingLocation ? (
                 <label className="reservation-form__field">
                   <span>{r.location}</span>
-                  <input type="text" value={form.location} onChange={setField('location')} />
+                  <input type="text" maxLength={200} value={form.location} onChange={setField('location')} />
                   {errors.location && <em className="reservation-form__error">{errors.location}</em>}
                 </label>
               ) : (
@@ -536,7 +560,7 @@ export default function ReservationModal({
                 </fieldset>
                 <label className="reservation-form__field">
                   <span>{r.note}</span>
-                  <textarea rows={3} value={form.note} onChange={setField('note')} />
+                  <textarea rows={3} maxLength={1000} value={form.note} onChange={setField('note')} />
                 </label>
               </details>
 

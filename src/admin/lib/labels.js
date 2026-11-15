@@ -57,6 +57,14 @@ export const TRANSITIONS = {
       confirm: 'Ponovo aktivirati otkazanu rezervaciju? Biće odbijeno ako je termin u međuvremenu zauzet.',
     },
   ],
+  no_show: [
+    {
+      to: 'confirmed',
+      label: 'Vrati u potvrđenu',
+      confirm:
+        'Vratiti rezervaciju u „Potvrđena“? Koristi ako je „Nije se pojavio“ kliknuto greškom. Biće odbijeno ako je termin u međuvremenu zauzet.',
+    },
+  ],
 };
 
 // Statusi koji zauzimaju termin (isto kao u bazi).

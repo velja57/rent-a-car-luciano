@@ -30,6 +30,10 @@ export const LOYALTY_DISCOUNT_PERCENT = 10;
 // telefonom). Isto ograničenje proverava i baza (create_reservation).
 export const MAX_ONLINE_DAYS = 30;
 
+// Koliko meseci unapred kupac može da rezerviše preko sajta (kasniji termini se
+// dogovaraju telefonom). Isto ograničenje proverava i baza (create_reservation).
+export const MAX_ADVANCE_MONTHS = 12;
+
 // Preuzimanje i vraćanje preko sajta: radnim danima (pon–pet) od 8 do 20 h, na
 // pola sata; drugi termini se dogovaraju telefonom. Ista pravila primenjuje baza
 // (supabase/schema.sql): dan najma je 24 h od preuzimanja, vraćanje do 59 min

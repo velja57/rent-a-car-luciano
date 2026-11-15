@@ -467,18 +467,22 @@ begin
     return jsonb_build_object('success', false, 'reason', 'invalid_dates');
   end if;
 
-  -- Vreme preko sajta: radnim danima (pon–pet) od 08 do 20 h i ne u prošlosti.
-  -- Drugi termini se dogovaraju telefonom i unose u adminu. (Starija verzija
-  -- sajta ne šalje vreme — tada rezervacija zauzima cele dane, kao ranije.)
-  if p_pickup_time is not null or p_return_time is not null then
-    if p_pickup_time is null or p_return_time is null
-      or extract(isodow from p_pickup) > 5 or extract(isodow from p_return) > 5
-      or p_pickup_time < time '08:00' or p_pickup_time > time '20:00'
-      or p_return_time < time '08:00' or p_return_time > time '20:00'
-      or p_pickup + p_pickup_time < now() at time zone 'Europe/Belgrade'
-    then
-      return jsonb_build_object('success', false, 'reason', 'invalid_time');
-    end if;
+  -- Vreme preko sajta je obavezno: radnim danima (pon–pet) od 08 do 20 h i ne u
+  -- prošlosti. Drugi termini se dogovaraju telefonom i unose u adminu. (Bez
+  -- vremena bi rezervacija zauzela cele dane i zaobišla ova pravila — forma na
+  -- sajtu vreme uvek šalje.)
+  if p_pickup_time is null or p_return_time is null
+    or extract(isodow from p_pickup) > 5 or extract(isodow from p_return) > 5
+    or p_pickup_time < time '08:00' or p_pickup_time > time '20:00'
+    or p_return_time < time '08:00' or p_return_time > time '20:00'
+    or p_pickup + p_pickup_time < now() at time zone 'Europe/Belgrade'
+  then
+    return jsonb_build_object('success', false, 'reason', 'invalid_time');
+  end if;
+
+  -- Preuzimanje najviše 12 meseci unapred (kasniji termini se dogovaraju telefonom).
+  if p_pickup > (now() at time zone 'Europe/Belgrade')::date + interval '12 months' then
+    return jsonb_build_object('success', false, 'reason', 'too_far');
   end if;
 
   -- Iznos računa baza po cenovniku. Iznos koji šalje sajt služi samo za proveru:
@@ -498,12 +502,25 @@ begin
 
   -- Ista obavezna polja kao u formi na sajtu. Datum rođenja se ne traži: uzrast
   -- se proverava pri preuzimanju, po ličnoj karti i vozačkoj dozvoli.
+  -- Funkciju može da pozove svako sa javnim ključem sajta (i mimo forme), zato se
+  -- ovde proverava sve što forma proverava: telefon je broj (cifre, razmak i
+  -- znaci + / ( ) -, najmanje 6 cifara), polja imaju razumnu dužinu, a vozilo
+  -- mora postojati u cenovniku.
   if coalesce(trim(p_car_id), '') = ''
     or coalesce(trim(p_car_name), '') = ''
     or coalesce(trim(p_customer_name), '') = ''
     or coalesce(trim(p_phone), '') = ''
     or coalesce(trim(p_location), '') = ''
     or coalesce(trim(p_email), '') !~ '^\S+@\S+\.\S+$'
+    or trim(p_phone) !~ '^[0-9+\s/()-]{6,}$'
+    or length(regexp_replace(p_phone, '\D', '', 'g')) < 6
+    or char_length(p_car_name) > 120
+    or char_length(p_customer_name) > 120
+    or char_length(p_email) > 254
+    or char_length(p_phone) > 40
+    or char_length(p_location) > 200
+    or coalesce(cardinality(p_extras), 0) > 20
+    or not exists (select 1 from price_list pl where pl.car_id = p_car_id)
   then
     return jsonb_build_object('success', false, 'reason', 'invalid_input');
   end if;
@@ -511,6 +528,7 @@ begin
   -- Zaštita od lažnih rezervacija: funkciju može da pozove svako sa javnim
   -- ključem sajta, a svaka rezervacija odmah zauzima vozilo. Ograničenja važe
   -- samo za sajt — admin panel (admin_create_reservation) ih nema.
+  --   too_far       preuzimanje najviše 12 meseci unapred (provera je iznad)
   --   too_long      najam preko sajta najviše 30 dana (duži se dogovara telefonom)
   --   too_many      najviše 3 buduće aktivne rezervacije sa istim telefonom ili emailom
   --   rate_limited  najviše 30 rezervacija sa sajta na sat, za ceo sajt
@@ -555,7 +573,8 @@ begin
     ) values (
       p_car_id, p_car_name, p_customer_name, trim(p_email), p_phone, p_dob,
       p_pickup, p_return, p_pickup_time, p_return_time, p_location,
-      nullif(concat_ws(' | ', nullif(trim(p_note), ''), warning), ''),
+      -- Napomena se skraćuje na 2000 znakova (forma na sajtu dozvoljava 1000).
+      nullif(concat_ws(' | ', nullif(left(trim(p_note), 2000), ''), warning), ''),
       case when p_language = 'en' then 'en' else 'sr' end,
       left(nullif(trim(p_price_summary), ''), 600),
       case
@@ -1402,6 +1421,7 @@ $$;
 --   confirmed -> picked_up | cancelled | no_show
 --   picked_up -> completed
 --   cancelled -> confirmed (ponovo aktivirana — baza proverava da li je termin i dalje slobodan)
+--   no_show   -> confirmed ("Nije se pojavio" kliknuto greškom — ista provera termina)
 create or replace function admin_set_status(p_id uuid, p_status text)
 returns jsonb
 language plpgsql
@@ -1423,7 +1443,7 @@ begin
   if not (
     (current_status = 'confirmed' and p_status in ('picked_up', 'cancelled', 'no_show'))
     or (current_status = 'picked_up' and p_status = 'completed')
-    or (current_status = 'cancelled' and p_status = 'confirmed')
+    or (current_status in ('cancelled', 'no_show') and p_status = 'confirmed')
   ) then
     return jsonb_build_object('success', false, 'reason', 'invalid_transition', 'from', current_status, 'to', p_status);
   end if;

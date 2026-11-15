@@ -158,6 +158,11 @@ stižu samo na adresu Resend naloga.
 sajt, a svaka rezervacija odmah zauzima vozilo. Zato baza (`create_reservation`)
 odbija rezervaciju sa sajta kada:
 
+- nema vreme preuzimanja i vraćanja, ili termin nije radnim danom od 08 do 20 h,
+  ili je u prošlosti;
+- je preuzimanje više od **12 meseci** unapred;
+- vozilo nije u cenovniku, telefon nije broj (najmanje 6 cifara) ili su polja
+  predugačka (ime 120, lokacija 200 znakova; napomena se skraćuje na 2000);
 - najam traje duže od **30 dana** (duži se dogovara telefonom, admin ga unosi
   u admin panelu);
 - isti telefon ili email već ima **3 buduće aktivne** rezervacije;
