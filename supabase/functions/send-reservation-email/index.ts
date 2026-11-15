@@ -172,7 +172,7 @@ Deno.serve(async (req: Request) => {
         <li><strong>Lokacija preuzimanja:</strong> ${location}</li>
         ${note ? `<li><strong>Napomena:</strong> ${note}</li>` : ''}
       </ul>
-      <p>Pregled svih rezervacija: Supabase dashboard → Table Editor → reservations.</p>
+      <p>Sve rezervacije su u admin panelu sajta (adresa sajta + /admin) → Rezervacije.</p>
     </div>
   `;
 
