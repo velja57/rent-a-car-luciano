@@ -1,6 +1,12 @@
+import sr from '../../i18n/sr';
 import { formatDate as formatSiteDate, formatEur } from '../../lib/pricing';
 
 const TIME_ZONE = 'Europe/Belgrade';
+
+// "1 dan", "3 dana", "21 dan" (isto pravilo kao na sajtu).
+export function formatDays(n) {
+  return `${n} ${sr.days(Number(n))}`;
+}
 
 // YYYY-MM-DD -> "10.11.2026." (isti format kao na sajtu i u mejlovima).
 export function formatDate(iso) {

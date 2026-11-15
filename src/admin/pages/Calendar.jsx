@@ -14,6 +14,8 @@ const DAY_FROM_HOUR = 6;
 const DAY_TO_HOUR = 22;
 
 const weekdayOf = (day) => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
+// Naziv bez marke za usku kolonu na telefonu: "Volkswagen Golf 7" -> "Golf 7".
+const shortName = (name) => name.split(' ').slice(1).join(' ') || name;
 const hourLabel = (hour) => `${String(hour).padStart(2, '0')}:00`;
 
 // Prikazani period: jedan dan, nedelja od ponedeljka ili ceo mesec.
@@ -241,7 +243,12 @@ export default function Calendar() {
               return (
                 <div key={car.id} className="admin-cal__row">
                   <div className="admin-cal__car" title={car.name}>
-                    <strong>{car.name}</strong>
+                    <strong>
+                      <span className="admin-cal__car-full">{car.name}</span>
+                      <span className="admin-cal__car-short" aria-hidden="true">
+                        {shortName(car.name)}
+                      </span>
+                    </strong>
                     {plates[car.id] && <span className="admin-muted">{plates[car.id]}</span>}
                     {car.unknown && <span className="admin-muted">nije u ponudi</span>}
                   </div>

@@ -1246,6 +1246,11 @@
   font-size: 12px;
 }
 
+/* Kratak naziv (bez marke) se prikazuje samo na telefonu — vidi dno fajla. */
+.admin-cal__car-short {
+  display: none;
+}
+
 .admin-cal__track {
   position: relative;
   width: calc(var(--days) * var(--day-w));
@@ -1908,7 +1913,38 @@
   }
 }
 
+/* Na telefonu 16px: iPhone inače zumira celu stranicu pri dodiru polja sa sitnijim fontom. */
+@media (max-width: 760px) {
+  .admin-field input,
+  .admin-field select,
+  .admin-field textarea,
+  .admin-analytics-filters__period input {
+    font-size: 16px;
+  }
+
+  /* Dva datuma dele širinu reda (ili prelaze u dva reda) — bez širenja stranice. */
+  .admin-analytics-filters__period {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .admin-analytics-filters__period input {
+    flex: 1 1 130px;
+    min-width: 0;
+    padding: 8px 10px;
+  }
+}
+
 @media (max-width: 600px) {
+  /* Kalendar: kratak naziv vozila ("Golf 7" umesto "Volkswagen G…"). */
+  .admin-cal__car-full {
+    display: none;
+  }
+
+  .admin-cal__car-short {
+    display: inline;
+  }
+
   .admin-page__header h1 {
     font-size: 22px;
   }

@@ -6,7 +6,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
 import { loadPriceList } from '../../lib/priceList';
 import { adminApi, useAdminData } from '../lib/adminApi';
-import { formatDate, formatDateTime, formatDateWithTime, formatMoney, formatTime, shortId } from '../lib/format';
+import { formatDate, formatDateTime, formatDateWithTime, formatDays, formatMoney, formatTime, shortId } from '../lib/format';
 import { vehicleById } from '../lib/labels';
 
 const PAGE_SIZE = 25;
@@ -172,7 +172,7 @@ function History({ carId }) {
                           {r.return_time && ` ${formatTime(r.return_time)}`}
                         </span>
                         <div className="admin-muted">
-                          {r.days} {r.days === 1 ? 'dan' : 'dana'}
+                          {formatDays(r.days)}
                         </div>
                       </div>
                     </td>

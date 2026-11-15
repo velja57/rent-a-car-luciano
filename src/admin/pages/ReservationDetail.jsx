@@ -6,7 +6,7 @@ import { ErrorState, LoadingState } from '../components/States';
 import { useToast } from '../components/Toast';
 import { adminApi, useAdminData } from '../lib/adminApi';
 import Payments from '../components/Payments';
-import { ageFrom, formatDate, formatDateTime, formatMoney, formatTime, shortId, todayBelgrade } from '../lib/format';
+import { ageFrom, formatDate, formatDateTime, formatDays, formatMoney, formatTime, shortId, todayBelgrade } from '../lib/format';
 import {
   actorLabel,
   EVENT_LABELS,
@@ -272,7 +272,7 @@ export default function ReservationDetail() {
               <div className="admin-muted">{r.return_location || 'Ista lokacija kao preuzimanje'}</div>
             </Row>
             <Row label="Trajanje">
-              {r.days} {r.days === 1 ? 'dan' : 'dana'}
+              {formatDays(r.days)}
             </Row>
             {r.picked_up_at && <Row label="Preuzeto">{formatDateTime(r.picked_up_at)}</Row>}
             {r.returned_at && <Row label="Vraćeno">{formatDateTime(r.returned_at)}</Row>}
@@ -305,7 +305,7 @@ export default function ReservationDetail() {
                   <strong className="admin-amount">{formatMoney(r.total_price)}</strong>
                   {r.daily_rate !== null && (
                     <div className="admin-muted">
-                      {r.rental_days} {r.rental_days === 1 ? 'dan' : 'dana'} × {formatMoney(r.daily_rate)}
+                      {formatDays(r.rental_days)} × {formatMoney(r.daily_rate)}
                       {/* Popust važi samo za cenu iz cenovnika, ne za ručno unetu. */}
                       {Number(r.discount_percent) > 0 && r.price_source !== 'admin' && ` (popust ${Number(r.discount_percent)}%)`} ={' '}
                       {formatMoney(r.rental_total)}

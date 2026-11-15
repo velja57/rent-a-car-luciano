@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import Pagination from '../components/Pagination';
 import StatusBadge from '../components/StatusBadge';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { adminApi, useAdminData } from '../lib/adminApi';
-import { formatDate, formatDateTime, formatMoney, formatTime, shortId } from '../lib/format';
+import { formatDate, formatDateTime, formatDays, formatMoney, formatTime, shortId } from '../lib/format';
 import { STATUS_ORDER, STATUSES, VEHICLES } from '../lib/labels';
 
 const PAGE_SIZE = 25;
@@ -50,11 +50,19 @@ export default function Reservations() {
     setParams(next, { replace: true });
   };
 
+  // Pretraga se upisuje u adresu sa malim kašnjenjem. Za to vreme admin može da
+  // klikne i neki filter — zato se upis radi preko najnovije verzije "update"
+  // (inače bi pretraga upisala staru adresu i poništila taj filter).
+  const updateRef = useRef(update);
+  useEffect(() => {
+    updateRef.current = update;
+  });
+
   const [search, setSearch] = useState(q);
   useEffect(() => setSearch(q), [q]);
   useEffect(() => {
     if (search === q) return undefined;
-    const timer = setTimeout(() => update({ q: search }), SEARCH_DEBOUNCE_MS);
+    const timer = setTimeout(() => updateRef.current({ q: search }), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
@@ -233,7 +241,7 @@ export default function Reservations() {
                           {r.return_time && ` ${formatTime(r.return_time)}`}
                         </span>
                         <div className="admin-muted admin-ellipsis">
-                          {r.days} {r.days === 1 ? 'dan' : 'dana'} · {r.pickup_location}
+                          {formatDays(r.days)} · {r.pickup_location}
                         </div>
                         {r.return_location && (
                           <div className="admin-muted admin-ellipsis">Vraćanje: {r.return_location}</div>

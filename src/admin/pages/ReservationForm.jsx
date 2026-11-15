@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import { extraPrice } from '../../lib/pricing';
 import { billableDays, graceUntil } from '../../lib/rentalTimes';
 import { adminApi, useAdminData } from '../lib/adminApi';
-import { formatDate, formatMoney, shortId, todayBelgrade } from '../lib/format';
+import { formatDate, formatDays, formatMoney, shortId, todayBelgrade } from '../lib/format';
 import { ACTIVE_STATUSES, DEFAULT_LOCATION, extraOptions, LANGUAGES, VEHICLES, vehicleById } from '../lib/labels';
 
 const AVAILABILITY_DEBOUNCE_MS = 400;
@@ -338,7 +338,7 @@ export default function ReservationForm() {
             <div className={`admin-availability admin-availability--${blocked ? 'busy' : availability.state}`} aria-live="polite">
               {availability.state === 'checking' && 'Proveravam da li je vozilo slobodno…'}
               {availability.state === 'error' && 'Provera zauzetosti nije uspela — baza će je ponoviti pri čuvanju.'}
-              {availability.state === 'free' && `Vozilo je slobodno (${days} ${days === 1 ? 'dan' : 'dana'}).`}
+              {availability.state === 'free' && `Vozilo je slobodno (${formatDays(days)}).`}
               {availability.state === 'busy' && (
                 <>
                   {occupiesDates

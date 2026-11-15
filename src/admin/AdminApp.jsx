@@ -53,11 +53,11 @@ function LoginForm({ onSignedIn }) {
         <h1>Admin prijava</h1>
         <label className="admin-field">
           <span>Email</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+          <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
         </label>
         <label className="admin-field">
           <span>Lozinka</span>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         {error && <p className="admin-error">{error}</p>}
         <button type="submit" className="admin-btn admin-btn--primary" disabled={submitting}>
