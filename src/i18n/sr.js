@@ -6,7 +6,7 @@ export default {
   powerUnit: 'KS',
 
   meta: {
-    homeTitle: 'Luciano Rent a Car',
+    homeTitle: 'Luciano Rent a Car — rent a car Beograd',
     homeDescription:
       'Luciano Rent a Car — iznajmi pouzdan automobil u Beogradu. Bez depozita, besplatna dostava na aerodrom i plaćanje tek pri preuzimanju. Rezerviši online!',
     fleetTitle: 'Vozila — Luciano Rent a Car',

@@ -5,7 +5,8 @@ import { isSupabaseConfigured, supabase } from './supabaseClient';
 // podataka) — za precrtavanje dana u kalendaru. Ako funkcija get_booked_dates
 // još ne postoji u bazi (SQL iz supabase/schema.sql nije pokrenut), vraća
 // praznu listu; zauzetost se i dalje proverava pri izboru datuma i slanju.
-export function useBookedDates(carId) {
+// version: promena vrednosti ponovo učitava termine (npr. posle nove rezervacije).
+export function useBookedDates(carId, version = 0) {
   const [ranges, setRanges] = useState([]);
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export function useBookedDates(carId) {
     return () => {
       cancelled = true;
     };
-  }, [carId]);
+  }, [carId, version]);
 
   return ranges;
 }

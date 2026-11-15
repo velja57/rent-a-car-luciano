@@ -7,7 +7,8 @@ const AVAILABILITY_DEBOUNCE_MS = 450;
 // Proverava dostupnost više vozila za isti period (ista RPC funkcija kao forma
 // za rezervaciju). status: idle | checking | ready | error; byId: { [id]: true/false }.
 // Sa vremenima (Hero) provera je tačna po terminu; bez njih samo po datumima.
-export function useAvailability(carIds, pickup, ret, pickupTime = '', returnTime = '') {
+// version: promena vrednosti ponavlja proveru (npr. posle nove rezervacije).
+export function useAvailability(carIds, pickup, ret, pickupTime = '', returnTime = '', version = 0) {
   const [state, setState] = useState({ status: 'idle', byId: {} });
   const idsKey = carIds.join(',');
 
@@ -41,7 +42,7 @@ export function useAvailability(carIds, pickup, ret, pickupTime = '', returnTime
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [idsKey, pickup, ret, pickupTime, returnTime]);
+  }, [idsKey, pickup, ret, pickupTime, returnTime, version]);
 
   return state;
 }

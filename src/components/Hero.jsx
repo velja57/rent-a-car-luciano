@@ -52,7 +52,10 @@ export default function Hero() {
   const returnTime = returnOptions.includes(returnParam) ? returnParam : defaultReturnTime(returnOptions, pickupTime);
   const days = billableDays(pickup, pickupTime, ret, returnTime);
 
-  const availability = useAvailability(ALL_CAR_IDS, pickup, ret, pickupTime, returnTime);
+  // Posle nove rezervacije dostupnost se proverava ponovo.
+  const [bookings, setBookings] = useState(0);
+  const onBooked = useCallback(() => setBookings((n) => n + 1), []);
+  const availability = useAvailability(ALL_CAR_IDS, pickup, ret, pickupTime, returnTime, bookings);
   const filters = useFleetFilters(availability, { hideBusy: true });
   const { availabilityReady, setParam, resetFilters, visible, filtersActive } = filters;
 
@@ -197,6 +200,7 @@ export default function Hero() {
         <ReservationModal
           car={reservationCar}
           onClose={closeReservation}
+          onBooked={onBooked}
           triggerRef={triggerRef}
           initialPickup={pickup}
           initialReturn={ret}

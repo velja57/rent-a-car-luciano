@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { useI18n } from '../i18n';
 import { usePageMeta } from '../lib/usePageMeta';
@@ -6,6 +7,16 @@ import '../components/Fleet.css';
 export default function NotFoundPage() {
   const { t, paths } = useI18n();
   usePageMeta(t.meta.notFoundTitle, t.meta.homeDescription);
+
+  // Stranica greške ne treba da se pojavi u pretraživačima (server za svaku
+  // adresu vraća istu HTML stranicu, pa im ovo jedino govori da adresa ne postoji).
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex';
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, []);
 
   return (
     <div className="fleet not-found">

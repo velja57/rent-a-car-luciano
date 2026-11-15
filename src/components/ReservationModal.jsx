@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { EXTRAS, MAX_ONLINE_DAYS, PHONE_DISPLAY, PHONE_HREF } from '../data/rental';
 import { dictionaries, useI18n } from '../i18n';
 import { bookingMessage, isWorkingNow, priceLine, questionMessage, whatsappUrl } from '../lib/contact';
-import { discountPercent, extraPrice, formatEur, formatRsd, quote, rentalDays } from '../lib/pricing';
+import { discountPercent, extraPrice, formatEur, formatRsd, quote, rentalDays, todayISO } from '../lib/pricing';
 import { billableDays, defaultPickupTime, defaultReturnTime, graceUntil, isWorkday, pickupSlots, returnSlots } from '../lib/rentalTimes';
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 import { useBookedDates } from '../lib/useBookedDates';
@@ -15,10 +15,6 @@ import ResponseTime from './ResponseTime';
 // Koliko čekamo nakon poslednjeg unosa datuma pre nego što proverimo
 // dostupnost u bazi (da ne pucamo zahtev na svaki pritisak tastera).
 const AVAILABILITY_DEBOUNCE_MS = 450;
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function formatExtraPrice(extra, car, t, lang) {
   const price = extraPrice(extra, car);
@@ -58,10 +54,12 @@ function Icon({ name }) {
 // Tri načina rezervacije, po važnosti: (1) online forma -> baza + mejl vlasniku
 // i potvrda kupcu, (2) gotova WhatsApp poruka, (3) poziv. initialPickup /
 // initialReturn: datumi već izabrani na stranici vozila/flote; initialPickupTime /
-// initialReturnTime: vremena izabrana u Hero sekciji.
+// initialReturnTime: vremena izabrana u Hero sekciji. onBooked: poziva se kad je
+// rezervacija upisana (stranica tada ponovo učitava zauzetost vozila).
 export default function ReservationModal({
   car,
   onClose,
+  onBooked,
   triggerRef,
   initialPickup = '',
   initialReturn = '',
@@ -70,6 +68,7 @@ export default function ReservationModal({
 }) {
   const { lang, t, paths } = useI18n();
   const r = t.reservation;
+  const modalRef = useRef(null);
   const closeButtonRef = useRef(null);
   const firstFieldRef = useRef(null);
   const alternativesRef = useRef(null);
@@ -106,6 +105,22 @@ export default function ReservationModal({
     document.body.style.overflow = 'hidden';
     const onKeyDown = (e) => {
       if (e.key === 'Escape') onClose();
+      // Tab ostaje unutar forme (ne odlazi na stranicu iza nje).
+      if (e.key !== 'Tab' || !modalRef.current) return;
+      const focusable = [
+        ...modalRef.current.querySelectorAll('a[href], button:not([disabled]), input, select, textarea, summary'),
+      ].filter((el) => el.getClientRects().length > 0);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const inside = modalRef.current.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
@@ -165,7 +180,12 @@ export default function ReservationModal({
     };
   }, [form.pickupDate, form.returnDate, pickupTime, returnTime, car.id]);
 
-  const setField = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  // Greška ispod polja nestaje čim kupac počne da ga ispravlja.
+  const setField = (field) => (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+  };
 
   const setDates = ({ pickup, ret }) => {
     setForm((f) => ({ ...f, pickupDate: pickup, returnDate: ret }));
@@ -190,7 +210,8 @@ export default function ReservationModal({
     const e = r.errors;
     const next = {};
     if (!form.name.trim()) next.name = e.name;
-    if (!/^[0-9+\s/()-]{6,}$/.test(form.phone)) next.phone = e.phone;
+    // Najmanje 6 cifara (razmaci i znaci + / ( ) - su dozvoljeni, ali se ne broje).
+    if (!/^[0-9+\s/()-]{6,}$/.test(form.phone) || form.phone.replace(/\D/g, '').length < 6) next.phone = e.phone;
     if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = e.email;
 
     if (!form.pickupDate) next.pickupDate = e.pickup;
@@ -337,6 +358,7 @@ export default function ReservationModal({
     }
 
     setSent(true);
+    onBooked?.();
   };
 
   const submitLabel = !isSupabaseConfigured
@@ -351,7 +373,7 @@ export default function ReservationModal({
   // fixed overlay zarobilo unutar kartice forme umesto preko celog ekrana.
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="reservation-title" ref={modalRef}>
         <button type="button" className="modal__close" aria-label={t.common.close} onClick={onClose} ref={closeButtonRef}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />

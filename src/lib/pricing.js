@@ -12,8 +12,10 @@ export function refreshPricingConstants() {
   MAX_DISCOUNT_PERCENT = maxDiscountPercent();
 }
 
+// Današnji datum (YYYY-MM-DD) po beogradskom vremenu — isto "danas" kao u
+// poslovnici i u bazi, bez obzira na vremensku zonu kupca (i posle ponoći).
 export function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Belgrade' }).format(new Date());
 }
 
 // Broj dana najma između dva datuma (YYYY-MM-DD); 0 ako period nije ispravan.

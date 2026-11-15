@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
 import { formatDate, todayISO } from '../lib/pricing';
-import { blockedDays, isWorkday } from '../lib/rentalTimes';
+import { blockedDays, isWorkday, pickupSlots } from '../lib/rentalTimes';
 import './DateRangeFields.css';
 
 // Datumi su ISO stringovi (YYYY-MM-DD) — računamo u UTC da vremenska zona ne pomera dan.
@@ -33,6 +33,8 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [], ti
   const { lang, t } = useI18n();
   const c = t.calendar;
   const today = todayISO();
+  // Danas posle poslednjeg termina (20 h) preko sajta više nema preuzimanja.
+  const todayClosed = isWorkday(today) && pickupSlots(today, []).length === 0;
   const { noPickup, noReturn } = useMemo(() => blockedDays(booked), [booked]);
   const [open, setOpen] = useState(false);
   const [selecting, setSelecting] = useState('start');
@@ -143,7 +145,7 @@ export default function DateRangeFields({ pickup, ret, onChange, booked = [], ti
             ))}
             {monthGrid(month).map((day, i) => {
               if (!day) return <span key={`blank-${i}`} />;
-              const past = day < today;
+              const past = day < today || (day === today && todayClosed);
               const offDay = !isWorkday(day);
               const isBooked = !offDay && bookedDays.has(day);
               const blocked = !isBooked && !offDay && Boolean(returnLimit) && day > returnLimit;

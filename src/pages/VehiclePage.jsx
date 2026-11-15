@@ -51,8 +51,11 @@ function VehicleDetails({ rawCar }) {
   const { showCallNotice, handleCallClick, handleMouseLeave } = useCallNotice();
 
   const { pickup, ret, days, setDates } = useRentalDates();
-  const availability = useAvailability([car.id], pickup, ret);
-  const bookedRanges = useBookedDates(car.id);
+  // Posle nove rezervacije dostupnost i zauzeti dani u kalendaru se učitavaju ponovo.
+  const [bookings, setBookings] = useState(0);
+  const onBooked = useCallback(() => setBookings((n) => n + 1), []);
+  const availability = useAvailability([car.id], pickup, ret, '', '', bookings);
+  const bookedRanges = useBookedDates(car.id, bookings);
   const [reservationCar, setReservationCar] = useState(null);
   // Dugme koje je otvorilo formu — fokus mu se vraća kad se forma zatvori.
   const triggerRef = useRef(null);
@@ -274,6 +277,7 @@ function VehicleDetails({ rawCar }) {
         <ReservationModal
           car={reservationCar}
           onClose={closeReservation}
+          onBooked={onBooked}
           triggerRef={triggerRef}
           initialPickup={pickup}
           initialReturn={ret}

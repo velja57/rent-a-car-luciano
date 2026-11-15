@@ -30,7 +30,10 @@ export default function FleetPage() {
   const { showCallNotice, handleCallClick, handleMouseLeave } = useCallNotice();
 
   const { pickup, ret, days, setDates } = useRentalDates();
-  const availability = useAvailability(ALL_CAR_IDS, pickup, ret);
+  // Posle nove rezervacije dostupnost se proverava ponovo.
+  const [bookings, setBookings] = useState(0);
+  const onBooked = useCallback(() => setBookings((n) => n + 1), []);
+  const availability = useAvailability(ALL_CAR_IDS, pickup, ret, '', '', bookings);
   const filters = useFleetFilters(availability);
   const { onlyFree, availabilityReady, setParam, resetFilters, isFree, visible, filtersActive } = filters;
   const [reservationCar, setReservationCar] = useState(null);
@@ -190,6 +193,7 @@ export default function FleetPage() {
         <ReservationModal
           car={reservationCar}
           onClose={closeReservation}
+          onBooked={onBooked}
           triggerRef={triggerRef}
           initialPickup={pickup}
           initialReturn={ret}

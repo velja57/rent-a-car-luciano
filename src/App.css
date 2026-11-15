@@ -171,10 +171,13 @@
   color: var(--color-accent);
 }
 
+/* Pozadina menija se pojavljuje odmah (bez prelaza) — inače se stavke menija
+   na trenutak vide preko sadržaja stranice. */
 .site-header--menu-open {
   background: rgba(11, 12, 15, 0.96);
   border-bottom-color: var(--color-border);
   backdrop-filter: blur(14px);
+  transition-duration: 0s;
 }
 
 @media (max-width: 860px) {
@@ -1180,6 +1183,15 @@
 .reservation-form__field input::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
   cursor: pointer;
+}
+
+/* Na telefonu 16px: iPhone inače zumira celu stranicu pri dodiru polja sa sitnijim fontom. */
+@media (max-width: 640px) {
+  .reservation-form__field input,
+  .reservation-form__field textarea,
+  .reservation-form__field select {
+    font-size: 16px;
+  }
 }
 
 .reservation-form__error {
