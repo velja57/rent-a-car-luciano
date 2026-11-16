@@ -265,4 +265,9 @@
     width: 20px;
     height: 20px;
   }
+
+  /* Link je u svom redu ispod dve kolone — centriran, ispod razmaka između kolona. */
+  .perks-bar__more {
+    margin-inline: auto;
+  }
 }
