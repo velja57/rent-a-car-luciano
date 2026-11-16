@@ -254,9 +254,64 @@
   }
 }
 
-@media (max-width: 380px) {
+/* Ikonica telefona i kratak tekst ("Pozovi") postoje samo na telefonu. */
+.site-header__cta-icon,
+.site-header__cta-short {
+  display: none;
+}
+
+/* Telefon: manji logo i kompaktno dugme "Pozovi" sa ikonicom, iste visine kao
+   dugme za meni; logo i dugmad nikad ne prelaze u drugi red i ne dodiruju se. */
+@media (max-width: 520px) {
+  .site-header__inner {
+    gap: 16px;
+  }
+
+  .site-header__logo {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
   .site-header__cta {
-    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 42px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .site-header__cta-icon {
+    display: block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+  }
+
+  .site-header__cta-full {
+    display: none;
+  }
+
+  .site-header__cta-short {
+    display: inline;
+  }
+}
+
+/* Najuži telefoni: samo ikonica, kvadrat iste veličine kao dugme za meni. */
+@media (max-width: 359px) {
+  .site-header__cta {
+    justify-content: center;
+    width: 42px;
+    padding: 0;
+  }
+
+  .site-header__cta-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .site-header__cta-short {
+    display: none;
   }
 }
 

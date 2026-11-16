@@ -100,8 +100,16 @@ export default function Header() {
         <div className="site-header__actions">
           <LanguageSwitch className="lang-switch--header" />
           <div className="site-header__call" onMouseLeave={handleMouseLeave}>
-            <a className="site-header__cta" href={PHONE_HREF} onClick={handleCallClick}>
-              {t.nav.call}
+            <a className="site-header__cta" href={PHONE_HREF} onClick={handleCallClick} aria-label={t.nav.call}>
+              {/* Ikonica i kratak tekst vide se samo na telefonu (App.css). */}
+              <svg className="site-header__cta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path
+                  d="M5 4h3.5l1.5 4-2 1.5a11 11 0 005.5 5.5l1.5-2 4 1.5V18a2 2 0 01-2 2A15 15 0 013 6a2 2 0 012-2z"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="site-header__cta-full">{t.nav.call}</span>
+              <span className="site-header__cta-short">{t.nav.callShort}</span>
             </a>
             {showCallNotice && <CallNotice className="call-notice call-notice--popover" />}
           </div>

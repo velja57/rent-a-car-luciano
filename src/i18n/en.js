@@ -37,6 +37,7 @@ export default {
     terms: 'Rental terms',
     contact: 'Contact',
     call: 'Call us',
+    callShort: 'Call',
     mainMenu: 'Main menu',
     menu: 'Menu',
     openMenu: 'Open menu',

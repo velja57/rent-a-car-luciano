@@ -37,6 +37,7 @@ export default {
     terms: 'Uslovi najma',
     contact: 'Kontakt',
     call: 'Pozovi nas',
+    callShort: 'Pozovi',
     mainMenu: 'Glavni meni',
     menu: 'Meni',
     openMenu: 'Otvori meni',
