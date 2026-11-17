@@ -248,6 +248,25 @@
   text-underline-offset: 3px;
 }
 
+/* Tablet i mali laptop: pogodnosti i link ne staju u jedan red, pa umesto
+   3 + 1 uz levu ivicu idu u četiri jednake kolone, a link centrirano ispod. */
+@media (min-width: 761px) and (max-width: 1099px) {
+  .perks-bar__list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 20px;
+    width: 100%;
+  }
+
+  .perks-bar__list li {
+    align-items: flex-start;
+  }
+
+  .perks-bar__more {
+    margin-inline: auto;
+  }
+}
+
 @media (max-width: 760px) {
   .perks-bar__list {
     display: grid;
